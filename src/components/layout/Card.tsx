@@ -1,6 +1,14 @@
+/**
+ * @file Card.tsx
+ * @description Composant de surface élevée (carte) servant de conteneur
+ *              visuel avec ombre, bordure et fond thématisé.
+ * @author Riahi Dorsaf
+ */
+
 import React, { ReactNode } from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
-import { colors, spacing, radius } from '../../theme';
+import { View, ViewStyle } from 'react-native';
+import { useStyles } from '../../theme';
+import { makeStyles } from './Card.styles';
 
 interface CardProps {
   children: ReactNode;
@@ -8,23 +16,21 @@ interface CardProps {
   padded?:  boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ children, style, padded = true }) => (
-  <View style={[styles.card, padded && styles.padded, style]}>
-    {children}
-  </View>
-);
+/**
+ * Carte — conteneur visuel avec élévation, bordure et fond thématisé.
+ * Utilisé pour regrouper des informations connexes dans un bloc distinct.
+ *
+ * @param children - Contenu de la carte
+ * @param style    - Styles additionnels appliqués au conteneur
+ * @param padded   - Si true (défaut), applique un padding interne standard
+ * @author Riahi Dorsaf
+ */
+export const Card: React.FC<CardProps> = ({ children, style, padded = true }) => {
+  const styles = useStyles(makeStyles);
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.bgSurface,
-    borderRadius:    radius.lg,
-    borderWidth:     1,
-    borderColor:     colors.border,
-    shadowColor:     colors.black,
-    shadowOffset:    { width: 0, height: 1 },
-    shadowOpacity:   0.06,
-    shadowRadius:    4,
-    elevation:       2,
-  },
-  padded: { padding: spacing[5] },
-});
+  return (
+    <View style={[styles.card, padded && styles.padded, style]}>
+      {children}
+    </View>
+  );
+};

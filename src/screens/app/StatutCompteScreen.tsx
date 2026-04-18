@@ -1,20 +1,63 @@
+/**
+ * @file StatutCompteScreen.tsx
+ * @description Écran principal de l'application pour les utilisateurs authentifiés.
+ *              Affiche le statut du compte entreprise (EN_ATTENTE, ACTIVE, REFUSE, SUSPENDU),
+ *              les informations du compte et les modules à venir.
+ * @author Riahi Dorsaf
+ */
+
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card }        from '../../components/layout/Card';
 import { Button }      from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useAuth }     from '../../context/AuthContext';
+import { useStyles, useTheme, AppTheme } from '../../theme';
 import * as EntrepriseApi from '../../api/entreprise.api';
 import { EntrepriseCompteResponse } from '../../types/entreprise.types';
-import { colors, spacing, typography, radius } from '../../theme';
+import { makeStyles } from './StatutCompteScreen.styles';
 
-const STATUT_CONTENT = {
-  EN_ATTENTE: { emoji: '⏳', title: "Votre demande est en cours d'examen",   subtitle: "Notre équipe examine votre dossier. Vous serez notifié par email.", bg: colors.warningLight },
-  ACTIVE:     { emoji: '🎉', title: "Votre compte est actif !",               subtitle: "Bienvenue sur CRM Mobile. Vous avez accès à toutes les fonctionnalités.", bg: colors.successLight },
-  REFUSE:     { emoji: '❌', title: "Votre demande a été refusée",            subtitle: "Consultez le motif de refus ci-dessous.", bg: colors.dangerLight },
-  SUSPENDU:   { emoji: '⚠️', title: "Votre compte est suspendu",             subtitle: "Contactez le support pour plus d'informations.", bg: '#F5F3FF' },
-};
+// ─────────────────────────────────────────────────────────────
+// CONSTANTES
+// ─────────────────────────────────────────────────────────────
+
+type StatutKey = 'EN_ATTENTE' | 'ACTIVE' | 'REFUSE' | 'SUSPENDU';
+
+/**
+ * Retourne le contenu textuel et la couleur de fond associés à chaque statut de compte.
+ * Utilise les tokens du thème pour éviter toute couleur hardcodée.
+ *
+ * @param theme - Thème courant pour résoudre les couleurs sémantiques
+ * @returns Dictionnaire statut → { emoji, title, subtitle, bg }
+ * @author Riahi Dorsaf
+ */
+const getStatutContent = (theme: AppTheme): Record<StatutKey, { emoji: string; title: string; subtitle: string; bg: string }> => ({
+  EN_ATTENTE: {
+    emoji:    '⏳',
+    title:    "Votre demande est en cours d'examen",
+    subtitle: "Notre équipe examine votre dossier. Vous serez notifié par email.",
+    bg:       theme.colors.warningLight,
+  },
+  ACTIVE: {
+    emoji:    '🎉',
+    title:    "Votre compte est actif !",
+    subtitle: "Bienvenue sur CRM Mobile. Vous avez accès à toutes les fonctionnalités.",
+    bg:       theme.colors.successLight,
+  },
+  REFUSE: {
+    emoji:    '❌',
+    title:    "Votre demande a été refusée",
+    subtitle: "Consultez le motif de refus ci-dessous.",
+    bg:       theme.colors.dangerLight,
+  },
+  SUSPENDU: {
+    emoji:    '⚠️',
+    title:    "Votre compte est suspendu",
+    subtitle: "Contactez le support pour plus d'informations.",
+    bg:       theme.colors.statutSuspenduLight,
+  },
+});
 
 const MODULES = [
   { icon: '👥', label: 'Clients & Contacts',  sprint: 'Sprint 2' },
@@ -25,12 +68,71 @@ const MODULES = [
   { icon: '🤖', label: 'Assistant IA',         sprint: 'Sprint 4' },
 ];
 
+// ─────────────────────────────────────────────────────────────
+// UTILITAIRE
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Formate une date ISO en date lisible en français.
+ *
+ * @param iso - Chaîne de date au format ISO 8601
+ * @returns Date formatée (ex : "15 janvier 2025") ou la chaîne brute en cas d'erreur
+ * @author Riahi Dorsaf
+ */
+const formatDate = (iso: string) => {
+  try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); }
+  catch { return iso; }
+};
+
+// ─────────────────────────────────────────────────────────────
+// SOUS-COMPOSANT : InfoRow
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Ligne d'information affichant un label et sa valeur en regard.
+ *
+ * @param label - Libellé du champ
+ * @param value - Valeur à afficher
+ * @param mono  - Si true, applique une police monospace à la valeur
+ * @author Riahi Dorsaf
+ */
+const InfoRow: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label, value, mono }) => {
+  const styles = useStyles(makeStyles);
+
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={[styles.infoValue, mono && styles.infoMono]}>{value}</Text>
+    </View>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// ÉCRAN PRINCIPAL
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Écran de statut du compte — affiché après authentification.
+ * Charge les données de l'entreprise via l'API, supporte le pull-to-refresh
+ * et adapte son affichage selon le statut du compte (EN_ATTENTE, ACTIVE, REFUSE, SUSPENDU).
+ *
+ * @author Riahi Dorsaf
+ */
 export const StatutCompteScreen: React.FC = () => {
   const { currentUser, logout } = useAuth();
+  const styles = useStyles(makeStyles);
+  const theme  = useTheme();
+
   const [entreprise,   setEntreprise]   = useState<EntrepriseCompteResponse | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  /**
+   * Charge ou rafraîchit les données de l'entreprise depuis l'API.
+   *
+   * @param refresh - Si true, active l'indicateur de rafraîchissement (pull-to-refresh)
+   * @author Riahi Dorsaf
+   */
   const charger = useCallback(async (refresh = false) => {
     if (refresh) setIsRefreshing(true); else setIsLoading(true);
     try {
@@ -46,22 +148,29 @@ export const StatutCompteScreen: React.FC = () => {
 
   useEffect(() => { charger(); }, [charger]);
 
+  /**
+   * Affiche une boîte de dialogue de confirmation avant déconnexion.
+   * @author Riahi Dorsaf
+   */
   const handleLogout = () => Alert.alert(
     'Déconnexion',
     'Voulez-vous vous déconnecter ?',
-    [{ text: 'Annuler', style: 'cancel' }, { text: 'Se déconnecter', style: 'destructive', onPress: logout }]
+    [{ text: 'Annuler', style: 'cancel' }, { text: 'Se déconnecter', style: 'destructive', onPress: logout }],
   );
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.center}><Text style={styles.loading}>Chargement...</Text></View>
+        <View style={styles.center}>
+          <Text style={styles.loading}>Chargement...</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
-  const statut  = entreprise?.statutCompte ?? 'EN_ATTENTE';
-  const content = STATUT_CONTENT[statut];
+  const statut        = (entreprise?.statutCompte ?? 'EN_ATTENTE') as StatutKey;
+  const statutContent = getStatutContent(theme);
+  const content       = statutContent[statut];
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -69,7 +178,13 @@ export const StatutCompteScreen: React.FC = () => {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => charger(true)} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => charger(true)}
+            tintColor={theme.colors.primary}
+          />
+        }
       >
         <View style={styles.topBar}>
           <View>
@@ -102,7 +217,9 @@ export const StatutCompteScreen: React.FC = () => {
             <InfoRow label="Matricule"  value={entreprise.matriculeFiscale} mono />
             <InfoRow label="Secteur"    value={entreprise.secteurActivite} />
             <InfoRow label="Demande le" value={formatDate(entreprise.dateCreation)} />
-            {entreprise.dateValidation && <InfoRow label="Décision le" value={formatDate(entreprise.dateValidation)} />}
+            {entreprise.dateValidation && (
+              <InfoRow label="Décision le" value={formatDate(entreprise.dateValidation)} />
+            )}
           </Card>
         )}
 
@@ -112,7 +229,9 @@ export const StatutCompteScreen: React.FC = () => {
             <View style={styles.modulesGrid}>
               {MODULES.map(m => (
                 <View key={m.label} style={styles.moduleItem}>
-                  <View style={styles.moduleIcon}><Text style={styles.moduleEmoji}>{m.icon}</Text></View>
+                  <View style={styles.moduleIcon}>
+                    <Text style={styles.moduleEmoji}>{m.icon}</Text>
+                  </View>
                   <Text style={styles.moduleLabel}>{m.label}</Text>
                   <Text style={styles.moduleSprint}>{m.sprint}</Text>
                 </View>
@@ -121,58 +240,14 @@ export const StatutCompteScreen: React.FC = () => {
           </Card>
         )}
 
-        <Button label="Se déconnecter" onPress={handleLogout} variant="ghost" fullWidth style={styles.btnLogout} />
+        <Button
+          label="Se déconnecter"
+          onPress={handleLogout}
+          variant="ghost"
+          fullWidth
+          style={styles.btnLogout}
+        />
       </ScrollView>
     </SafeAreaView>
   );
 };
-
-const InfoRow: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label, value, mono }) => (
-  <View style={infoStyles.row}>
-    <Text style={infoStyles.label}>{label}</Text>
-    <Text style={[infoStyles.value, mono && infoStyles.mono]}>{value}</Text>
-  </View>
-);
-
-const formatDate = (iso: string) => {
-  try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); }
-  catch { return iso; }
-};
-
-const styles = StyleSheet.create({
-  safe:          { flex: 1, backgroundColor: colors.bgApp },
-  scroll:        { flex: 1 },
-  content:       { paddingHorizontal: spacing[5], paddingTop: spacing[4], paddingBottom: spacing[10] },
-  center:        { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loading:       { fontSize: typography.size.base, color: colors.textSecondary },
-  topBar:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing[5] },
-  greeting:      { fontSize: typography.size.sm, color: colors.textSecondary, marginBottom: 2 },
-  companyName:   { fontSize: typography.size.lg, fontWeight: '700', color: colors.textPrimary },
-  logoutBtn:     { width: 40, height: 40, borderRadius: radius.full, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  logoutIcon:    { fontSize: 18, color: colors.textSecondary },
-  statusCard:    { borderRadius: radius.xl, padding: spacing[6], alignItems: 'center', marginBottom: spacing[4], borderWidth: 1, borderColor: colors.border },
-  statusEmoji:   { fontSize: 36, marginBottom: spacing[4] },
-  statusTitle:   { fontSize: typography.size.lg, fontWeight: '700', color: colors.textPrimary, textAlign: 'center', marginBottom: spacing[3], marginTop: spacing[4] },
-  statusSubtitle:{ fontSize: typography.size.sm, color: colors.textSecondary, textAlign: 'center', lineHeight: typography.size.sm * 1.6, marginBottom: spacing[4] },
-  motifBox:      { width: '100%', backgroundColor: colors.dangerLight, borderRadius: radius.md, padding: spacing[4], borderLeftWidth: 3, borderLeftColor: colors.danger, marginBottom: spacing[4] },
-  motifLabel:    { fontSize: typography.size.xs, fontWeight: '600', color: colors.dangerText, marginBottom: spacing[2] },
-  motifText:     { fontSize: typography.size.sm, color: colors.dangerText },
-  refreshHint:   { fontSize: typography.size.xs, color: colors.textTertiary, marginTop: spacing[2] },
-  infoCard:      { marginBottom: spacing[4] },
-  cardTitle:     { fontSize: typography.size.base, fontWeight: '600', color: colors.textPrimary, marginBottom: spacing[4] },
-  modulesCard:   { marginBottom: spacing[4] },
-  modulesGrid:   { flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing[3], rowGap: spacing[3] },
-  moduleItem:    { width: '45%', alignItems: 'center', columnGap: spacing[2], rowGap: spacing[2] },
-  moduleIcon:    { width: 52, height: 52, borderRadius: radius.lg, backgroundColor: colors.bgApp, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  moduleEmoji:   { fontSize: 24 },
-  moduleLabel:   { fontSize: typography.size.sm, fontWeight: '500', color: colors.textTertiary, textAlign: 'center' },
-  moduleSprint:  { fontSize: typography.size.xs, color: colors.primary, fontWeight: '500' },
-  btnLogout:     { marginTop: spacing[2] },
-});
-
-const infoStyles = StyleSheet.create({
-  row:   { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing[2], borderBottomWidth: 1, borderBottomColor: colors.bgApp },
-  label: { fontSize: typography.size.sm, color: colors.textSecondary },
-  value: { fontSize: typography.size.sm, fontWeight: '500', color: colors.textPrimary, flex: 1, textAlign: 'right' },
-  mono:  { fontFamily: 'monospace', fontSize: typography.size.xs },
-});

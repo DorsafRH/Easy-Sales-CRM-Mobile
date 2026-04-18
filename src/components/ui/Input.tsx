@@ -1,9 +1,18 @@
+/**
+ * @file Input.tsx
+ * @description Composant champ de saisie générique avec support du label,
+ *              validation d'erreur, champ obligatoire et affichage/masquage
+ *              du mot de passe.
+ * @author Riahi Dorsaf
+ */
+
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, TextInputProps, ViewStyle,
+  TextInputProps, ViewStyle,
 } from 'react-native';
-import { colors, spacing, radius, typography } from '../../theme';
+import { useStyles, useTheme } from '../../theme';
+import { makeStyles } from './Input.styles';
 
 interface InputProps extends TextInputProps {
   label?:          string;
@@ -13,10 +22,24 @@ interface InputProps extends TextInputProps {
   containerStyle?: ViewStyle;
 }
 
+/**
+ * Champ de saisie générique de l'application.
+ * Gère l'affichage du label, du marqueur obligatoire (*), du message d'erreur
+ * et du bouton de bascule visibilité pour les champs mot de passe.
+ *
+ * @param label          - Texte du label affiché au-dessus du champ
+ * @param error          - Message d'erreur affiché sous le champ (bordure rouge si présent)
+ * @param required       - Si true, affiche un astérisque rouge après le label
+ * @param isPassword     - Si true, masque la saisie et affiche un bouton œil
+ * @param containerStyle - Styles additionnels appliqués au conteneur
+ * @author Riahi Dorsaf
+ */
 export const Input: React.FC<InputProps> = ({
   label, error, required = false, isPassword = false,
   containerStyle, ...rest
 }) => {
+  const styles = useStyles(makeStyles);
+  const theme  = useTheme();
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -30,7 +53,7 @@ export const Input: React.FC<InputProps> = ({
       <View style={[styles.inputWrapper, error ? styles.inputError : null]}>
         <TextInput
           style={styles.input}
-          placeholderTextColor={colors.textPlaceholder}
+          placeholderTextColor={theme.colors.textPlaceholder}
           secureTextEntry={isPassword ? !showPassword : rest.secureTextEntry}
           autoCapitalize="none"
           {...rest}
@@ -49,15 +72,3 @@ export const Input: React.FC<InputProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container:    { marginBottom: spacing[4] },
-  label:        { fontSize: typography.size.sm, fontWeight: '500', color: colors.textPrimary, marginBottom: spacing[2] },
-  required:     { color: colors.danger },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.bgSurface, paddingHorizontal: spacing[4] },
-  inputError:   { borderColor: colors.danger },
-  input:        { flex: 1, paddingVertical: spacing[3], fontSize: typography.size.base, color: colors.textPrimary },
-  eyeBtn:       { padding: spacing[1], marginLeft: spacing[2] },
-  eyeIcon:      { fontSize: 16 },
-  errorText:    { fontSize: typography.size.xs, color: colors.danger, marginTop: spacing[1] },
-});
