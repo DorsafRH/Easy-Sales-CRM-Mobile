@@ -5,9 +5,10 @@
  * @author Riahi Dorsaf
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Platform, KeyboardAvoidingView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { Screen }  from '../../components/layout/Screen';
 import { Card }    from '../../components/layout/Card';
 import { Button }  from '../../components/ui/Button';
@@ -33,6 +34,15 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email,      setEmail]      = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [errors,     setErrors]     = useState({ email: '', motDePasse: '' });
+
+  useFocusEffect(
+    useCallback(() => {
+      clearLoginError();
+      setEmail('');
+      setMotDePasse('');
+      setErrors({ email: '', motDePasse: '' });
+    }, [])
+  );
 
   /**
    * Valide les champs du formulaire avant soumission.
@@ -104,12 +114,18 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           />
         </Card>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Pas encore de compte ?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('InformationsEntreprise')}>
-            <Text style={styles.footerLink}> Créer un compte</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Pas encore de compte ?</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('InformationsEntreprise')}>
+          <Text style={styles.footerLink}> Créer un compte</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.footer}>
+        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+          <Text style={styles.footerLink}>Mot de passe oublié ?</Text>
+        </TouchableOpacity>
+      </View>
       </KeyboardAvoidingView>
     </Screen>
   );

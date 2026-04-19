@@ -37,3 +37,5 @@ export * from './themeStore';
 
 // Hook useStyles() + type StyleFactory
 export * from './useStyles';
+
+export * from './dimensions' 

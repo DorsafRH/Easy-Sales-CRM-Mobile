@@ -1,14 +1,14 @@
 /**
  * @file StatutCompteScreen.tsx
  * @description Écran principal de l'application pour les utilisateurs authentifiés.
- *              Affiche le statut du compte entreprise (EN_ATTENTE, ACTIVE, REFUSE, SUSPENDU),
- *              les informations du compte et les modules à venir.
  * @author Riahi Dorsaf
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Card }        from '../../components/layout/Card';
 import { Button }      from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -17,21 +17,10 @@ import { useStyles, useTheme, AppTheme } from '../../theme';
 import * as EntrepriseApi from '../../api/entreprise.api';
 import { EntrepriseCompteResponse } from '../../types/entreprise.types';
 import { makeStyles } from './StatutCompteScreen.styles';
-
-// ─────────────────────────────────────────────────────────────
-// CONSTANTES
-// ─────────────────────────────────────────────────────────────
+import { AppStackParamList } from '../../navigation/AppStack';
 
 type StatutKey = 'EN_ATTENTE' | 'ACTIVE' | 'REFUSE' | 'SUSPENDU';
 
-/**
- * Retourne le contenu textuel et la couleur de fond associés à chaque statut de compte.
- * Utilise les tokens du thème pour éviter toute couleur hardcodée.
- *
- * @param theme - Thème courant pour résoudre les couleurs sémantiques
- * @returns Dictionnaire statut → { emoji, title, subtitle, bg }
- * @author Riahi Dorsaf
- */
 const getStatutContent = (theme: AppTheme): Record<StatutKey, { emoji: string; title: string; subtitle: string; bg: string }> => ({
   EN_ATTENTE: {
     emoji:    '⏳',
@@ -68,37 +57,13 @@ const MODULES = [
   { icon: '🤖', label: 'Assistant IA',         sprint: 'Sprint 4' },
 ];
 
-// ─────────────────────────────────────────────────────────────
-// UTILITAIRE
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Formate une date ISO en date lisible en français.
- *
- * @param iso - Chaîne de date au format ISO 8601
- * @returns Date formatée (ex : "15 janvier 2025") ou la chaîne brute en cas d'erreur
- * @author Riahi Dorsaf
- */
 const formatDate = (iso: string) => {
   try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); }
   catch { return iso; }
 };
 
-// ─────────────────────────────────────────────────────────────
-// SOUS-COMPOSANT : InfoRow
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Ligne d'information affichant un label et sa valeur en regard.
- *
- * @param label - Libellé du champ
- * @param value - Valeur à afficher
- * @param mono  - Si true, applique une police monospace à la valeur
- * @author Riahi Dorsaf
- */
 const InfoRow: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label, value, mono }) => {
   const styles = useStyles(makeStyles);
-
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -107,32 +72,16 @@ const InfoRow: React.FC<{ label: string; value: string; mono?: boolean }> = ({ l
   );
 };
 
-// ─────────────────────────────────────────────────────────────
-// ÉCRAN PRINCIPAL
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Écran de statut du compte — affiché après authentification.
- * Charge les données de l'entreprise via l'API, supporte le pull-to-refresh
- * et adapte son affichage selon le statut du compte (EN_ATTENTE, ACTIVE, REFUSE, SUSPENDU).
- *
- * @author Riahi Dorsaf
- */
 export const StatutCompteScreen: React.FC = () => {
   const { currentUser, logout } = useAuth();
-  const styles = useStyles(makeStyles);
-  const theme  = useTheme();
+  const styles     = useStyles(makeStyles);
+  const theme      = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
   const [entreprise,   setEntreprise]   = useState<EntrepriseCompteResponse | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  /**
-   * Charge ou rafraîchit les données de l'entreprise depuis l'API.
-   *
-   * @param refresh - Si true, active l'indicateur de rafraîchissement (pull-to-refresh)
-   * @author Riahi Dorsaf
-   */
   const charger = useCallback(async (refresh = false) => {
     if (refresh) setIsRefreshing(true); else setIsLoading(true);
     try {
@@ -148,10 +97,6 @@ export const StatutCompteScreen: React.FC = () => {
 
   useEffect(() => { charger(); }, [charger]);
 
-  /**
-   * Affiche une boîte de dialogue de confirmation avant déconnexion.
-   * @author Riahi Dorsaf
-   */
   const handleLogout = () => Alert.alert(
     'Déconnexion',
     'Voulez-vous vous déconnecter ?',
@@ -186,16 +131,36 @@ export const StatutCompteScreen: React.FC = () => {
           />
         }
       >
+        {/* ── Top Bar ── */}
         <View style={styles.topBar}>
           <View>
             <Text style={styles.greeting}>Bonjour, {currentUser?.prenom} 👋</Text>
             <Text style={styles.companyName}>{currentUser?.nomEntreprise ?? entreprise?.nomEntreprise}</Text>
           </View>
-          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <Text style={styles.logoutIcon}>↩</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', columnGap: 8 }}>
+            {statut === 'ACTIVE' && (
+              <>
+                <TouchableOpacity
+                  style={styles.logoutBtn}
+                  onPress={() => navigation.navigate('EditProfile')}
+                >
+                  <Text style={styles.logoutIcon}>👤</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.logoutBtn}
+                  onPress={() => navigation.navigate('EditCompany')}
+                >
+                  <Text style={styles.logoutIcon}>🏢</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+              <Text style={styles.logoutIcon}>↩</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
+        {/* ── Carte statut ── */}
         <View style={[styles.statusCard, { backgroundColor: content.bg }]}>
           <Text style={styles.statusEmoji}>{content.emoji}</Text>
           <StatusBadge statut={statut} />
@@ -210,6 +175,7 @@ export const StatutCompteScreen: React.FC = () => {
           <Text style={styles.refreshHint}>↓ Tirez vers le bas pour actualiser</Text>
         </View>
 
+        {/* ── Infos compte ── */}
         {entreprise && (
           <Card style={styles.infoCard}>
             <Text style={styles.cardTitle}>Informations du compte</Text>
@@ -223,6 +189,7 @@ export const StatutCompteScreen: React.FC = () => {
           </Card>
         )}
 
+        {/* ── Modules ── */}
         {statut === 'ACTIVE' && (
           <Card style={styles.modulesCard}>
             <Text style={styles.cardTitle}>Modules à venir</Text>
