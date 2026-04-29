@@ -1,0 +1,225 @@
+/**
+ * @file ClientDetailScreen.styles.ts
+ * @description Styles de la fiche client avec sections Contacts et Opportunités.
+ * @author Riahi Dorsaf
+ */
+
+import { StyleSheet } from 'react-native';
+import { AppTheme }   from '../../theme';
+import { layout }     from '../../theme/dimensions';
+
+/**
+ * @param theme - Thème courant injecté par useStyles()
+ * @author Riahi Dorsaf
+ */
+export const makeStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+
+    safe: {
+      flex:            1,
+      backgroundColor: theme.colors.bgApp,
+    },
+
+    scroll: { flex: 1 },
+
+    content: {
+      flexGrow:      1,
+      paddingBottom: theme.spacing[10],
+    },
+
+    // ── Header avec avatar ─────────────────────────────────────
+    header: {
+      backgroundColor:   theme.colors.bgSurface,
+      paddingHorizontal: layout.screenPadding,
+      paddingTop:        theme.spacing[4],
+      paddingBottom:     theme.spacing[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      alignItems:        'center',
+    },
+
+    backBtn: {
+      position:        'absolute',
+      top:             theme.spacing[4],
+      left:            layout.screenPadding,
+      width:           40,
+      height:          40,
+      borderRadius:    20,
+      backgroundColor: theme.colors.bgApp,
+      alignItems:      'center',
+      justifyContent:  'center',
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+    },
+
+    editBtn: {
+      position:  'absolute',
+      top:       theme.spacing[4],
+      right:     layout.screenPadding,
+      width:     40,
+      height:    40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.bgApp,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+
+    headerNom: {
+      fontSize:     theme.typography.size.xl,
+      fontWeight:   '700',
+      color:        theme.colors.textPrimary,
+      marginTop:    theme.spacing[3],
+      marginBottom: theme.spacing[1],
+      textAlign:    'center',
+    },
+
+    headerMeta: {
+      fontSize:  theme.typography.size.sm,
+      color:     theme.colors.textSecondary,
+      textAlign: 'center',
+    },
+
+    // ── Sections ─────────────────────────────────────────────
+    section: {
+      paddingHorizontal: layout.screenPadding,
+      marginTop:         theme.spacing[4],
+    },
+
+    card: {
+      backgroundColor: theme.colors.bgSurface,
+      borderRadius:    theme.radius.lg,
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+      overflow:        'hidden',
+    },
+
+    // ── Rows d'info ───────────────────────────────────────────
+    infoRow: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      columnGap:         theme.spacing[3],
+      paddingVertical:   theme.spacing[3],
+      paddingHorizontal: theme.spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.bgApp,
+    },
+
+    infoLabel: {
+      fontSize:  theme.typography.size.sm,
+      color:     theme.colors.textSecondary,
+      width:     80,
+    },
+
+    infoValue: {
+      flex:       1,
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '500',
+      color:      theme.colors.textPrimary,
+    },
+
+    infoValueCA: {
+      flex:       1,
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '700',
+      color:      theme.colors.primary,
+    },
+
+    // ── Section header ────────────────────────────────────────
+    sectionHeader: {
+      flexDirection:  'row',
+      justifyContent: 'space-between',
+      alignItems:     'center',
+      marginBottom:   theme.spacing[3],
+    },
+
+    sectionTitle: {
+      fontSize:   theme.typography.size.base,
+      fontWeight: '700',
+      color:      theme.colors.textPrimary,
+    },
+
+    addBtn: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      columnGap:     theme.spacing[1],
+    },
+
+    addBtnText: {
+      fontSize:   theme.typography.size.sm,
+      color:      theme.colors.primary,
+      fontWeight: '600',
+    },
+
+    // ── Item contact ──────────────────────────────────────────
+    contactItem: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      columnGap:         theme.spacing[3],
+      paddingVertical:   theme.spacing[3],
+      paddingHorizontal: theme.spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.bgApp,
+    },
+
+    contactInfo: {
+      flex: 1,
+    },
+
+    contactNom: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '600',
+      color:      theme.colors.textPrimary,
+    },
+
+    contactPoste: {
+      fontSize: theme.typography.size.xs,
+      color:    theme.colors.textSecondary,
+    },
+
+    contactCallBtn: {
+      width:           36,
+      height:          36,
+      borderRadius:    18,
+      backgroundColor: theme.colors.primaryLight,
+      alignItems:      'center',
+      justifyContent:  'center',
+    },
+
+    // ── Placeholder Opportunités ──────────────────────────────
+    opportunitesPlaceholder: {
+      alignItems:      'center',
+      padding:         theme.spacing[6],
+    },
+
+    opportunitesText: {
+      fontSize:  theme.typography.size.sm,
+      color:     theme.colors.textSecondary,
+      textAlign: 'center',
+    },
+
+    // ── Bouton supprimer ──────────────────────────────────────
+    deleteBtn: {
+      marginHorizontal: layout.screenPadding,
+      marginTop:        theme.spacing[4],
+      paddingVertical:  theme.spacing[3],
+      borderRadius:     theme.radius.md,
+      borderWidth:      1,
+      borderColor:      theme.colors.danger,
+      alignItems:       'center',
+    },
+
+    deleteBtnText: {
+      fontSize:   theme.typography.size.sm,
+      color:      theme.colors.danger,
+      fontWeight: '600',
+    },
+
+    // ── Chargement ────────────────────────────────────────────
+    loadingContainer: {
+      flex:           1,
+      alignItems:     'center',
+      justifyContent: 'center',
+    },
+  });
