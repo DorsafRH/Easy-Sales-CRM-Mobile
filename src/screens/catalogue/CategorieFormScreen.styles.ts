@@ -20,7 +20,6 @@ export const makeStyles = (theme: AppTheme) =>
       backgroundColor: theme.colors.bgApp,
     },
 
-    // ── Header ───────────────────────────────────────────────
     header: {
       flexDirection:     'row',
       alignItems:        'center',
@@ -50,7 +49,6 @@ export const makeStyles = (theme: AppTheme) =>
       color:      theme.colors.textPrimary,
     },
 
-    // ── Contenu ──────────────────────────────────────────────
     scroll:  { flex: 1 },
 
     content: {
@@ -60,7 +58,6 @@ export const makeStyles = (theme: AppTheme) =>
       paddingBottom:     theme.spacing[10],
     },
 
-    // ── Carte ────────────────────────────────────────────────
     card: {
       backgroundColor: theme.colors.bgSurface,
       borderRadius:    theme.radius.lg,
@@ -77,15 +74,14 @@ export const makeStyles = (theme: AppTheme) =>
       marginBottom: theme.spacing[4],
     },
 
-    // ── Prévisualisation icône ────────────────────────────────
     iconPreviewRow: {
-      flexDirection: 'row',
-      alignItems:    'center',
-      columnGap:     theme.spacing[3],
-      marginBottom:  theme.spacing[4],
-      padding:       theme.spacing[3],
+      flexDirection:   'row',
+      alignItems:      'center',
+      columnGap:       theme.spacing[3],
+      marginBottom:    theme.spacing[4],
+      padding:         theme.spacing[3],
       backgroundColor: theme.colors.bgApp,
-      borderRadius:  theme.radius.md,
+      borderRadius:    theme.radius.md,
     },
 
     iconPreviewBox: {
@@ -103,7 +99,6 @@ export const makeStyles = (theme: AppTheme) =>
       color:    theme.colors.textSecondary,
     },
 
-    // ── Hint ─────────────────────────────────────────────────
     hint: {
       fontSize:     theme.typography.size.xs,
       color:        theme.colors.textSecondary,
@@ -111,7 +106,6 @@ export const makeStyles = (theme: AppTheme) =>
       marginBottom: theme.spacing[4],
     },
 
-    // ── Alerte erreur ────────────────────────────────────────
     alertError: {
       backgroundColor: theme.colors.dangerLight,
       borderWidth:     1,
@@ -127,4 +121,20 @@ export const makeStyles = (theme: AppTheme) =>
     },
 
     btnSubmit: { marginTop: theme.spacing[2] },
+
+    deleteBtn: {
+      marginTop:       theme.spacing[3],
+      paddingVertical: theme.spacing[3],
+      borderRadius:    theme.radius.md,
+      borderWidth:     1,
+      borderColor:     theme.colors.danger,
+      alignItems:      'center',
+      backgroundColor: theme.colors.dangerLight,
+    },
+
+    deleteBtnText: {
+      fontSize:   theme.typography.size.sm,
+      color:      theme.colors.danger,
+      fontWeight: '600',
+    },
   });

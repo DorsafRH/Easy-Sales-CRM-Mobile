@@ -23,9 +23,6 @@ import {
 
 /**
  * Récupère la liste des catégories du propriétaire connecté.
- *
- * @param keyword - Recherche sur nom et description (optionnel)
- * @returns Liste des catégories avec nbProduits enrichi
  * @author Riahi Dorsaf
  */
 export const listerCategories = async (
@@ -33,37 +30,27 @@ export const listerCategories = async (
 ): Promise<ApiResponse<CategorieResponse[]>> => {
   const params: Record<string, string> = {};
   if (keyword?.trim()) params.keyword = keyword.trim();
-
   const response = await apiClient.get<ApiResponse<CategorieResponse[]>>(
-    '/catalogue/categories',
-    { params },
+    '/catalogue/categories', { params },
   );
   return response.data;
 };
 
 /**
  * Crée une nouvelle catégorie.
- *
- * @param request - Nom et description de la catégorie
- * @returns Catégorie créée
  * @author Riahi Dorsaf
  */
 export const creerCategorie = async (
   request: CategorieRequest,
 ): Promise<ApiResponse<CategorieResponse>> => {
   const response = await apiClient.post<ApiResponse<CategorieResponse>>(
-    '/catalogue/categories',
-    request,
+    '/catalogue/categories', request,
   );
   return response.data;
 };
 
 /**
  * Modifie une catégorie existante.
- *
- * @param id      - Identifiant de la catégorie
- * @param request - Nouvelles données
- * @returns Catégorie mise à jour
  * @author Riahi Dorsaf
  */
 export const modifierCategorie = async (
@@ -71,15 +58,55 @@ export const modifierCategorie = async (
   request: CategorieRequest,
 ): Promise<ApiResponse<CategorieResponse>> => {
   const response = await apiClient.put<ApiResponse<CategorieResponse>>(
-    `/catalogue/categories/${id}`,
-    request,
+    `/catalogue/categories/${id}`, request,
   );
   return response.data;
 };
 
 /**
- * Supprime une catégorie.
- * Règle backend : impossible si la catégorie contient des produits actifs.
+ * Désactive tous les produits actifs d'une catégorie (statut → INACTIF).
+ * À appeler avant {@link supprimerCategorie} quand la catégorie
+ * contient des produits actifs.
+ *
+ * Correspond à : PATCH /catalogue/categories/{id}/desactiver-produits
+ *
+ * @param id - Identifiant de la catégorie
+ * @author Riahi Dorsaf
+ */
+export const desactiverProduitsCategorie = async (
+  id: number,
+): Promise<ApiResponse<void>> => {
+  const response = await apiClient.patch<ApiResponse<void>>(
+    `/catalogue/categories/${id}/desactiver-produits`,
+  );
+  return response.data;
+};
+
+/**
+ * Retire la catégorie de tous ses produits (categorieId → null).
+ * Les produits restent actifs mais sans catégorie.
+ * À appeler avant {@link supprimerCategorie} quand la catégorie
+ * contient des produits actifs.
+ *
+ * Correspond à : PATCH /catalogue/categories/{id}/retirer-categorie
+ *
+ * @param id - Identifiant de la catégorie
+ * @author Riahi Dorsaf
+ */
+export const retirerCategorieProduits = async (
+  id: number,
+): Promise<ApiResponse<void>> => {
+  const response = await apiClient.patch<ApiResponse<void>>(
+    `/catalogue/categories/${id}/retirer-categorie`,
+  );
+  return response.data;
+};
+
+/**
+ * Supprime une catégorie sans produits actifs.
+ * Retourne 400 si la catégorie contient encore des produits actifs.
+ * Dans ce cas, appeler d'abord {@link desactiverProduitsCategorie}
+ * ou {@link retirerCategorieProduits}.
  *
  * @param id - Identifiant de la catégorie à supprimer
  * @author Riahi Dorsaf
@@ -99,12 +126,6 @@ export const supprimerCategorie = async (
 
 /**
  * Récupère la liste des produits avec filtres optionnels.
- *
- * @param type        - Filtre par type : 'SERVICE' | 'STOCKABLE' (optionnel)
- * @param statut      - Filtre par statut : 'ACTIF' | 'INACTIF' | 'ARCHIVE' (optionnel)
- * @param categorieId - Filtre par catégorie (optionnel)
- * @param keyword     - Recherche sur nom et description (optionnel)
- * @returns Liste des produits filtrés
  * @author Riahi Dorsaf
  */
 export const listerProduits = async (
@@ -114,23 +135,18 @@ export const listerProduits = async (
   keyword?: string,
 ): Promise<ApiResponse<ProduitResponse[]>> => {
   const params: Record<string, string | number> = {};
-  if (type)        params.type        = type;
-  if (statut)      params.statut      = statut;
-  if (categorieId) params.categorieId = categorieId;
-  if (keyword?.trim()) params.keyword = keyword.trim();
-
+  if (type)            params.type        = type;
+  if (statut)          params.statut      = statut;
+  if (categorieId)     params.categorieId = categorieId;
+  if (keyword?.trim()) params.keyword     = keyword.trim();
   const response = await apiClient.get<ApiResponse<ProduitResponse[]>>(
-    '/catalogue/produits',
-    { params },
+    '/catalogue/produits', { params },
   );
   return response.data;
 };
 
 /**
  * Récupère le détail complet d'un produit.
- *
- * @param id - Identifiant du produit
- * @returns Produit avec prixTTC calculé et infos catégorie
  * @author Riahi Dorsaf
  */
 export const obtenirProduit = async (
@@ -145,27 +161,19 @@ export const obtenirProduit = async (
 /**
  * Crée un nouveau produit dans le catalogue.
  * Le code produit (PRD-YYYY-NNNN) est généré automatiquement côté backend.
- *
- * @param request - Données du produit à créer
- * @returns Produit créé avec son codeProduit généré
  * @author Riahi Dorsaf
  */
 export const creerProduit = async (
   request: ProduitRequest,
 ): Promise<ApiResponse<ProduitResponse>> => {
   const response = await apiClient.post<ApiResponse<ProduitResponse>>(
-    '/catalogue/produits',
-    request,
+    '/catalogue/produits', request,
   );
   return response.data;
 };
 
 /**
  * Modifie un produit existant.
- *
- * @param id      - Identifiant du produit à modifier
- * @param request - Nouvelles données du produit
- * @returns Produit mis à jour
  * @author Riahi Dorsaf
  */
 export const modifierProduit = async (
@@ -173,17 +181,13 @@ export const modifierProduit = async (
   request: ProduitRequest,
 ): Promise<ApiResponse<ProduitResponse>> => {
   const response = await apiClient.put<ApiResponse<ProduitResponse>>(
-    `/catalogue/produits/${id}`,
-    request,
+    `/catalogue/produits/${id}`, request,
   );
   return response.data;
 };
 
 /**
  * Archive un produit (statut → ARCHIVE).
- * Un produit archivé n'apparaît plus dans les filtres par défaut.
- *
- * @param id - Identifiant du produit à archiver
  * @author Riahi Dorsaf
  */
 export const archiverProduit = async (

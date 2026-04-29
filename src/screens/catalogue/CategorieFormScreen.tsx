@@ -3,7 +3,10 @@
  * @description Formulaire de création et modification d'une catégorie de catalogue.
  *              - Nom obligatoire
  *              - Description optionnelle
- *              - Prévisualisation icône auto en temps réel selon les mots-clés du nom
+ *              - Prévisualisation icône auto en temps réel
+ *              - Suppression intelligente (mode édition uniquement) :
+ *                Si la catégorie contient des produits actifs, propose 2 actions
+ *                via 2 endpoints PATCH séparés (bonne pratique REST).
  * @author Riahi Dorsaf
  */
 
@@ -15,6 +18,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView }              from 'react-native-safe-area-context';
 import { useNavigation, useRoute,
@@ -41,18 +45,14 @@ import {
 // TYPES
 // ─────────────────────────────────────────────────────────────
 
-type Nav   = NativeStackNavigationProp<CatalogueStackParamList, 'CategorieForm'>;
-type Route = RouteProp<CatalogueStackParamList, 'CategorieForm'>;
+type Nav    = NativeStackNavigationProp<CatalogueStackParamList, 'CategorieForm'>;
+type Route  = RouteProp<CatalogueStackParamList, 'CategorieForm'>;
 type Errors = Partial<Record<keyof CategorieFormState, string>>;
 
 // ─────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Détermine l'icône prévisualisée depuis le nom en cours de saisie.
- * Utilise le même algorithme que CatalogueScreen pour la cohérence.
- */
 const iconeDepuisNom = (nom: string): string => {
   if (!nom.trim()) return CATEGORIE_ICONE_DEFAULT;
   const lower = nom.toLowerCase();
@@ -89,9 +89,10 @@ export const CategorieFormScreen: React.FC = () => {
     return INITIAL_CATEGORIE_FORM;
   });
 
-  const [errors,   setErrors]   = useState<Errors>({});
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [errors,     setErrors]     = useState<Errors>({});
+  const [apiError,   setApiError]   = useState<string | null>(null);
+  const [isSaving,   setIsSaving]   = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // ── Update champ ──────────────────────────────────────────
   const setField = <K extends keyof CategorieFormState>(key: K) =>
@@ -119,7 +120,6 @@ export const CategorieFormScreen: React.FC = () => {
         nom:         form.nom.trim(),
         description: form.description.trim() || undefined,
       };
-
       if (isEditing) {
         await CatalogueApi.modifierCategorie(categorie!.id, request);
       } else {
@@ -127,11 +127,112 @@ export const CategorieFormScreen: React.FC = () => {
       }
       navigation.goBack();
     } catch (err: any) {
-      setApiError(
-        err?.response?.data?.message ?? 'Une erreur est survenue.',
-      );
+      setApiError(err?.response?.data?.message ?? 'Une erreur est survenue.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // ── Suppression ───────────────────────────────────────────
+
+  /**
+   * Effectue la suppression finale après le pré-traitement des produits.
+   * Appelé après PATCH desactiver-produits ou PATCH retirer-categorie.
+   */
+  const supprimerDefinitivement = async () => {
+    try {
+      await CatalogueApi.supprimerCategorie(categorie!.id);
+      navigation.goBack();
+    } catch (err: any) {
+      Alert.alert(
+        'Erreur',
+        err?.response?.data?.message ?? 'La suppression a échoué.',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  /**
+   * Gère la suppression de la catégorie selon le nombre de produits actifs :
+   *
+   * - Catégorie vide → confirmation simple → DELETE /{id}
+   * - Catégorie avec produits → Alert 3 choix :
+   *     1. "Désactiver les produits" → PATCH /desactiver-produits → DELETE /{id}
+   *     2. "Retirer la catégorie"    → PATCH /retirer-categorie   → DELETE /{id}
+   *     3. "Annuler"
+   *
+   * Bonne pratique REST : 2 endpoints PATCH séparés avec responsabilité unique,
+   * pas un paramètre ?action= sur le DELETE.
+   */
+  const handleSupprimer = () => {
+    const nbProduits = categorie?.nbProduits ?? 0;
+
+    if (nbProduits === 0) {
+      // ── Catégorie vide : suppression directe ──
+      Alert.alert(
+        'Supprimer la catégorie',
+        `Voulez-vous supprimer "${categorie?.nom}" ?`,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text:  'Supprimer',
+            style: 'destructive',
+            onPress: async () => {
+              setIsDeleting(true);
+              await supprimerDefinitivement();
+            },
+          },
+        ],
+      );
+    } else {
+      // ── Catégorie avec produits : propose 2 actions ──
+      Alert.alert(
+        'Supprimer la catégorie',
+        `"${categorie?.nom}" contient ${nbProduits} produit(s) actif(s).\n\nQue voulez-vous faire avec ces produits ?`,
+        [
+          {
+            text:    'Désactiver les produits',
+            onPress: async () => {
+              setIsDeleting(true);
+              try {
+                // PATCH /categories/{id}/desactiver-produits
+                await CatalogueApi.desactiverProduitsCategorie(categorie!.id);
+                // DELETE /categories/{id}
+                await supprimerDefinitivement();
+              } catch (err: any) {
+                setIsDeleting(false);
+                Alert.alert(
+                  'Erreur',
+                  err?.response?.data?.message ?? 'Une erreur est survenue.',
+                );
+              }
+            },
+          },
+          {
+            text:    'Retirer la catégorie',
+            onPress: async () => {
+              setIsDeleting(true);
+              try {
+                // PATCH /categories/{id}/retirer-categorie
+                await CatalogueApi.retirerCategorieProduits(categorie!.id);
+                // DELETE /categories/{id}
+                await supprimerDefinitivement();
+              } catch (err: any) {
+                setIsDeleting(false);
+                Alert.alert(
+                  'Erreur',
+                  err?.response?.data?.message ?? 'Une erreur est survenue.',
+                );
+              }
+            },
+          },
+          {
+            text:  'Annuler',
+            style: 'cancel',
+          },
+        ],
+      );
     }
   };
 
@@ -170,7 +271,7 @@ export const CategorieFormScreen: React.FC = () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Informations</Text>
 
-            {/* Prévisualisation icône (visible dès qu'on tape) */}
+            {/* Prévisualisation icône */}
             {form.nom.trim().length > 0 && (
               <View style={styles.iconPreviewRow}>
                 <View style={styles.iconPreviewBox}>
@@ -210,6 +311,7 @@ export const CategorieFormScreen: React.FC = () => {
             </Text>
           </View>
 
+          {/* ── Bouton enregistrer ── */}
           <Button
             label={isEditing ? 'Enregistrer' : 'Créer la catégorie'}
             onPress={handleSubmit}
@@ -218,6 +320,20 @@ export const CategorieFormScreen: React.FC = () => {
             size="lg"
             style={styles.btnSubmit}
           />
+
+          {/* ── Bouton supprimer (mode édition uniquement) ── */}
+          {isEditing && (
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={handleSupprimer}
+              disabled={isDeleting}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.deleteBtnText}>
+                {isDeleting ? 'Suppression en cours…' : 'Supprimer la catégorie'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
