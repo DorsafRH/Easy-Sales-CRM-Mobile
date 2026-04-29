@@ -1,0 +1,284 @@
+/**
+ * @file CatalogueScreen.tsx
+ * @description Écran Catalogue avec :
+ *              - Barre de recherche (debounce 400ms)
+ *              - Filtres chips [Tous / Services / Stockables] + [Actif / Inactif]
+ *              - Section Catégories en grille 2 colonnes avec nbProduits
+ *              - Section Produits avec icône auto + prix + badge statut
+ *              - FAB → ProduitFormScreen (création)
+ *              - Tap produit → ProduitDetailScreen
+ * @author Riahi Dorsaf
+ */
+
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
+import { SafeAreaView }              from 'react-native-safe-area-context';
+import { useNavigation }             from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons }                  from '@expo/vector-icons';
+
+import { useStyles, useTheme }     from '../../theme';
+import { makeStyles }              from './CatalogueScreen.styles';
+import { FAB }                     from '../../components/ui/FAB';
+import { SearchBar }               from '../../components/ui/SearchBar';
+import { FilterChips, FilterChip } from '../../components/ui/FilterChips';
+import { Badge, variantFromValue } from '../../components/ui/Badge';
+import { EmptyState }              from '../../components/ui/EmptyState';
+import { useDebounce }             from '../../hooks/useDebounce';
+import { CatalogueStackParamList } from '../../navigation/CatalogueStack';
+
+import * as CatalogueApi from '../../api/catalogue.api';
+import {
+  CategorieResponse,
+  ProduitResponse,
+  TypeProduit,
+  StatutProduit,
+  CATEGORIE_ICONE_MAP,
+  CATEGORIE_ICONE_DEFAULT,
+} from '../../types/catalogue.types';
+
+// ─────────────────────────────────────────────────────────────
+// CONSTANTES
+// ─────────────────────────────────────────────────────────────
+
+const TYPE_CHIPS: FilterChip[] = [
+  { value: 'TOUS',      label: 'Tous'       },
+  { value: 'SERVICE',   label: 'Services'   },
+  { value: 'STOCKABLE', label: 'Stockables' },
+];
+
+const STATUT_CHIPS: FilterChip[] = [
+  { value: 'ACTIF',   label: 'Actif'   },
+  { value: 'INACTIF', label: 'Inactif' },
+];
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+
+const iconeCategorie = (nom?: string | null): string => {
+  if (!nom) return CATEGORIE_ICONE_DEFAULT;
+  const lower = nom.toLowerCase();
+  for (const [key, icon] of Object.entries(CATEGORIE_ICONE_MAP)) {
+    if (lower.includes(key)) return icon;
+  }
+  return CATEGORIE_ICONE_DEFAULT;
+};
+
+const formatPrix = (prixHT: number, unite?: string | null): string => {
+  const prix = prixHT.toLocaleString('fr-FR', { maximumFractionDigits: 3 });
+  return `${prix} TND${unite ? `/${unite}` : ''}`;
+};
+
+// ─────────────────────────────────────────────────────────────
+// COMPOSANT PRINCIPAL
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Écran catalogue principal.
+ * @author Riahi Dorsaf
+ */
+export const CatalogueScreen: React.FC = () => {
+  const styles     = useStyles(makeStyles);
+  const theme      = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<CatalogueStackParamList>>();
+
+  const [categories,   setCategories]   = useState<CategorieResponse[]>([]);
+  const [produits,     setProduits]     = useState<ProduitResponse[]>([]);
+  const [searchText,   setSearchText]   = useState('');
+  const [filtreType,   setFiltreType]   = useState('TOUS');
+  const [filtreStatut, setFiltreStatut] = useState<'ACTIF' | 'INACTIF'>('ACTIF');
+  const [isLoading,    setIsLoading]    = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const debouncedSearch = useDebounce(searchText, 400);
+
+  // ── Chargement ────────────────────────────────────────────
+  const charger = useCallback(async (refresh = false) => {
+    if (refresh) setIsRefreshing(true);
+    else setIsLoading(true);
+    try {
+      const type   = filtreType !== 'TOUS' ? filtreType as TypeProduit : undefined;
+      const statut = filtreStatut as StatutProduit;
+
+      const [catRes, prodRes] = await Promise.all([
+        CatalogueApi.listerCategories(debouncedSearch || undefined),
+        CatalogueApi.listerProduits(type, statut, undefined, debouncedSearch || undefined),
+      ]);
+      if (catRes.success)  setCategories(catRes.data);
+      if (prodRes.success) setProduits(prodRes.data);
+    } catch {
+      // silencieux
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [filtreType, filtreStatut, debouncedSearch]);
+
+  useEffect(() => { charger(); }, [charger]);
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+
+      {/* ── Header ── */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Catalogue</Text>
+        <View style={styles.searchWrapper}>
+          <SearchBar
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Rechercher un produit…"
+          />
+        </View>
+        <FilterChips
+          chips={TYPE_CHIPS}
+          selected={filtreType}
+          onSelect={setFiltreType}
+        />
+      </View>
+
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => charger(true)}
+              tintColor={theme.colors.primary}
+            />
+          }
+        >
+          {/* ── Catégories ── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                Catégories ({categories.length})
+              </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('CategorieForm', {})}
+              >
+                <Text style={styles.gererBtn}>+ Nouvelle</Text>
+              </TouchableOpacity>
+            </View>
+
+            {categories.length === 0 ? (
+              <EmptyState
+                icon="folder-open-outline"
+                titre="Aucune catégorie"
+                soustitre="Créez votre première catégorie"
+              />
+            ) : (
+              <View style={styles.categoriesGrid}>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={styles.categorieCard}
+                    activeOpacity={0.75}
+                    onPress={() =>
+                      navigation.navigate('CategorieForm', { categorie: cat })
+                    }
+                  >
+                    <View style={styles.categorieIconWrapper}>
+                      <Ionicons
+                        name={iconeCategorie(cat.nom) as any}
+                        size={22}
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                    <Text style={styles.categorieNom} numberOfLines={1}>
+                      {cat.nom}
+                    </Text>
+                    <Text style={styles.categorieCount}>
+                      {cat.nbProduits} produit{cat.nbProduits !== 1 ? 's' : ''}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* ── Produits ── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                Produits ({produits.length})
+              </Text>
+            </View>
+
+            <FilterChips
+              chips={STATUT_CHIPS}
+              selected={filtreStatut}
+              onSelect={(v) => setFiltreStatut(v as 'ACTIF' | 'INACTIF')}
+            />
+
+            {produits.length === 0 ? (
+              <EmptyState
+                icon="cube-outline"
+                titre="Aucun produit"
+                soustitre="Ajoutez votre premier produit avec le bouton +"
+              />
+            ) : (
+              produits.map((produit) => (
+                <TouchableOpacity
+                  key={produit.id}
+                  style={styles.produitItem}
+                  onPress={() =>
+                    navigation.navigate('ProduitDetail', { produitId: produit.id })
+                  }
+                  activeOpacity={0.75}
+                >
+                  <View style={styles.produitIconWrapper}>
+                    <Ionicons
+                      name={iconeCategorie(produit.categorieNom) as any}
+                      size={22}
+                      color={theme.colors.textSecondary}
+                    />
+                  </View>
+
+                  <View style={styles.produitInfo}>
+                    <Text style={styles.produitNom} numberOfLines={1}>
+                      {produit.nom}
+                    </Text>
+                    <Text style={styles.produitCategorie}>
+                      {produit.categorieNom ??
+                        (produit.type === 'SERVICE' ? 'Service' : 'Stockable')}
+                    </Text>
+                  </View>
+
+                  <View style={styles.produitRight}>
+                    <Text style={styles.produitPrix}>
+                      {formatPrix(produit.prixHT, produit.unite)}
+                    </Text>
+                    <Badge
+                      label={produit.statut}
+                      variant={variantFromValue(produit.statut)}
+                    />
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      )}
+
+      {/* ── FAB ── */}
+      <FAB
+        onPress={() => navigation.navigate('ProduitForm', {})}
+        accessibilityLabel="Ajouter un produit"
+      />
+    </SafeAreaView>
+  );
+};
