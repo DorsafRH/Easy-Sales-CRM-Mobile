@@ -4,7 +4,7 @@
  *
  *              Fournit à toute l'application :
  *              - L'utilisateur connecté (currentUser)
- *              - Les actions login / logout
+ *              - Les actions login / logout / refreshUser
  *              - L'état de chargement et les erreurs
  *
  *              SÉCURITÉ :
@@ -30,7 +30,8 @@ import {
   getSecure,
   deleteSecureMultiple,
 } from '../api/axios.config';
-import * as AuthApi from '../api/auth.api';
+import * as AuthApi          from '../api/auth.api';
+import * as ProprietaireApi  from '../api/proprietaire.api';
 
 // ─────────────────────────────────────────────────────────────
 // INTERFACE DU CONTEXTE
@@ -51,6 +52,11 @@ interface AuthContextValue {
   logout:          () => Promise<void>;
   /** Efface le message d'erreur */
   clearLoginError: () => void;
+  /**
+   * Recharge les données du profil depuis l'API et met à jour
+   * currentUser + SecureStore. À appeler après modification du profil.
+   */
+  refreshUser:     () => Promise<void>;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -80,28 +86,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   // ── Restauration de session au démarrage ──────────────────
 
-  /**
-   * Lit les données utilisateur depuis SecureStore au boot.
-   * Si un utilisateur était connecté, on restaure sa session
-   * sans qu'il ait besoin de se reconnecter.
-   */
   useEffect(() => {
     const restore = async () => {
       try {
-        // Lit les données utilisateur depuis le stockage sécurisé
         const stored = await getSecure(USER_KEY);
-
         if (stored) {
           setCurrentUser(JSON.parse(stored));
         }
       } catch {
-        // Session corrompue → supprime tout et repart de zéro
         await deleteSecureMultiple([TOKEN_KEY, USER_KEY]);
       } finally {
         setIsInitializing(false);
       }
     };
-
     restore();
   }, []);
 
@@ -117,11 +114,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
    */
   const login = useCallback(async (
     email: string,
-    motDePasse: string
+    motDePasse: string,
   ) => {
     setIsLoading(true);
     setLoginError(null);
-
     try {
       const response = await AuthApi.login({ email, motDePasse });
 
@@ -132,24 +128,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       const user = response.data;
 
-      // Vérifie que c'est bien un propriétaire d'entreprise
       if (user.role !== 'ROLE_PROPRIETAIRE') {
-        setLoginError(
-          "Ce portail est réservé aux propriétaires d'entreprise."
-        );
+        setLoginError("Ce portail est réservé aux propriétaires d'entreprise.");
         return;
       }
 
-      // Sauvegarde sécurisée — Keychain iOS / Keystore Android
       await saveSecure(TOKEN_KEY, user.accessToken);
       await saveSecure(USER_KEY, JSON.stringify(user));
-
       setCurrentUser(user);
 
     } catch (error: any) {
       setLoginError(
-        error?.response?.data?.message ??
-        'Email ou mot de passe incorrect.'
+        error?.response?.data?.message ?? 'Email ou mot de passe incorrect.',
       );
     } finally {
       setIsLoading(false);
@@ -169,12 +159,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setCurrentUser(null);
   }, []);
 
-  // ── Action : clearLoginError ──────────────────────────────
+  // ── Action : refreshUser ──────────────────────────────────
 
   /**
-   * Efface le message d'erreur de connexion.
-   * Appelé quand l'utilisateur commence à retaper ses credentials.
+   * Recharge les données du profil depuis l'API et met à jour
+   * currentUser + SecureStore.
+   *
+   * À appeler dans :
+   * - DashboardScreen (useFocusEffect) pour afficher le bon prénom
+   * - PlusMenuScreen (useFocusEffect) pour afficher le bon nom
+   * - EditProfileScreen après une modification réussie
+   *
+   * @author Riahi Dorsaf
    */
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await ProprietaireApi.consulterProfil();
+      if (!response.success || !currentUser) return;
+
+      const profil = response.data;
+
+      // Fusionne les nouvelles données avec le currentUser existant
+      // (on garde le token et les champs Auth, on met à jour nom/prenom/entreprise)
+      const updatedUser: AuthResponse = {
+        ...currentUser,
+        nom:            profil.nom            ?? currentUser.nom,
+        prenom:         profil.prenom         ?? currentUser.prenom,
+        nomEntreprise:  profil.nomEntreprise   ?? currentUser.nomEntreprise,
+      };
+
+      // Met à jour le SecureStore pour persister entre les sessions
+      await saveSecure(USER_KEY, JSON.stringify(updatedUser));
+      setCurrentUser(updatedUser);
+
+    } catch {
+      // silencieux — on garde les données existantes
+    }
+  }, [currentUser]);
+
+  // ── Action : clearLoginError ──────────────────────────────
+
   const clearLoginError = useCallback(() => setLoginError(null), []);
 
   return (
@@ -186,6 +210,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       login,
       logout,
       clearLoginError,
+      refreshUser,
     }}>
       {children}
     </AuthContext.Provider>

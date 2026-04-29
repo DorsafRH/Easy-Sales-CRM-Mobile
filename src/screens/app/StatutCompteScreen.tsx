@@ -1,6 +1,8 @@
 /**
  * @file StatutCompteScreen.tsx
- * @description Écran principal de l'application pour les utilisateurs authentifiés.
+ * @description Écran de statut du compte.
+ *              Si le statut est ACTIVE, redirige automatiquement vers MainTab.
+ *              Sinon, affiche le statut EN_ATTENTE / REFUSE / SUSPENDU.
  * @author Riahi Dorsaf
  */
 
@@ -58,8 +60,11 @@ const MODULES = [
 ];
 
 const formatDate = (iso: string) => {
-  try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); }
-  catch { return iso; }
+  try {
+    return new Date(iso).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric',
+    });
+  } catch { return iso; }
 };
 
 const InfoRow: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label, value, mono }) => {
@@ -97,10 +102,20 @@ export const StatutCompteScreen: React.FC = () => {
 
   useEffect(() => { charger(); }, [charger]);
 
+  // ── Redirection automatique si ACTIVE ────────────────────────
+  useEffect(() => {
+    if (entreprise?.statutCompte === 'ACTIVE') {
+      navigation.replace('MainTab');
+    }
+  }, [entreprise, navigation]);
+
   const handleLogout = () => Alert.alert(
     'Déconnexion',
     'Voulez-vous vous déconnecter ?',
-    [{ text: 'Annuler', style: 'cancel' }, { text: 'Se déconnecter', style: 'destructive', onPress: logout }],
+    [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Se déconnecter', style: 'destructive', onPress: logout },
+    ],
   );
 
   if (isLoading) {
@@ -116,6 +131,9 @@ export const StatutCompteScreen: React.FC = () => {
   const statut        = (entreprise?.statutCompte ?? 'EN_ATTENTE') as StatutKey;
   const statutContent = getStatutContent(theme);
   const content       = statutContent[statut];
+
+  // Si ACTIVE, on ne rend rien (la redirection est déjà déclenchée)
+  if (statut === 'ACTIVE') return null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -135,29 +153,13 @@ export const StatutCompteScreen: React.FC = () => {
         <View style={styles.topBar}>
           <View>
             <Text style={styles.greeting}>Bonjour, {currentUser?.prenom} 👋</Text>
-            <Text style={styles.companyName}>{currentUser?.nomEntreprise ?? entreprise?.nomEntreprise}</Text>
+            <Text style={styles.companyName}>
+              {currentUser?.nomEntreprise ?? entreprise?.nomEntreprise}
+            </Text>
           </View>
-          <View style={{ flexDirection: 'row', columnGap: 8 }}>
-            {statut === 'ACTIVE' && (
-              <>
-                <TouchableOpacity
-                  style={styles.logoutBtn}
-                  onPress={() => navigation.navigate('EditProfile')}
-                >
-                  <Text style={styles.logoutIcon}>👤</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.logoutBtn}
-                  onPress={() => navigation.navigate('EditCompany')}
-                >
-                  <Text style={styles.logoutIcon}>🏢</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-              <Text style={styles.logoutIcon}>↩</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+            <Text style={styles.logoutIcon}>↩</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Carte statut ── */}
@@ -186,24 +188,6 @@ export const StatutCompteScreen: React.FC = () => {
             {entreprise.dateValidation && (
               <InfoRow label="Décision le" value={formatDate(entreprise.dateValidation)} />
             )}
-          </Card>
-        )}
-
-        {/* ── Modules ── */}
-        {statut === 'ACTIVE' && (
-          <Card style={styles.modulesCard}>
-            <Text style={styles.cardTitle}>Modules à venir</Text>
-            <View style={styles.modulesGrid}>
-              {MODULES.map(m => (
-                <View key={m.label} style={styles.moduleItem}>
-                  <View style={styles.moduleIcon}>
-                    <Text style={styles.moduleEmoji}>{m.icon}</Text>
-                  </View>
-                  <Text style={styles.moduleLabel}>{m.label}</Text>
-                  <Text style={styles.moduleSprint}>{m.sprint}</Text>
-                </View>
-              ))}
-            </View>
           </Card>
         )}
 
