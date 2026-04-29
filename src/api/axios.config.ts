@@ -55,7 +55,7 @@ export const USER_KEY = 'crm_current_user';
  * Ne change jamais peu importe le réseau → solution définitive.
  */
 const BASE_URL = __DEV__
-  ? 'http://10.49.31.88:8080/api'
+  ? 'http://10.227.180.88:8080/api'
   : 'https://api.votre-domaine.com/api';
 
 // ─────────────────────────────────────────────────────────────
