@@ -53,17 +53,17 @@ export const makeStyles = (theme: AppTheme) =>
     },
 
     editBtn: {
-      position:  'absolute',
-      top:       theme.spacing[4],
-      right:     layout.screenPadding,
-      width:     40,
-      height:    40,
-      borderRadius: 20,
+      position:        'absolute',
+      top:             theme.spacing[4],
+      right:           layout.screenPadding,
+      width:           40,
+      height:          40,
+      borderRadius:    20,
       backgroundColor: theme.colors.bgApp,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: theme.colors.border,
+      alignItems:      'center',
+      justifyContent:  'center',
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
     },
 
     headerNom: {
@@ -76,9 +76,56 @@ export const makeStyles = (theme: AppTheme) =>
     },
 
     headerMeta: {
-      fontSize:  theme.typography.size.sm,
-      color:     theme.colors.textSecondary,
-      textAlign: 'center',
+      fontSize:     theme.typography.size.sm,
+      color:        theme.colors.textSecondary,
+      textAlign:    'center',
+      marginBottom: theme.spacing[2],
+    },
+
+    // ── Boutons d'action directs sur le client ─────────────────
+    actionsRow: {
+      flexDirection:     'row',
+      paddingHorizontal: layout.screenPadding,
+      paddingVertical:   theme.spacing[4],
+      columnGap:         theme.spacing[3],
+      backgroundColor:   theme.colors.bgSurface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+
+    actionBtn: {
+      flex:            1,
+      flexDirection:   'row',
+      alignItems:      'center',
+      justifyContent:  'center',
+      columnGap:       theme.spacing[2],
+      paddingVertical: theme.spacing[3],
+      borderRadius:    theme.radius.md,
+      borderWidth:     1,
+    },
+
+    actionBtnAppeler: {
+      backgroundColor: theme.colors.primaryLight,
+      borderColor:     theme.colors.primary,
+    },
+
+    actionBtnWhatsapp: {
+      backgroundColor: '#F0FDF4',
+      borderColor:     '#16A34A',
+    },
+
+    actionBtnEmail: {
+      backgroundColor: theme.colors.bgSurface,
+      borderColor:     theme.colors.border,
+    },
+
+    actionBtnDisabled: {
+      opacity: 0.4,
+    },
+
+    actionBtnText: {
+      fontSize:   theme.typography.size.xs,
+      fontWeight: '600',
     },
 
     // ── Sections ─────────────────────────────────────────────
@@ -163,9 +210,7 @@ export const makeStyles = (theme: AppTheme) =>
       borderBottomColor: theme.colors.bgApp,
     },
 
-    contactInfo: {
-      flex: 1,
-    },
+    contactInfo: { flex: 1 },
 
     contactNom: {
       fontSize:   theme.typography.size.sm,
@@ -187,10 +232,10 @@ export const makeStyles = (theme: AppTheme) =>
       justifyContent:  'center',
     },
 
-    // ── Placeholder Opportunités ──────────────────────────────
+    // ── Placeholder ───────────────────────────────────────────
     opportunitesPlaceholder: {
-      alignItems:      'center',
-      padding:         theme.spacing[6],
+      alignItems: 'center',
+      padding:    theme.spacing[6],
     },
 
     opportunitesText: {

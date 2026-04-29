@@ -2,6 +2,7 @@
  * @file ClientDetailScreen.tsx
  * @description Fiche détail d'un client avec :
  *              - Avatar large + badge type + infos de contact
+ *              - Boutons d'action directs : Appeler / WhatsApp / Email sur le client
  *              - Section Contacts (liste avec badge Principal + bouton appel)
  *              - Section Opportunités (placeholder Sprint 3)
  *              - Bouton modifier + soft delete
@@ -24,14 +25,14 @@ import { useNavigation, useRoute,
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, Feather }         from '@expo/vector-icons';
 
-import { useStyles, useTheme }       from '../../theme';
-import { makeStyles }                from './ClientDetailScreen.styles';
-import { Avatar }                    from '../../components/ui/Avatar';
-import { Badge, variantFromValue }   from '../../components/ui/Badge';
-import { ClientsStackParamList }     from '../../navigation/ClientsStack';
+import { useStyles, useTheme }     from '../../theme';
+import { makeStyles }              from './ClientDetailScreen.styles';
+import { Avatar }                  from '../../components/ui/Avatar';
+import { Badge, variantFromValue } from '../../components/ui/Badge';
+import { ClientsStackParamList }   from '../../navigation/ClientsStack';
 
-import * as ClientApi   from '../../api/client.api';
-import * as ContactApi  from '../../api/contact.api';
+import * as ClientApi      from '../../api/client.api';
+import * as ContactApi     from '../../api/contact.api';
 import { ClientResponse }  from '../../types/client.types';
 import { ContactResponse } from '../../types/contact.types';
 
@@ -39,16 +40,13 @@ import { ContactResponse } from '../../types/contact.types';
 // TYPES
 // ─────────────────────────────────────────────────────────────
 
-type Nav  = NativeStackNavigationProp<ClientsStackParamList, 'ClientDetail'>;
+type Nav   = NativeStackNavigationProp<ClientsStackParamList, 'ClientDetail'>;
 type Route = RouteProp<ClientsStackParamList, 'ClientDetail'>;
 
 // ─────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Formate le CA en TND.
- */
 const formatCA = (value: number): string =>
   `${(value ?? 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} TND`;
 
@@ -57,7 +55,7 @@ const formatCA = (value: number): string =>
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Fiche client complète.
+ * Fiche client complète avec actions directes de contact.
  * @author Riahi Dorsaf
  */
 export const ClientDetailScreen: React.FC = () => {
@@ -89,6 +87,23 @@ export const ClientDetailScreen: React.FC = () => {
   }, [clientId]);
 
   useEffect(() => { charger(); }, [charger]);
+
+  // ── Actions de contact directes ───────────────────────────────
+  const handleAppeler = () => {
+    if (!client?.telephone) return;
+    Linking.openURL(`tel:${client.telephone}`);
+  };
+
+  const handleWhatsApp = () => {
+    if (!client?.telephone) return;
+    const numero = client.telephone.replace(/\D/g, '');
+    Linking.openURL(`https://wa.me/${numero}`);
+  };
+
+  const handleEmail = () => {
+    if (!client?.email) return;
+    Linking.openURL(`mailto:${client.email}`);
+  };
 
   // ── Soft delete ───────────────────────────────────────────────
   const handleSupprimer = () => {
@@ -125,6 +140,9 @@ export const ClientDetailScreen: React.FC = () => {
 
   if (!client) return null;
 
+  const aUnTelephone = !!client.telephone;
+  const aUnEmail     = !!client.email;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
@@ -148,12 +166,67 @@ export const ClientDetailScreen: React.FC = () => {
           <Avatar nom={client.nomAffichage} size="xl" />
           <Text style={styles.headerNom}>{client.nomAffichage}</Text>
           <Text style={styles.headerMeta}>
-            {client.ville ?? ''}{client.ville && client.typeClient ? ' · ' : ''}
+            {client.ville ?? ''}
+            {client.ville && client.typeClient ? ' · ' : ''}
           </Text>
           <Badge
             label={client.typeClient === 'ENTREPRISE' ? 'Entreprise' : 'Individuel'}
             variant={variantFromValue(client.typeClient)}
           />
+        </View>
+
+        {/* ── Boutons d'action directs sur le client ── */}
+        <View style={styles.actionsRow}>
+          {/* Appeler */}
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              styles.actionBtnAppeler,
+              !aUnTelephone && styles.actionBtnDisabled,
+            ]}
+            onPress={handleAppeler}
+            disabled={!aUnTelephone}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="call-outline" size={18} color={theme.colors.primary} />
+            <Text style={[styles.actionBtnText, { color: theme.colors.primary }]}>
+              Appeler
+            </Text>
+          </TouchableOpacity>
+
+          {/* WhatsApp */}
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              styles.actionBtnWhatsapp,
+              !aUnTelephone && styles.actionBtnDisabled,
+            ]}
+            onPress={handleWhatsApp}
+            disabled={!aUnTelephone}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="logo-whatsapp" size={18} color="#16A34A" />
+            <Text style={[styles.actionBtnText, { color: '#16A34A' }]}>
+              WhatsApp
+            </Text>
+          </TouchableOpacity>
+
+          {/* Email */}
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              styles.actionBtnEmail,
+              !aUnEmail && styles.actionBtnDisabled,
+            ]}
+            onPress={handleEmail}
+            disabled={!aUnEmail}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="mail-outline" size={18} color={theme.colors.textSecondary} />
+            <Text style={[styles.actionBtnText, { color: theme.colors.textSecondary }]}>
+              Email
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Infos ── */}
@@ -166,7 +239,11 @@ export const ClientDetailScreen: React.FC = () => {
               <InfoRow icon="mail-outline" label="Email" value={client.email} />
             )}
             {client.adresse && (
-              <InfoRow icon="location-outline" label="Adresse" value={`${client.adresse}${client.ville ? ', ' + client.ville : ''}`} />
+              <InfoRow
+                icon="location-outline"
+                label="Adresse"
+                value={`${client.adresse}${client.ville ? ', ' + client.ville : ''}`}
+              />
             )}
             <View style={styles.infoRow}>
               <Ionicons name="cash-outline" size={18} color={theme.colors.primary} />
