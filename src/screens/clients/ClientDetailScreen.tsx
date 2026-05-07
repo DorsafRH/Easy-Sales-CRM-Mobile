@@ -1,27 +1,19 @@
 /**
  * @file ClientDetailScreen.tsx
- * @description Fiche détail d'un client avec :
- *              - Avatar large + badge type + infos de contact
- *              - Boutons d'action directs : Appeler / WhatsApp / Email sur le client
- *              - Section Contacts (liste avec badge Principal + bouton appel)
- *              - Section Opportunités (placeholder Sprint 3)
- *              - Bouton modifier + soft delete
+ * @description Fiche détail d'un client avec actions directes de contact
+ *              et bouton "Planifier une réunion" qui pré-remplit le formulaire
+ *              avec le client sélectionné.
  * @author Riahi Dorsaf
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  Linking,
+  View, Text, ScrollView, TouchableOpacity,
+  Alert, ActivityIndicator, Linking,
 } from 'react-native';
 import { SafeAreaView }              from 'react-native-safe-area-context';
 import { useNavigation, useRoute,
-         RouteProp }                 from '@react-navigation/native';
+         RouteProp, CommonActions }  from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, Feather }         from '@expo/vector-icons';
 
@@ -43,19 +35,31 @@ import { ContactResponse } from '../../types/contact.types';
 type Nav   = NativeStackNavigationProp<ClientsStackParamList, 'ClientDetail'>;
 type Route = RouteProp<ClientsStackParamList, 'ClientDetail'>;
 
+const formatCA = (v: number) =>
+  `${(v ?? 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} TND`;
+
 // ─────────────────────────────────────────────────────────────
-// HELPERS
+// SOUS-COMPOSANT
 // ─────────────────────────────────────────────────────────────
 
-const formatCA = (value: number): string =>
-  `${(value ?? 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} TND`;
+const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({ icon, label, value }) => {
+  const styles = useStyles(makeStyles);
+  const theme  = useTheme();
+  return (
+    <View style={styles.infoRow}>
+      <Ionicons name={icon as any} size={18} color={theme.colors.textSecondary} />
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT PRINCIPAL
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Fiche client complète avec actions directes de contact.
+ * Fiche client avec bouton "Planifier une réunion".
  * @author Riahi Dorsaf
  */
 export const ClientDetailScreen: React.FC = () => {
@@ -69,61 +73,53 @@ export const ClientDetailScreen: React.FC = () => {
   const [contacts,  setContacts]  = useState<ContactResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ── Chargement ────────────────────────────────────────────────
   const charger = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [clientRes, contactsRes] = await Promise.all([
+      const [cRes, ctRes] = await Promise.all([
         ClientApi.obtenirClient(clientId),
         ContactApi.listerContacts(clientId),
       ]);
-      if (clientRes.success)   setClient(clientRes.data);
-      if (contactsRes.success) setContacts(contactsRes.data);
-    } catch {
-      // silencieux
-    } finally {
-      setIsLoading(false);
-    }
+      if (cRes.success)  setClient(cRes.data);
+      if (ctRes.success) setContacts(ctRes.data);
+    } catch { /* silencieux */ }
+    finally { setIsLoading(false); }
   }, [clientId]);
 
   useEffect(() => { charger(); }, [charger]);
 
-  // ── Actions de contact directes ───────────────────────────────
-  const handleAppeler = () => {
+  // ── Actions contact ───────────────────────────────────────
+  const handleAppeler    = () => client?.telephone && Linking.openURL(`tel:${client.telephone}`);
+  const handleWhatsApp   = () => {
     if (!client?.telephone) return;
-    Linking.openURL(`tel:${client.telephone}`);
+    const n = client.telephone.replace(/\D/g, '');
+    Linking.openURL(`https://wa.me/${n}`);
+  };
+  const handleEmail      = () => client?.email && Linking.openURL(`mailto:${client.email}`);
+
+  /**
+   * Navigation vers PlanifierReunionScreen avec le client pré-rempli.
+   * Utilise CommonActions.navigate pour accéder au PlusStack depuis ClientsStack.
+   */
+  const handlePlanifierReunion = () => {
+    if (!client) return;
+    navigation.dispatch(
+      CommonActions.navigate('PlanifierReunion', {
+        clientId:  client.id,
+        clientNom: client.nomAffichage,
+      }),
+    );
   };
 
-  const handleWhatsApp = () => {
-    if (!client?.telephone) return;
-    const numero = client.telephone.replace(/\D/g, '');
-    Linking.openURL(`https://wa.me/${numero}`);
-  };
-
-  const handleEmail = () => {
-    if (!client?.email) return;
-    Linking.openURL(`mailto:${client.email}`);
-  };
-
-  // ── Soft delete ───────────────────────────────────────────────
   const handleSupprimer = () => {
-    Alert.alert(
-      'Supprimer le client',
-      `Voulez-vous supprimer "${client?.nomAffichage}" ? Cette action est irréversible.`,
+    Alert.alert('Supprimer le client',
+      `Voulez-vous supprimer "${client?.nomAffichage}" ?`,
       [
         { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await ClientApi.supprimerClient(clientId);
-              navigation.goBack();
-            } catch {
-              Alert.alert('Erreur', 'Impossible de supprimer ce client.');
-            }
-          },
-        },
+        { text: 'Supprimer', style: 'destructive', onPress: async () => {
+          try { await ClientApi.supprimerClient(clientId); navigation.goBack(); }
+          catch { Alert.alert('Erreur', 'Impossible de supprimer ce client.'); }
+        }},
       ],
     );
   };
@@ -140,29 +136,23 @@ export const ClientDetailScreen: React.FC = () => {
 
   if (!client) return null;
 
-  const aUnTelephone = !!client.telephone;
-  const aUnEmail     = !!client.email;
+  const aPhone = !!client.telephone;
+  const aEmail = !!client.email;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}>
+
         {/* ── Header ── */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.editBtn}
-            onPress={() => navigation.navigate('ClientForm', { client })}
-          >
+          <TouchableOpacity style={styles.editBtn}
+            onPress={() => navigation.navigate('ClientForm', { client })}>
             <Feather name="edit-2" size={18} color={theme.colors.textPrimary} />
           </TouchableOpacity>
-
           <Avatar nom={client.nomAffichage} size="xl" />
           <Text style={styles.headerNom}>{client.nomAffichage}</Text>
           <Text style={styles.headerMeta}>
@@ -175,75 +165,60 @@ export const ClientDetailScreen: React.FC = () => {
           />
         </View>
 
-        {/* ── Boutons d'action directs sur le client ── */}
+        {/* ── Boutons contact rapides ── */}
         <View style={styles.actionsRow}>
-          {/* Appeler */}
           <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              styles.actionBtnAppeler,
-              !aUnTelephone && styles.actionBtnDisabled,
-            ]}
-            onPress={handleAppeler}
-            disabled={!aUnTelephone}
-            activeOpacity={0.75}
-          >
+            style={[styles.actionBtn, styles.actionBtnAppeler, !aPhone && styles.actionBtnDisabled]}
+            onPress={handleAppeler} disabled={!aPhone} activeOpacity={0.75}>
             <Ionicons name="call-outline" size={18} color={theme.colors.primary} />
-            <Text style={[styles.actionBtnText, { color: theme.colors.primary }]}>
-              Appeler
-            </Text>
+            <Text style={[styles.actionBtnText, { color: theme.colors.primary }]}>Appeler</Text>
           </TouchableOpacity>
-
-          {/* WhatsApp */}
           <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              styles.actionBtnWhatsapp,
-              !aUnTelephone && styles.actionBtnDisabled,
-            ]}
-            onPress={handleWhatsApp}
-            disabled={!aUnTelephone}
-            activeOpacity={0.75}
-          >
+            style={[styles.actionBtn, styles.actionBtnWhatsapp, !aPhone && styles.actionBtnDisabled]}
+            onPress={handleWhatsApp} disabled={!aPhone} activeOpacity={0.75}>
             <Ionicons name="logo-whatsapp" size={18} color="#16A34A" />
-            <Text style={[styles.actionBtnText, { color: '#16A34A' }]}>
-              WhatsApp
-            </Text>
+            <Text style={[styles.actionBtnText, { color: '#16A34A' }]}>WhatsApp</Text>
           </TouchableOpacity>
-
-          {/* Email */}
           <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              styles.actionBtnEmail,
-              !aUnEmail && styles.actionBtnDisabled,
-            ]}
-            onPress={handleEmail}
-            disabled={!aUnEmail}
-            activeOpacity={0.75}
-          >
+            style={[styles.actionBtn, styles.actionBtnEmail, !aEmail && styles.actionBtnDisabled]}
+            onPress={handleEmail} disabled={!aEmail} activeOpacity={0.75}>
             <Ionicons name="mail-outline" size={18} color={theme.colors.textSecondary} />
-            <Text style={[styles.actionBtnText, { color: theme.colors.textSecondary }]}>
-              Email
-            </Text>
+            <Text style={[styles.actionBtnText, { color: theme.colors.textSecondary }]}>Email</Text>
           </TouchableOpacity>
         </View>
+
+        {/* ── Bouton Planifier réunion ── */}
+        <TouchableOpacity
+          style={{
+            flexDirection:     'row',
+            alignItems:        'center',
+            justifyContent:    'center',
+            columnGap:         8,
+            marginHorizontal:  16,
+            paddingVertical:   12,
+            borderRadius:      12,
+            backgroundColor:   '#F0FDF4',
+            borderWidth:       1,
+            borderColor:       '#16A34A',
+            marginBottom:      8,
+          }}
+          onPress={handlePlanifierReunion}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="calendar-outline" size={18} color="#16A34A" />
+          <Text style={{ fontSize: 14, fontWeight: '700', color: '#16A34A' }}>
+            Planifier une réunion
+          </Text>
+        </TouchableOpacity>
 
         {/* ── Infos ── */}
         <View style={styles.section}>
           <View style={styles.card}>
-            {client.telephone && (
-              <InfoRow icon="call-outline" label="Téléphone" value={client.telephone} />
-            )}
-            {client.email && (
-              <InfoRow icon="mail-outline" label="Email" value={client.email} />
-            )}
+            {client.telephone && <InfoRow icon="call-outline" label="Téléphone" value={client.telephone} />}
+            {client.email && <InfoRow icon="mail-outline" label="Email" value={client.email} />}
             {client.adresse && (
-              <InfoRow
-                icon="location-outline"
-                label="Adresse"
-                value={`${client.adresse}${client.ville ? ', ' + client.ville : ''}`}
-              />
+              <InfoRow icon="location-outline" label="Adresse"
+                value={`${client.adresse}${client.ville ? ', ' + client.ville : ''}`} />
             )}
             <View style={styles.infoRow}>
               <Ionicons name="cash-outline" size={18} color={theme.colors.primary} />
@@ -256,52 +231,33 @@ export const ClientDetailScreen: React.FC = () => {
         {/* ── Contacts ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              Contacts ({contacts.length})
-            </Text>
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => navigation.navigate('ContactForm', { clientId })}
-            >
+            <Text style={styles.sectionTitle}>Contacts ({contacts.length})</Text>
+            <TouchableOpacity style={styles.addBtn}
+              onPress={() => navigation.navigate('ContactForm', { clientId })}>
               <Ionicons name="add" size={18} color={theme.colors.primary} />
               <Text style={styles.addBtnText}>Ajouter</Text>
             </TouchableOpacity>
           </View>
-
           <View style={styles.card}>
             {contacts.length === 0 ? (
               <View style={styles.opportunitesPlaceholder}>
                 <Text style={styles.opportunitesText}>Aucun contact</Text>
               </View>
             ) : (
-              contacts.map((contact) => (
-                <TouchableOpacity
-                  key={contact.id}
-                  style={styles.contactItem}
-                  onPress={() =>
-                    navigation.navigate('ContactDetail', {
-                      contactId: contact.id,
-                      clientId,
-                    })
-                  }
-                >
+              contacts.map(contact => (
+                <TouchableOpacity key={contact.id} style={styles.contactItem}
+                  onPress={() => navigation.navigate('ContactDetail', { contactId: contact.id, clientId })}>
                   <Avatar nom={contact.nomComplet} size="sm" />
                   <View style={styles.contactInfo}>
                     <Text style={styles.contactNom}>
                       {contact.nomComplet}
-                      {contact.isPrincipal && (
-                        <Text style={{ color: theme.colors.primary }}> ★</Text>
-                      )}
+                      {contact.isPrincipal && <Text style={{ color: theme.colors.primary }}> ★</Text>}
                     </Text>
-                    {contact.poste && (
-                      <Text style={styles.contactPoste}>{contact.poste}</Text>
-                    )}
+                    {contact.poste && <Text style={styles.contactPoste}>{contact.poste}</Text>}
                   </View>
                   {contact.telephone && (
-                    <TouchableOpacity
-                      style={styles.contactCallBtn}
-                      onPress={() => Linking.openURL(`tel:${contact.telephone}`)}
-                    >
+                    <TouchableOpacity style={styles.contactCallBtn}
+                      onPress={() => Linking.openURL(`tel:${contact.telephone}`)}>
                       <Ionicons name="call-outline" size={18} color={theme.colors.primary} />
                     </TouchableOpacity>
                   )}
@@ -311,45 +267,22 @@ export const ClientDetailScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* ── Opportunités (placeholder Sprint 3) ── */}
+        {/* ── Opportunités placeholder ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Opportunités</Text>
           </View>
           <View style={styles.card}>
             <View style={styles.opportunitesPlaceholder}>
-              <Text style={styles.opportunitesText}>
-                Disponible en Sprint 3
-              </Text>
+              <Text style={styles.opportunitesText}>Disponible en Sprint 3</Text>
             </View>
           </View>
         </View>
 
-        {/* ── Supprimer ── */}
         <TouchableOpacity style={styles.deleteBtn} onPress={handleSupprimer}>
           <Text style={styles.deleteBtnText}>Supprimer le client</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
-  );
-};
-
-// ─────────────────────────────────────────────────────────────
-// SOUS-COMPOSANT
-// ─────────────────────────────────────────────────────────────
-
-const InfoRow: React.FC<{
-  icon:  string;
-  label: string;
-  value: string;
-}> = ({ icon, label, value }) => {
-  const styles = useStyles(makeStyles);
-  const theme  = useTheme();
-  return (
-    <View style={styles.infoRow}>
-      <Ionicons name={icon as any} size={18} color={theme.colors.textSecondary} />
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
   );
 };
