@@ -65,12 +65,8 @@ export const modifierCategorie = async (
 
 /**
  * Désactive tous les produits actifs d'une catégorie (statut → INACTIF).
- * À appeler avant {@link supprimerCategorie} quand la catégorie
- * contient des produits actifs.
- *
+ * À appeler avant supprimerCategorie quand la catégorie contient des produits actifs.
  * Correspond à : PATCH /catalogue/categories/{id}/desactiver-produits
- *
- * @param id - Identifiant de la catégorie
  * @author Riahi Dorsaf
  */
 export const desactiverProduitsCategorie = async (
@@ -84,13 +80,8 @@ export const desactiverProduitsCategorie = async (
 
 /**
  * Retire la catégorie de tous ses produits (categorieId → null).
- * Les produits restent actifs mais sans catégorie.
- * À appeler avant {@link supprimerCategorie} quand la catégorie
- * contient des produits actifs.
- *
+ * À appeler avant supprimerCategorie quand la catégorie contient des produits actifs.
  * Correspond à : PATCH /catalogue/categories/{id}/retirer-categorie
- *
- * @param id - Identifiant de la catégorie
  * @author Riahi Dorsaf
  */
 export const retirerCategorieProduits = async (
@@ -105,10 +96,6 @@ export const retirerCategorieProduits = async (
 /**
  * Supprime une catégorie sans produits actifs.
  * Retourne 400 si la catégorie contient encore des produits actifs.
- * Dans ce cas, appeler d'abord {@link desactiverProduitsCategorie}
- * ou {@link retirerCategorieProduits}.
- *
- * @param id - Identifiant de la catégorie à supprimer
  * @author Riahi Dorsaf
  */
 export const supprimerCategorie = async (
@@ -126,6 +113,7 @@ export const supprimerCategorie = async (
 
 /**
  * Récupère la liste des produits avec filtres optionnels.
+ * Passer statut='ARCHIVE' pour consulter les produits archivés.
  * @author Riahi Dorsaf
  */
 export const listerProduits = async (
@@ -188,6 +176,7 @@ export const modifierProduit = async (
 
 /**
  * Archive un produit (statut → ARCHIVE).
+ * Le produit disparaît des listes actives.
  * @author Riahi Dorsaf
  */
 export const archiverProduit = async (
@@ -195,6 +184,46 @@ export const archiverProduit = async (
 ): Promise<ApiResponse<void>> => {
   const response = await apiClient.patch<ApiResponse<void>>(
     `/catalogue/produits/${id}/archiver`,
+  );
+  return response.data;
+};
+
+/**
+ * Désarchive un produit (statut ARCHIVE → INACTIF).
+ * Le produit redevient visible dans la liste INACTIF.
+ * @author Riahi Dorsaf
+ */
+export const desarchiverProduit = async (
+  id: number,
+): Promise<ApiResponse<void>> => {
+  const response = await apiClient.patch<ApiResponse<void>>(
+    `/catalogue/produits/${id}/desarchiver`,
+  );
+  return response.data;
+};
+
+/**
+ * Active un produit (statut INACTIF → ACTIF).
+ * @author Riahi Dorsaf
+ */
+export const activerProduit = async (
+  id: number,
+): Promise<ApiResponse<void>> => {
+  const response = await apiClient.patch<ApiResponse<void>>(
+    `/catalogue/produits/${id}/activer`,
+  );
+  return response.data;
+};
+
+/**
+ * Désactive un produit (statut ACTIF → INACTIF).
+ * @author Riahi Dorsaf
+ */
+export const desactiverProduit = async (
+  id: number,
+): Promise<ApiResponse<void>> => {
+  const response = await apiClient.patch<ApiResponse<void>>(
+    `/catalogue/produits/${id}/desactiver`,
   );
   return response.data;
 };

@@ -5,14 +5,15 @@
  *              FONCTIONNALITÉS :
  *              - Sélecteur type (SERVICE / STOCKABLE) avec icône + description
  *              - Champs dynamiques : stockDisponible visible uniquement si STOCKABLE
- *              - Picker catégorie (Modal bottom sheet)
+ *              - Picker catégorie (Modal bottom sheet) avec option "Créer une catégorie"
+ *              - Sélection automatique de la nouvelle catégorie au retour de CategorieForm
  *              - Sélecteur statut (ACTIF / INACTIF)
  *              - Validation : nom obligatoire, prixHT obligatoire > 0
  *
  * @author Riahi Dorsaf
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -25,7 +26,7 @@ import {
 } from 'react-native';
 import { SafeAreaView }              from 'react-native-safe-area-context';
 import { useNavigation, useRoute,
-         RouteProp }                 from '@react-navigation/native';
+         RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons }                  from '@expo/vector-icons';
 
@@ -49,8 +50,8 @@ import {
 // TYPES
 // ─────────────────────────────────────────────────────────────
 
-type Nav   = NativeStackNavigationProp<CatalogueStackParamList, 'ProduitForm'>;
-type Route = RouteProp<CatalogueStackParamList, 'ProduitForm'>;
+type Nav    = NativeStackNavigationProp<CatalogueStackParamList, 'ProduitForm'>;
+type Route  = RouteProp<CatalogueStackParamList, 'ProduitForm'>;
 type Errors = Partial<Record<keyof ProduitFormState | 'prixHTNum', string>>;
 
 // ─────────────────────────────────────────────────────────────
@@ -95,6 +96,13 @@ export const ProduitFormScreen: React.FC = () => {
   const [categories,   setCategories]   = useState<CategorieResponse[]>([]);
   const [showCatModal, setShowCatModal] = useState(false);
 
+  /**
+   * Référence aux IDs connus avant de naviguer vers CategorieFormScreen.
+   * Permet de détecter la nouvelle catégorie créée au retour
+   * et de la sélectionner automatiquement.
+   */
+  const idsAvantNavigation = useRef<Set<number>>(new Set());
+
   // ── Chargement catégories ─────────────────────────────────
   const chargerCategories = useCallback(async () => {
     try {
@@ -107,6 +115,47 @@ export const ProduitFormScreen: React.FC = () => {
 
   useEffect(() => { chargerCategories(); }, [chargerCategories]);
 
+  /**
+   * Au retour de CategorieFormScreen, recharge les catégories
+   * et sélectionne automatiquement celle qui vient d'être créée.
+   *
+   * LOGIQUE DE DÉTECTION :
+   * On compare les IDs actuels avec ceux mémorisés avant la navigation.
+   * La différence = la nouvelle catégorie créée.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      // Ne rien faire au premier montage, seulement au retour de navigation
+      if (idsAvantNavigation.current.size === 0) return;
+
+      const detecterNouvelleCategorie = async () => {
+        try {
+          const res = await CatalogueApi.listerCategories();
+          if (!res.success) return;
+
+          setCategories(res.data);
+
+          // Trouve la catégorie dont l'ID n'était pas dans la liste avant
+          const nouvelleCategorie = res.data.find(
+            c => !idsAvantNavigation.current.has(c.id),
+          );
+
+          if (nouvelleCategorie) {
+            // Sélectionne automatiquement la nouvelle catégorie
+            setForm(f => ({ ...f, categorieId: nouvelleCategorie.id }));
+          }
+        } catch {
+          // silencieux
+        } finally {
+          // Réinitialise la référence pour le prochain cycle
+          idsAvantNavigation.current = new Set();
+        }
+      };
+
+      detecterNouvelleCategorie();
+    }, []),
+  );
+
   // ── Update champ ──────────────────────────────────────────
   const setField = <K extends keyof ProduitFormState>(key: K) =>
     (value: ProduitFormState[K]) => {
@@ -116,6 +165,14 @@ export const ProduitFormScreen: React.FC = () => {
     };
 
   const catSelectionnee = categories.find(c => c.id === form.categorieId);
+
+  // ── Navigation vers CategorieFormScreen ───────────────────
+  const handleCreerCategorie = () => {
+    // Mémorise les IDs actuels avant de naviguer
+    idsAvantNavigation.current = new Set(categories.map(c => c.id));
+    setShowCatModal(false);
+    navigation.navigate('CategorieForm', {});
+  };
 
   // ── Validation ────────────────────────────────────────────
   const validate = (): boolean => {
@@ -362,10 +419,16 @@ export const ProduitFormScreen: React.FC = () => {
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Choisir une catégorie</Text>
+
             <FlatList
               data={[
-                { id: null, nom: 'Aucune catégorie', nbProduits: 0,
-                  description: null, dateCreation: '' } as any,
+                {
+                  id: null,
+                  nom: 'Aucune catégorie',
+                  nbProduits: 0,
+                  description: null,
+                  dateCreation: '',
+                } as any,
                 ...categories,
               ]}
               keyExtractor={(item) => String(item.id ?? 'none')}
@@ -397,6 +460,21 @@ export const ProduitFormScreen: React.FC = () => {
                   </TouchableOpacity>
                 );
               }}
+
+              // ── Bouton créer une catégorie en bas de la liste ──
+              ListFooterComponent={
+                <TouchableOpacity
+                  style={styles.modalCreateBtn}
+                  onPress={handleCreerCategorie}
+                >
+                  <View style={styles.modalCreateBtnIconWrapper}>
+                    <Ionicons name="add" size={20} color={theme.colors.primary} />
+                  </View>
+                  <Text style={styles.modalCreateBtnText}>
+                    Créer une nouvelle catégorie
+                  </Text>
+                </TouchableOpacity>
+              }
             />
           </View>
         </TouchableOpacity>

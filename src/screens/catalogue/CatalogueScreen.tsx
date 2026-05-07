@@ -2,11 +2,12 @@
  * @file CatalogueScreen.tsx
  * @description Écran Catalogue avec :
  *              - Barre de recherche (debounce 400ms)
- *              - Filtres chips [Tous / Services / Stockables] + [Actif / Inactif]
- *              - Section Catégories en grille 2 colonnes avec nbProduits
+ *              - Filtres chips [Tous / Services / Stockables]
+ *              - Onglets statut [Actif / Inactif / Archivé]
+ *              - Section Catégories en grille 2 colonnes
  *              - Section Produits avec icône auto + prix + badge statut
+ *              - Bannière informative sur les produits archivés
  *              - FAB → ProduitFormScreen (création)
- *              - Tap produit → ProduitDetailScreen
  * @author Riahi Dorsaf
  */
 
@@ -54,9 +55,12 @@ const TYPE_CHIPS: FilterChip[] = [
   { value: 'STOCKABLE', label: 'Stockables' },
 ];
 
-const STATUT_CHIPS: FilterChip[] = [
-  { value: 'ACTIF',   label: 'Actif'   },
-  { value: 'INACTIF', label: 'Inactif' },
+type StatutOnglet = 'ACTIF' | 'INACTIF' | 'ARCHIVE';
+
+const STATUT_ONGLETS: { value: StatutOnglet; label: string }[] = [
+  { value: 'ACTIF',   label: 'Actifs'   },
+  { value: 'INACTIF', label: 'Inactifs' },
+  { value: 'ARCHIVE', label: 'Archivés' },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -90,13 +94,13 @@ export const CatalogueScreen: React.FC = () => {
   const theme      = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<CatalogueStackParamList>>();
 
-  const [categories,   setCategories]   = useState<CategorieResponse[]>([]);
-  const [produits,     setProduits]     = useState<ProduitResponse[]>([]);
-  const [searchText,   setSearchText]   = useState('');
-  const [filtreType,   setFiltreType]   = useState('TOUS');
-  const [filtreStatut, setFiltreStatut] = useState<'ACTIF' | 'INACTIF'>('ACTIF');
-  const [isLoading,    setIsLoading]    = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [categories,    setCategories]    = useState<CategorieResponse[]>([]);
+  const [produits,      setProduits]      = useState<ProduitResponse[]>([]);
+  const [searchText,    setSearchText]    = useState('');
+  const [filtreType,    setFiltreType]    = useState('TOUS');
+  const [filtreStatut,  setFiltreStatut]  = useState<StatutOnglet>('ACTIF');
+  const [isLoading,     setIsLoading]     = useState(true);
+  const [isRefreshing,  setIsRefreshing]  = useState(false);
 
   const debouncedSearch = useDebounce(searchText, 400);
 
@@ -110,7 +114,8 @@ export const CatalogueScreen: React.FC = () => {
 
       const [catRes, prodRes] = await Promise.all([
         CatalogueApi.listerCategories(debouncedSearch || undefined),
-        CatalogueApi.listerProduits(type, statut, undefined, debouncedSearch || undefined),
+        CatalogueApi.listerProduits(
+          type, statut, undefined, debouncedSearch || undefined),
       ]);
       if (catRes.success)  setCategories(catRes.data);
       if (prodRes.success) setProduits(prodRes.data);
@@ -218,23 +223,66 @@ export const CatalogueScreen: React.FC = () => {
               </Text>
             </View>
 
-            <FilterChips
-              chips={STATUT_CHIPS}
-              selected={filtreStatut}
-              onSelect={(v) => setFiltreStatut(v as 'ACTIF' | 'INACTIF')}
-            />
+            {/* Onglets Actif / Inactif / Archivé */}
+            <View style={styles.statutTabs}>
+              {STATUT_ONGLETS.map((onglet) => (
+                <TouchableOpacity
+                  key={onglet.value}
+                  style={[
+                    styles.statutTab,
+                    filtreStatut === onglet.value && styles.statutTabActive,
+                  ]}
+                  onPress={() => setFiltreStatut(onglet.value)}
+                >
+                  <Text style={[
+                    styles.statutTabText,
+                    filtreStatut === onglet.value && styles.statutTabTextActive,
+                  ]}>
+                    {onglet.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
+            {/* Bannière informative pour les produits archivés */}
+            {filtreStatut === 'ARCHIVE' && (
+              <View style={styles.archiveBanner}>
+                <Ionicons
+                  name="archive-outline"
+                  size={16}
+                  color={theme.colors.warning}
+                />
+                <Text style={styles.archiveBannerText}>
+                  Ces produits sont archivés. Ouvrez-en un pour le désarchiver.
+                </Text>
+              </View>
+            )}
+
+            {/* Liste produits */}
             {produits.length === 0 ? (
               <EmptyState
-                icon="cube-outline"
-                titre="Aucun produit"
-                soustitre="Ajoutez votre premier produit avec le bouton +"
+                icon={filtreStatut === 'ARCHIVE' ? 'archive-outline' : 'cube-outline'}
+                titre={
+                  filtreStatut === 'ARCHIVE'
+                    ? 'Aucun produit archivé'
+                    : filtreStatut === 'INACTIF'
+                    ? 'Aucun produit inactif'
+                    : 'Aucun produit actif'
+                }
+                soustitre={
+                  filtreStatut === 'ACTIF'
+                    ? 'Ajoutez votre premier produit avec le bouton +'
+                    : 'Aucun produit dans cette catégorie'
+                }
               />
             ) : (
               produits.map((produit) => (
                 <TouchableOpacity
                   key={produit.id}
-                  style={styles.produitItem}
+                  style={[
+                    styles.produitItem,
+                    produit.statut === 'ARCHIVE' && styles.produitItemArchive,
+                  ]}
                   onPress={() =>
                     navigation.navigate('ProduitDetail', { produitId: produit.id })
                   }
@@ -274,11 +322,13 @@ export const CatalogueScreen: React.FC = () => {
         </ScrollView>
       )}
 
-      {/* ── FAB ── */}
-      <FAB
-        onPress={() => navigation.navigate('ProduitForm', {})}
-        accessibilityLabel="Ajouter un produit"
-      />
+      {/* FAB masqué sur l'onglet Archivés */}
+      {filtreStatut !== 'ARCHIVE' && (
+        <FAB
+          onPress={() => navigation.navigate('ProduitForm', {})}
+          accessibilityLabel="Ajouter un produit"
+        />
+      )}
     </SafeAreaView>
   );
 };

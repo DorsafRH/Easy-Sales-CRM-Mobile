@@ -41,8 +41,7 @@ export const makeStyles = (theme: AppTheme) =>
       marginBottom: theme.spacing[3],
     },
 
-    searchWrapper:  { marginBottom: theme.spacing[3] },
-    filtersWrapper: {},
+    searchWrapper: { marginBottom: theme.spacing[3] },
 
     // ── Contenu scrollable ────────────────────────────────────
     scroll:  { flex: 1 },
@@ -115,6 +114,62 @@ export const makeStyles = (theme: AppTheme) =>
       color:    theme.colors.textSecondary,
     },
 
+    // ── Onglets statut produits ───────────────────────────────
+    statutTabs: {
+      flexDirection:  'row',
+      marginBottom:   theme.spacing[3],
+      borderRadius:   theme.radius.lg,
+      backgroundColor: theme.colors.bgApp,
+      padding:        3,
+    },
+
+    statutTab: {
+      flex:            1,
+      paddingVertical: theme.spacing[2],
+      alignItems:      'center',
+      borderRadius:    theme.radius.md,
+    },
+
+    statutTabActive: {
+      backgroundColor: theme.colors.bgSurface,
+      shadowColor:     theme.colors.black,
+      shadowOffset:    { width: 0, height: 1 },
+      shadowOpacity:   0.08,
+      shadowRadius:    2,
+      elevation:       1,
+    },
+
+    statutTabText: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '500',
+      color:      theme.colors.textSecondary,
+    },
+
+    statutTabTextActive: {
+      color:      theme.colors.textPrimary,
+      fontWeight: '700',
+    },
+
+    // ── Bannière archivés ─────────────────────────────────────
+    archiveBanner: {
+      flexDirection:   'row',
+      alignItems:      'center',
+      columnGap:       theme.spacing[2],
+      backgroundColor: theme.colors.warningLight,
+      borderRadius:    theme.radius.md,
+      padding:         theme.spacing[3],
+      marginBottom:    theme.spacing[3],
+      borderWidth:     1,
+      borderColor:     theme.colors.warning,
+    },
+
+    archiveBannerText: {
+      flex:       1,
+      fontSize:   theme.typography.size.xs,
+      color:      theme.colors.warning,
+      fontWeight: '500',
+    },
+
     // ── Liste produits ────────────────────────────────────────
     produitItem: {
       flexDirection:   'row',
@@ -126,6 +181,10 @@ export const makeStyles = (theme: AppTheme) =>
       columnGap:       theme.spacing[3],
       borderWidth:     1,
       borderColor:     theme.colors.border,
+    },
+
+    produitItemArchive: {
+      opacity: 0.7,
     },
 
     produitIconWrapper: {

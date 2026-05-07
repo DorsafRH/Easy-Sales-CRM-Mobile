@@ -8,10 +8,6 @@ import { StyleSheet } from 'react-native';
 import { AppTheme }   from '../../theme';
 import { layout }     from '../../theme/dimensions';
 
-/**
- * @param theme - Thème courant injecté par useStyles()
- * @author Riahi Dorsaf
- */
 export const makeStyles = (theme: AppTheme) =>
   StyleSheet.create({
 
@@ -244,5 +240,32 @@ export const makeStyles = (theme: AppTheme) =>
     modalItemTextSelected: {
       color:      theme.colors.primary,
       fontWeight: '600',
+    },
+
+    // ── Bouton créer une catégorie (dans le modal) ────────────
+    modalCreateBtn: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      columnGap:         theme.spacing[3],
+      paddingVertical:   theme.spacing[4],
+      paddingHorizontal: layout.screenPadding,
+      borderTopWidth:    1,
+      borderTopColor:    theme.colors.border,
+      marginTop:         theme.spacing[2],
+    },
+
+    modalCreateBtnIconWrapper: {
+      width:           36,
+      height:          36,
+      borderRadius:    18,
+      backgroundColor: theme.colors.primaryLight,
+      alignItems:      'center',
+      justifyContent:  'center',
+    },
+
+    modalCreateBtnText: {
+      fontSize:   theme.typography.size.base,
+      fontWeight: '600',
+      color:      theme.colors.primary,
     },
   });

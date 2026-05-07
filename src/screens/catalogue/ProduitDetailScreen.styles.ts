@@ -94,9 +94,9 @@ export const makeStyles = (theme: AppTheme) =>
     },
 
     heroCode: {
-      fontSize:     theme.typography.size.xs,
-      color:        theme.colors.textTertiary,
-      fontFamily:   'monospace',
+      fontSize:   theme.typography.size.xs,
+      color:      theme.colors.textTertiary,
+      fontFamily: 'monospace',
       marginBottom: theme.spacing[2],
     },
 
@@ -163,18 +163,67 @@ export const makeStyles = (theme: AppTheme) =>
       rowGap:            theme.spacing[3],
     },
 
+    // Toggle Actif/Inactif — card avec switch
+    toggleCard: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      justifyContent:    'space-between',
+      backgroundColor:   theme.colors.bgSurface,
+      borderRadius:      theme.radius.lg,
+      borderWidth:       1,
+      borderColor:       theme.colors.border,
+      paddingVertical:   theme.spacing[4],
+      paddingHorizontal: theme.spacing[4],
+    },
+
+    toggleLeft: {
+      flex:     1,
+      rowGap:   2,
+    },
+
+    toggleLabel: {
+      fontSize:   theme.typography.size.base,
+      fontWeight: '600',
+      color:      theme.colors.textPrimary,
+    },
+
+    toggleSub: {
+      fontSize: theme.typography.size.xs,
+      color:    theme.colors.textSecondary,
+    },
+
+    // Bouton archiver (orange)
     archiveBtn: {
-      paddingVertical:  theme.spacing[3],
-      borderRadius:     theme.radius.md,
-      borderWidth:      1,
-      borderColor:      theme.colors.warning,
-      alignItems:       'center',
-      backgroundColor:  theme.colors.warningLight,
+      paddingVertical: theme.spacing[3],
+      borderRadius:    theme.radius.md,
+      borderWidth:     1,
+      borderColor:     theme.colors.warning,
+      alignItems:      'center',
+      backgroundColor: theme.colors.warningLight,
     },
 
     archiveBtnText: {
       fontSize:   theme.typography.size.sm,
       color:      theme.colors.warning,
+      fontWeight: '600',
+    },
+
+    // Bouton désarchiver (vert)
+    desarchiveBtn: {
+      flexDirection:   'row',
+      alignItems:      'center',
+      justifyContent:  'center',
+      columnGap:       theme.spacing[2],
+      paddingVertical: theme.spacing[3],
+      borderRadius:    theme.radius.md,
+      borderWidth:     1,
+      borderColor:     theme.colors.success,
+      backgroundColor: theme.colors.successLight,
+    },
+
+    desarchiveBtnText: {
+      fontSize:   theme.typography.size.sm,
+      color:      theme.colors.success,
       fontWeight: '600',
     },
 
