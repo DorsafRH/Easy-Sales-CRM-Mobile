@@ -1,75 +1,119 @@
 /**
  * @file reporting.types.ts
- * @description Types TypeScript pour le module Reporting / Dashboard (Sprint 2).
- *              Correspond au DTO backend ReportingKpisResponse.
+ * @description Types TypeScript pour le module Reporting / Dashboard.
  * @author Riahi Dorsaf
  */
 
-// ─────────────────────────────────────────────────────────────
-// ACTIVITÉ RÉCENTE
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Un élément d'activité récente affiché dans le dashboard.
- * Sprint 2 : type = "CLIENT" uniquement.
- */
 export interface ActiviteRecenteItem {
-  id:           number;
-  type:         'CLIENT' | 'OPPORTUNITE' | 'DEVIS';
-  titre:        string;
-  soustitre:    string;
-  dateRelative: string;
+  id:              number;
+  type:            string;       // entiteType : "CLIENT" | "CONTACT" | "PRODUIT"
+  typeActivite:    string;       // TypeActivite : "CLIENT_CREE", "CONTACT_AJOUTE"…
+  titre:           string;       // label de l'action : "Nouveau client ajouté"
+  soustitre:       string;       // nom de l'entité : "Ahmed Ben Ali"
+  dateRelative:    string;
+  entiteParentId?: number | null;
 }
 
-// ─────────────────────────────────────────────────────────────
-// KPIs
-// ─────────────────────────────────────────────────────────────
+export type TypeActivite =
+  | 'CLIENT_CREE'       | 'CLIENT_MODIFIE'     | 'CLIENT_SUPPRIME'
+  | 'CONTACT_AJOUTE'    | 'CONTACT_MODIFIE'    | 'CONTACT_SUPPRIME'
+  | 'PRODUIT_CREE'      | 'PRODUIT_MODIFIE'    | 'PRODUIT_ARCHIVE'
+  | 'PRODUIT_DESARCHIVE'| 'PRODUIT_ACTIVE'     | 'PRODUIT_DESACTIVE'
+  | 'OPPORTUNITE_CREEE' | 'DEVIS_CREE'         | 'PUBLICATION_CREEE';
 
-/**
- * Réponse complète de l'endpoint GET /api/reporting/kpis.
- * Sprint 2 : nbClients réel, autres à 0.
- */
+export type EntiteType = 'CLIENT' | 'CONTACT' | 'PRODUIT';
+
+export interface ActiviteResponse {
+  id:              number;
+  type:            TypeActivite;
+  titre:           string;
+  description:     string;
+  entiteId:        number;
+  entiteType:      EntiteType;
+  entiteParentId?: number | null;
+  dateRelative:    string;
+  dateCreation:    string;
+}
+
 export interface ReportingKpisResponse {
-  /** Nombre de clients actifs — réel Sprint 2 */
-  nbClients:      number;
-
-  /** Opportunités en cours — 0 Sprint 2, réel Sprint 3 */
-  nbOpportunites: number;
-
-  /** CA du mois en TND — 0.0 Sprint 2, réel Sprint 3 */
+  nbClients:       number;
+  nbOpportunites:  number;
   chiffreAffaires: number;
-
-  /** Devis en attente — 0 Sprint 2, réel Sprint 3 */
-  nbDevis:        number;
-
-  /**
-   * Données sparkline sur 7 jours.
-   * Sprint 2 : [0, 0, 0, 0, 0, 0, 0]
-   */
-  sparkline:      number[];
-
-  /**
-   * Activité récente — 5 derniers clients créés (Sprint 2).
-   */
+  nbDevis:         number;
+  sparkline:       number[];
   activiteRecente: ActiviteRecenteItem[];
 }
 
-// ─────────────────────────────────────────────────────────────
-// FILTRE PÉRIODE (mobile uniquement — non envoyé au backend Sprint 2)
-// ─────────────────────────────────────────────────────────────
+export interface PageResponse<T> {
+  content:       T[];
+  page:          number;
+  size:          number;
+  totalElements: number;
+  totalPages:    number;
+  last:          boolean;
+}
 
-/**
- * Sélecteur de période affiché dans le Dashboard.
- * Sprint 2 : affichage cosmétique uniquement (API renvoie des données fixes).
- * Sprint 3 : sera utilisé pour filtrer les KPIs.
- */
 export type PeriodeDashboard = 'AUJOURD_HUI' | 'CE_MOIS' | 'CETTE_ANNEE';
 
-/**
- * Libellés des périodes pour l'UI.
- */
 export const PERIODE_LABELS: Record<PeriodeDashboard, string> = {
-  AUJOURD_HUI:  "Aujourd'hui",
-  CE_MOIS:      'Ce mois',
-  CETTE_ANNEE:  'Cette année',
+  AUJOURD_HUI: "Aujourd'hui",
+  CE_MOIS:     'Ce mois',
+  CETTE_ANNEE: 'Cette année',
+};
+
+/** Icône Ionicons par TypeActivite */
+export const ACTIVITE_ICONE: Record<string, string> = {
+  CLIENT_CREE:        'person-add-outline',
+  CLIENT_MODIFIE:     'person-outline',
+  CLIENT_SUPPRIME:    'person-remove-outline',
+  CONTACT_AJOUTE:     'call-outline',
+  CONTACT_MODIFIE:    'call-outline',
+  CONTACT_SUPPRIME:   'call-outline',
+  PRODUIT_CREE:       'cube-outline',
+  PRODUIT_MODIFIE:    'create-outline',
+  PRODUIT_ARCHIVE:    'archive-outline',
+  PRODUIT_DESARCHIVE: 'arrow-up-circle-outline',
+  PRODUIT_ACTIVE:     'checkmark-circle-outline',
+  PRODUIT_DESACTIVE:  'pause-circle-outline',
+  OPPORTUNITE_CREEE:  'trending-up-outline',
+  DEVIS_CREE:         'document-text-outline',
+  PUBLICATION_CREEE:  'megaphone-outline',
+};
+
+/** Couleur de fond de l'icône par TypeActivite */
+export const ACTIVITE_BG: Record<string, string> = {
+  CLIENT_CREE:        '#EFF6FF',
+  CLIENT_MODIFIE:     '#EFF6FF',
+  CLIENT_SUPPRIME:    '#FEF2F2',
+  CONTACT_AJOUTE:     '#F0FDF4',
+  CONTACT_MODIFIE:    '#F0FDF4',
+  CONTACT_SUPPRIME:   '#FEF2F2',
+  PRODUIT_CREE:       '#F5F3FF',
+  PRODUIT_MODIFIE:    '#F5F3FF',
+  PRODUIT_ARCHIVE:    '#FFF7ED',
+  PRODUIT_DESARCHIVE: '#F0FDF4',
+  PRODUIT_ACTIVE:     '#F0FDF4',
+  PRODUIT_DESACTIVE:  '#FFF7ED',
+  OPPORTUNITE_CREEE:  '#F0FDF4',
+  DEVIS_CREE:         '#EFF6FF',
+  PUBLICATION_CREEE:  '#FFF7ED',
+};
+
+/** Couleur de l'icône par TypeActivite */
+export const ACTIVITE_ICON_COLOR: Record<string, string> = {
+  CLIENT_CREE:        '#2563EB',
+  CLIENT_MODIFIE:     '#2563EB',
+  CLIENT_SUPPRIME:    '#DC2626',
+  CONTACT_AJOUTE:     '#16A34A',
+  CONTACT_MODIFIE:    '#16A34A',
+  CONTACT_SUPPRIME:   '#DC2626',
+  PRODUIT_CREE:       '#7C3AED',
+  PRODUIT_MODIFIE:    '#7C3AED',
+  PRODUIT_ARCHIVE:    '#EA580C',
+  PRODUIT_DESARCHIVE: '#16A34A',
+  PRODUIT_ACTIVE:     '#16A34A',
+  PRODUIT_DESACTIVE:  '#EA580C',
+  OPPORTUNITE_CREEE:  '#16A34A',
+  DEVIS_CREE:         '#2563EB',
+  PUBLICATION_CREEE:  '#EA580C',
 };
