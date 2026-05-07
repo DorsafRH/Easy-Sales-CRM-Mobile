@@ -1,8 +1,7 @@
 /**
  * @file PlusStack.tsx
  * @description Stack Navigator pour l'onglet "Plus".
- *              Encapsule PlusMenuScreen et tous les écrans Catalogue,
- *              accessibles directement depuis le menu Plus.
+ *              Contient le Catalogue et l'Agenda des réunions.
  *
  * @author Riahi Dorsaf
  */
@@ -15,6 +14,9 @@ import { CatalogueScreen }     from '../screens/catalogue/CatalogueScreen';
 import { ProduitDetailScreen } from '../screens/catalogue/ProduitDetailScreen';
 import { ProduitFormScreen }   from '../screens/catalogue/ProduitFormScreen';
 import { CategorieFormScreen } from '../screens/catalogue/CategorieFormScreen';
+import { AgendaScreen }           from '../screens/agenda/AgendaScreen';
+import { PlanifierReunionScreen } from '../screens/agenda/PlanifierReunionScreen';
+import { ReunionDetailScreen }    from '../screens/agenda/ReunionDetailScreen';
 
 import { ProduitResponse, CategorieResponse } from '../types/catalogue.types';
 
@@ -28,6 +30,21 @@ export type PlusStackParamList = {
   ProduitDetail: { produitId: number };
   ProduitForm:   { produit?: ProduitResponse };
   CategorieForm: { categorie?: CategorieResponse };
+  /** Écran Agenda — liste des réunions de la semaine */
+  AgendaHome:    undefined;
+  /**
+   * Formulaire de création / modification d'une réunion.
+   * @param reunionId  - fourni en mode édition
+   * @param clientId   - pré-sélectionne le client (depuis fiche client)
+   * @param clientNom  - nom affiché dans le formulaire
+   */
+  PlanifierReunion: {
+    reunionId?:  number;
+    clientId?:   number;
+    clientNom?:  string;
+  };
+  /** Fiche détail d'une réunion */
+  ReunionDetail: { reunionId: number };
 };
 
 const Stack = createNativeStackNavigator<PlusStackParamList>();
@@ -38,9 +55,6 @@ const Stack = createNativeStackNavigator<PlusStackParamList>();
 
 /**
  * Stack de navigation pour l'onglet Plus.
- * PlusMenuScreen est l'écran d'accueil, les écrans Catalogue
- * sont accessibles via navigation depuis le menu.
- *
  * @author Riahi Dorsaf
  */
 export const PlusStack: React.FC = () => (
@@ -51,10 +65,13 @@ export const PlusStack: React.FC = () => (
       animation:      'slide_from_right',
     }}
   >
-    <Stack.Screen name="PlusMenu"      component={PlusMenuScreen}      />
-    <Stack.Screen name="CatalogueHome" component={CatalogueScreen}     />
-    <Stack.Screen name="ProduitDetail" component={ProduitDetailScreen} />
-    <Stack.Screen name="ProduitForm"   component={ProduitFormScreen}   />
-    <Stack.Screen name="CategorieForm" component={CategorieFormScreen} />
+    <Stack.Screen name="PlusMenu"         component={PlusMenuScreen}         />
+    <Stack.Screen name="CatalogueHome"    component={CatalogueScreen}        />
+    <Stack.Screen name="ProduitDetail"    component={ProduitDetailScreen}    />
+    <Stack.Screen name="ProduitForm"      component={ProduitFormScreen}      />
+    <Stack.Screen name="CategorieForm"    component={CategorieFormScreen}    />
+    <Stack.Screen name="AgendaHome"       component={AgendaScreen}           />
+    <Stack.Screen name="PlanifierReunion" component={PlanifierReunionScreen} />
+    <Stack.Screen name="ReunionDetail"    component={ReunionDetailScreen}    />
   </Stack.Navigator>
 );
