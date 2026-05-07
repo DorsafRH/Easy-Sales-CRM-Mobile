@@ -1,7 +1,8 @@
 /**
  * @file StatutCompteScreen.tsx
  * @description Écran de statut du compte.
- *              Si le statut est ACTIVE, redirige automatiquement vers MainTab.
+ *              Si le statut est ACTIVE, appelle marquerCompteActif() pour
+ *              mémoriser le statut dans SecureStore puis redirige vers MainTab.
  *              Sinon, affiche le statut EN_ATTENTE / REFUSE / SUSPENDU.
  * @author Riahi Dorsaf
  */
@@ -23,7 +24,9 @@ import { AppStackParamList } from '../../navigation/AppStack';
 
 type StatutKey = 'EN_ATTENTE' | 'ACTIVE' | 'REFUSE' | 'SUSPENDU';
 
-const getStatutContent = (theme: AppTheme): Record<StatutKey, { emoji: string; title: string; subtitle: string; bg: string }> => ({
+const getStatutContent = (theme: AppTheme): Record<StatutKey, {
+  emoji: string; title: string; subtitle: string; bg: string;
+}> => ({
   EN_ATTENTE: {
     emoji:    '⏳',
     title:    "Votre demande est en cours d'examen",
@@ -50,15 +53,6 @@ const getStatutContent = (theme: AppTheme): Record<StatutKey, { emoji: string; t
   },
 });
 
-const MODULES = [
-  { icon: '👥', label: 'Clients & Contacts',  sprint: 'Sprint 2' },
-  { icon: '📦', label: 'Catalogue produits',   sprint: 'Sprint 2' },
-  { icon: '🎯', label: 'Leads & Opportunités', sprint: 'Sprint 3' },
-  { icon: '📄', label: 'Devis & Factures',     sprint: 'Sprint 3' },
-  { icon: '📱', label: 'Marketing réseaux',    sprint: 'Sprint 4' },
-  { icon: '🤖', label: 'Assistant IA',         sprint: 'Sprint 4' },
-];
-
 const formatDate = (iso: string) => {
   try {
     return new Date(iso).toLocaleDateString('fr-FR', {
@@ -67,7 +61,9 @@ const formatDate = (iso: string) => {
   } catch { return iso; }
 };
 
-const InfoRow: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label, value, mono }) => {
+const InfoRow: React.FC<{ label: string; value: string; mono?: boolean }> = ({
+  label, value, mono,
+}) => {
   const styles = useStyles(makeStyles);
   return (
     <View style={styles.infoRow}>
@@ -78,7 +74,7 @@ const InfoRow: React.FC<{ label: string; value: string; mono?: boolean }> = ({ l
 };
 
 export const StatutCompteScreen: React.FC = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, marquerCompteActif } = useAuth();
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
@@ -86,14 +82,23 @@ export const StatutCompteScreen: React.FC = () => {
   const [entreprise,   setEntreprise]   = useState<EntrepriseCompteResponse | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasError,     setHasError]     = useState(false);
 
   const charger = useCallback(async (refresh = false) => {
-    if (refresh) setIsRefreshing(true); else setIsLoading(true);
+    if (refresh) setIsRefreshing(true);
+    else setIsLoading(true);
+    setHasError(false);
     try {
       const r = await EntrepriseApi.consulterMonStatut();
-      if (r.success) setEntreprise(r.data);
+      if (r.success) {
+        setEntreprise(r.data);
+      } else {
+        setHasError(true);
+      }
     } catch {
-      // silencieux
+      // Ne pas defaulter à EN_ATTENTE si l'API échoue —
+      // afficher un état d'erreur avec bouton Réessayer
+      setHasError(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -105,9 +110,14 @@ export const StatutCompteScreen: React.FC = () => {
   // ── Redirection automatique si ACTIVE ────────────────────────
   useEffect(() => {
     if (entreprise?.statutCompte === 'ACTIVE') {
-      navigation.replace('MainTab');
+      // 1. Mémorise que le compte est ACTIVE dans SecureStore
+      //    → les prochaines ouvertures iront directement au Dashboard
+      // 2. Redirige vers MainTab
+      marquerCompteActif().then(() => {
+        navigation.replace('MainTab');
+      });
     }
-  }, [entreprise, navigation]);
+  }, [entreprise, navigation, marquerCompteActif]);
 
   const handleLogout = () => Alert.alert(
     'Déconnexion',
@@ -118,6 +128,7 @@ export const StatutCompteScreen: React.FC = () => {
     ],
   );
 
+  // ── Chargement ────────────────────────────────────────────
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -128,11 +139,34 @@ export const StatutCompteScreen: React.FC = () => {
     );
   }
 
+  // ── Erreur réseau ─────────────────────────────────────────
+  if (hasError) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <Text style={styles.loading}>⚠️ Impossible de contacter le serveur.</Text>
+          <Button
+            label="Réessayer"
+            onPress={() => charger()}
+            variant="primary"
+            style={{ marginTop: 16 }}
+          />
+          <Button
+            label="Se déconnecter"
+            onPress={handleLogout}
+            variant="ghost"
+            style={{ marginTop: 8 }}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const statut        = (entreprise?.statutCompte ?? 'EN_ATTENTE') as StatutKey;
   const statutContent = getStatutContent(theme);
   const content       = statutContent[statut];
 
-  // Si ACTIVE, on ne rend rien (la redirection est déjà déclenchée)
+  // Si ACTIVE, ne rien rendre (redirection déjà déclenchée)
   if (statut === 'ACTIVE') return null;
 
   return (

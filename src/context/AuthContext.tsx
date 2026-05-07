@@ -6,10 +6,22 @@
  *              - L'utilisateur connecté (currentUser)
  *              - Les actions login / logout / refreshUser
  *              - L'état de chargement et les erreurs
+ *              - Le statut du compte (isCompteActif) pour la navigation directe
  *
  *              SÉCURITÉ :
  *              Les tokens JWT sont stockés via expo-secure-store
  *              (Keychain iOS / Keystore Android) — jamais AsyncStorage.
+ *
+ *              FIX EXPO WEB :
+ *              Le token est injecté directement dans
+ *              apiClient.defaults.headers.common['Authorization']
+ *              après login et restauration de session.
+ *
+ *              FIX BOUCLE INFINIE refreshUser :
+ *              currentUser est référencé via un useRef (currentUserRef)
+ *              dans refreshUser. Ainsi refreshUser a un tableau de
+ *              dépendances vide [] — référence stable — et ne déclenche
+ *              pas de re-render infini via useFocusEffect.
  *
  * @author Riahi Dorsaf
  */
@@ -19,11 +31,12 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useRef,
   useCallback,
   ReactNode,
 } from 'react';
 import { AuthResponse } from '../types/auth.types';
-import {
+import apiClient, {
   TOKEN_KEY,
   USER_KEY,
   saveSecure,
@@ -34,29 +47,38 @@ import * as AuthApi          from '../api/auth.api';
 import * as ProprietaireApi  from '../api/proprietaire.api';
 
 // ─────────────────────────────────────────────────────────────
+// CLÉ DE STOCKAGE DU STATUT COMPTE
+// ─────────────────────────────────────────────────────────────
+
+const STATUT_COMPTE_KEY = 'crm_statut_compte';
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS PRIVÉS
+// ─────────────────────────────────────────────────────────────
+
+const setAxiosToken = (token: string) => {
+  apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+};
+
+const clearAxiosToken = () => {
+  delete apiClient.defaults.headers.common['Authorization'];
+};
+
+// ─────────────────────────────────────────────────────────────
 // INTERFACE DU CONTEXTE
 // ─────────────────────────────────────────────────────────────
 
 interface AuthContextValue {
-  /** Utilisateur connecté ou null si non connecté */
-  currentUser:     AuthResponse | null;
-  /** true pendant la restauration de session au boot */
-  isInitializing:  boolean;
-  /** true pendant un appel API login */
-  isLoading:       boolean;
-  /** Message d'erreur de connexion ou null */
-  loginError:      string | null;
-  /** Connecte l'utilisateur */
-  login:           (email: string, motDePasse: string) => Promise<void>;
-  /** Déconnecte l'utilisateur */
-  logout:          () => Promise<void>;
-  /** Efface le message d'erreur */
-  clearLoginError: () => void;
-  /**
-   * Recharge les données du profil depuis l'API et met à jour
-   * currentUser + SecureStore. À appeler après modification du profil.
-   */
-  refreshUser:     () => Promise<void>;
+  currentUser:        AuthResponse | null;
+  isInitializing:     boolean;
+  isLoading:          boolean;
+  loginError:         string | null;
+  isCompteActif:      boolean;
+  login:              (email: string, motDePasse: string) => Promise<void>;
+  logout:             () => Promise<void>;
+  clearLoginError:    () => void;
+  refreshUser:        () => Promise<void>;
+  marquerCompteActif: () => Promise<void>;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -71,9 +93,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 /**
  * Provider d'authentification — enveloppe toute l'application.
- * Doit être placé dans App.tsx autour de AppNavigator.
  *
- * @param children - Composants enfants
  * @author Riahi Dorsaf
  */
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
@@ -83,18 +103,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [isInitializing, setIsInitializing] = useState(true);
   const [isLoading,      setIsLoading]      = useState(false);
   const [loginError,     setLoginError]     = useState<string | null>(null);
+  const [isCompteActif,  setIsCompteActif]  = useState(false);
+
+  /**
+   * Référence stable vers currentUser.
+   *
+   * POURQUOI useRef ET PAS currentUser DANS LES DÉPENDANCES ?
+   * Si refreshUser dépend de [currentUser], chaque appel à
+   * setCurrentUser() crée une nouvelle référence → refreshUser
+   * est recréé → useFocusEffect le détecte → rappelle refreshUser
+   * → boucle infinie de requêtes API (1998 requêtes observées).
+   *
+   * Avec useRef : refreshUser a des dépendances [] (stable),
+   * mais lit toujours la valeur la plus récente via currentUserRef.current.
+   */
+  const currentUserRef = useRef<AuthResponse | null>(null);
+
+  // Synchronise le ref à chaque changement de currentUser
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
 
   // ── Restauration de session au démarrage ──────────────────
 
   useEffect(() => {
     const restore = async () => {
       try {
+        const token = await getSecure(TOKEN_KEY);
+        if (token) setAxiosToken(token);
+
         const stored = await getSecure(USER_KEY);
-        if (stored) {
-          setCurrentUser(JSON.parse(stored));
-        }
+        if (stored) setCurrentUser(JSON.parse(stored));
+
+        const statut = await getSecure(STATUT_COMPTE_KEY);
+        if (statut === 'ACTIVE') setIsCompteActif(true);
+
       } catch {
-        await deleteSecureMultiple([TOKEN_KEY, USER_KEY]);
+        clearAxiosToken();
+        await deleteSecureMultiple([TOKEN_KEY, USER_KEY, STATUT_COMPTE_KEY]);
       } finally {
         setIsInitializing(false);
       }
@@ -104,14 +150,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   // ── Action : login ────────────────────────────────────────
 
-  /**
-   * Connecte l'utilisateur via l'API backend.
-   * Sauvegarde le token JWT et le profil dans SecureStore.
-   *
-   * @param email      - Email de l'utilisateur
-   * @param motDePasse - Mot de passe
-   * @author Riahi Dorsaf
-   */
   const login = useCallback(async (
     email: string,
     motDePasse: string,
@@ -135,6 +173,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       await saveSecure(TOKEN_KEY, user.accessToken);
       await saveSecure(USER_KEY, JSON.stringify(user));
+      setAxiosToken(user.accessToken);
       setCurrentUser(user);
 
     } catch (error: any) {
@@ -148,54 +187,49 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   // ── Action : logout ───────────────────────────────────────
 
-  /**
-   * Déconnecte l'utilisateur.
-   * Supprime le token JWT et le profil du stockage sécurisé.
-   *
-   * @author Riahi Dorsaf
-   */
   const logout = useCallback(async () => {
-    await deleteSecureMultiple([TOKEN_KEY, USER_KEY]);
+    clearAxiosToken();
+    await deleteSecureMultiple([TOKEN_KEY, USER_KEY, STATUT_COMPTE_KEY]);
     setCurrentUser(null);
+    setIsCompteActif(false);
   }, []);
 
   // ── Action : refreshUser ──────────────────────────────────
 
   /**
-   * Recharge les données du profil depuis l'API et met à jour
-   * currentUser + SecureStore.
+   * Recharge le profil depuis l'API.
    *
-   * À appeler dans :
-   * - DashboardScreen (useFocusEffect) pour afficher le bon prénom
-   * - PlusMenuScreen (useFocusEffect) pour afficher le bon nom
-   * - EditProfileScreen après une modification réussie
-   *
-   * @author Riahi Dorsaf
+   * Utilise currentUserRef.current (pas currentUser) pour éviter
+   * la dépendance circulaire qui causait la boucle infinie.
+   * Dépendances : [] → fonction stable, jamais recréée.
    */
   const refreshUser = useCallback(async () => {
     try {
       const response = await ProprietaireApi.consulterProfil();
-      if (!response.success || !currentUser) return;
+      // Lecture via ref — pas de dépendance sur currentUser
+      if (!response.success || !currentUserRef.current) return;
 
       const profil = response.data;
-
-      // Fusionne les nouvelles données avec le currentUser existant
-      // (on garde le token et les champs Auth, on met à jour nom/prenom/entreprise)
       const updatedUser: AuthResponse = {
-        ...currentUser,
-        nom:            profil.nom            ?? currentUser.nom,
-        prenom:         profil.prenom         ?? currentUser.prenom,
-        nomEntreprise:  profil.nomEntreprise   ?? currentUser.nomEntreprise,
+        ...currentUserRef.current,
+        nom:           profil.nom           ?? currentUserRef.current.nom,
+        prenom:        profil.prenom        ?? currentUserRef.current.prenom,
+        nomEntreprise: profil.nomEntreprise ?? currentUserRef.current.nomEntreprise,
       };
 
-      // Met à jour le SecureStore pour persister entre les sessions
       await saveSecure(USER_KEY, JSON.stringify(updatedUser));
       setCurrentUser(updatedUser);
-
     } catch {
-      // silencieux — on garde les données existantes
+      // silencieux
     }
-  }, [currentUser]);
+  }, []); // ← [] intentionnel : référence stable, pas de boucle
+
+  // ── Action : marquerCompteActif ───────────────────────────
+
+  const marquerCompteActif = useCallback(async () => {
+    await saveSecure(STATUT_COMPTE_KEY, 'ACTIVE');
+    setIsCompteActif(true);
+  }, []);
 
   // ── Action : clearLoginError ──────────────────────────────
 
@@ -207,10 +241,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       isInitializing,
       isLoading,
       loginError,
+      isCompteActif,
       login,
       logout,
       clearLoginError,
       refreshUser,
+      marquerCompteActif,
     }}>
       {children}
     </AuthContext.Provider>
@@ -223,10 +259,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
 /**
  * Hook pour accéder au contexte d'authentification.
- * Doit être utilisé uniquement dans un composant enfant de AuthProvider.
  *
- * @returns AuthContextValue
- * @throws Error si utilisé hors AuthProvider
  * @author Riahi Dorsaf
  */
 export const useAuth = (): AuthContextValue => {
