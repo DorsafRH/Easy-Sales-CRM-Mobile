@@ -1,7 +1,11 @@
 /**
  * @file ActivitesScreen.tsx
  * @description Écran liste complète des activités CRM.
- *              Tap → navigation vers l'entité concernée.
+ *              Tap → navigation vers la fiche dans le bon onglet :
+ *              - CLIENT  → Clients > ClientDetail
+ *              - CONTACT → Clients > ContactDetail
+ *              - PRODUIT → Plus > ProduitDetail
+ *              - REUNION → Plus > ReunionDetail  ← AJOUT
  * @author Riahi Dorsaf
  */
 
@@ -20,7 +24,6 @@ import { Ionicons }      from '@expo/vector-icons';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles }          from './ActivitesScreen.styles';
-import { Avatar }              from '../../components/ui/Avatar';
 import { EmptyState }          from '../../components/ui/EmptyState';
 
 import * as ReportingApi from '../../api/reporting.api';
@@ -32,7 +35,7 @@ import {
 } from '../../types/reporting.types';
 
 /**
- * Écran liste complète des activités.
+ * Écran liste complète des activités CRM avec navigation vers les fiches.
  * @author Riahi Dorsaf
  */
 export const ActivitesScreen: React.FC = () => {
@@ -47,9 +50,10 @@ export const ActivitesScreen: React.FC = () => {
   const [page,          setPage]          = useState(0);
   const [isLast,        setIsLast]        = useState(false);
 
+  // ── Chargement ────────────────────────────────────────────────
   const charger = useCallback(async (refresh = false) => {
     if (refresh) { setIsRefreshing(true); setPage(0); setIsLast(false); }
-    else setIsLoading(true);
+    else          setIsLoading(true);
     try {
       const response = await ReportingApi.getActivites(0, 20);
       if (response.success) {
@@ -77,16 +81,20 @@ export const ActivitesScreen: React.FC = () => {
 
   React.useEffect(() => { charger(); }, [charger]);
 
-  // ── Navigation au tap ─────────────────────────────────────
-  const naviguerVers = (activite: ActiviteResponse) => {
+  // ── Navigation vers la fiche selon le type d'entité ──────────
+  const naviguerVers = useCallback((activite: ActiviteResponse) => {
     switch (activite.entiteType) {
+
       case 'CLIENT':
+        // Onglet Clients → ClientDetail
         navigation.navigate('Clients', {
           screen: 'ClientDetail',
           params: { clientId: activite.entiteId },
         });
         break;
+
       case 'CONTACT':
+        // Onglet Clients → ContactDetail (le parent client doit être connu)
         if (activite.entiteParentId) {
           navigation.navigate('Clients', {
             screen: 'ContactDetail',
@@ -97,25 +105,42 @@ export const ActivitesScreen: React.FC = () => {
           });
         }
         break;
+
       case 'PRODUIT':
+        // Onglet Plus → ProduitDetail
         navigation.navigate('Plus', {
           screen: 'ProduitDetail',
           params: { produitId: activite.entiteId },
         });
         break;
-    }
-  };
 
+      case 'REUNION':
+        // Onglet Plus → ReunionDetail
+        navigation.navigate('Plus', {
+          screen: 'ReunionDetail',
+          params: { reunionId: activite.entiteId },
+        });
+        break;
+
+      default:
+        break;
+    }
+  }, [navigation]);
+
+  // ── Rendu item ────────────────────────────────────────────────
   const renderItem = ({ item }: { item: ActiviteResponse }) => {
     const icone     = ACTIVITE_ICONE[item.type]      ?? 'ellipse-outline';
     const bg        = ACTIVITE_BG[item.type]          ?? '#EFF6FF';
     const iconColor = ACTIVITE_ICON_COLOR[item.type]  ?? '#2563EB';
 
+    // Détermine si l'item est navigable
+    const estNavigable = ['CLIENT', 'CONTACT', 'PRODUIT', 'REUNION'].includes(item.entiteType);
+
     return (
       <TouchableOpacity
         style={styles.activiteItem}
         onPress={() => naviguerVers(item)}
-        activeOpacity={0.75}
+        activeOpacity={estNavigable ? 0.75 : 1}
       >
         <View style={[styles.iconWrapper, { backgroundColor: bg }]}>
           <Ionicons name={icone as any} size={20} color={iconColor} />
@@ -127,18 +152,22 @@ export const ActivitesScreen: React.FC = () => {
           <Text style={styles.date}>{item.dateRelative}</Text>
         </View>
 
-        <Ionicons
-          name="chevron-forward"
-          size={16}
-          color={theme.colors.textTertiary}
-          style={styles.chevron}
-        />
+        {estNavigable && (
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={theme.colors.textTertiary}
+            style={styles.chevron}
+          />
+        )}
       </TouchableOpacity>
     );
   };
 
+  // ── Rendu ─────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Header avec bouton retour */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />

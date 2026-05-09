@@ -6,7 +6,7 @@
 
 export interface ActiviteRecenteItem {
   id:              number;
-  type:            string;       // entiteType : "CLIENT" | "CONTACT" | "PRODUIT"
+  type:            string;       // entiteType : "CLIENT" | "CONTACT" | "PRODUIT" | "REUNION"
   typeActivite:    string;       // TypeActivite : "CLIENT_CREE", "CONTACT_AJOUTE"…
   titre:           string;       // label de l'action : "Nouveau client ajouté"
   soustitre:       string;       // nom de l'entité : "Ahmed Ben Ali"
@@ -15,13 +15,16 @@ export interface ActiviteRecenteItem {
 }
 
 export type TypeActivite =
-  | 'CLIENT_CREE'       | 'CLIENT_MODIFIE'     | 'CLIENT_SUPPRIME'
-  | 'CONTACT_AJOUTE'    | 'CONTACT_MODIFIE'    | 'CONTACT_SUPPRIME'
-  | 'PRODUIT_CREE'      | 'PRODUIT_MODIFIE'    | 'PRODUIT_ARCHIVE'
-  | 'PRODUIT_DESARCHIVE'| 'PRODUIT_ACTIVE'     | 'PRODUIT_DESACTIVE'
-  | 'OPPORTUNITE_CREEE' | 'DEVIS_CREE'         | 'PUBLICATION_CREEE';
+  | 'CLIENT_CREE'         | 'CLIENT_MODIFIE'       | 'CLIENT_SUPPRIME'
+  | 'CONTACT_AJOUTE'      | 'CONTACT_MODIFIE'      | 'CONTACT_SUPPRIME'
+  | 'PRODUIT_CREE'        | 'PRODUIT_MODIFIE'      | 'PRODUIT_ARCHIVE'
+  | 'PRODUIT_DESARCHIVE'  | 'PRODUIT_ACTIVE'       | 'PRODUIT_DESACTIVE'
+  | 'OPPORTUNITE_CREEE'   | 'DEVIS_CREE'           | 'PUBLICATION_CREEE'
+  | 'REUNION_PLANIFIEE'   | 'REUNION_TERMINEE'     | 'REUNION_ANNULEE'
+  | 'REUNION_MODIFIEE';
 
-export type EntiteType = 'CLIENT' | 'CONTACT' | 'PRODUIT';
+/** Type de l'entité concernée par une activité — FIX : ajout de REUNION */
+export type EntiteType = 'CLIENT' | 'CONTACT' | 'PRODUIT' | 'REUNION';
 
 export interface ActiviteResponse {
   id:              number;
@@ -78,6 +81,10 @@ export const ACTIVITE_ICONE: Record<string, string> = {
   OPPORTUNITE_CREEE:  'trending-up-outline',
   DEVIS_CREE:         'document-text-outline',
   PUBLICATION_CREEE:  'megaphone-outline',
+  REUNION_PLANIFIEE:  'calendar-outline',
+  REUNION_TERMINEE:   'checkmark-circle-outline',
+  REUNION_ANNULEE:    'close-circle-outline',
+  REUNION_MODIFIEE:   'calendar-outline',
 };
 
 /** Couleur de fond de l'icône par TypeActivite */
@@ -97,6 +104,10 @@ export const ACTIVITE_BG: Record<string, string> = {
   OPPORTUNITE_CREEE:  '#F0FDF4',
   DEVIS_CREE:         '#EFF6FF',
   PUBLICATION_CREEE:  '#FFF7ED',
+  REUNION_PLANIFIEE:  '#EFF6FF',
+  REUNION_TERMINEE:   '#F0FDF4',
+  REUNION_ANNULEE:    '#FEF2F2',
+  REUNION_MODIFIEE:   '#EFF6FF',
 };
 
 /** Couleur de l'icône par TypeActivite */
@@ -116,4 +127,8 @@ export const ACTIVITE_ICON_COLOR: Record<string, string> = {
   OPPORTUNITE_CREEE:  '#16A34A',
   DEVIS_CREE:         '#2563EB',
   PUBLICATION_CREEE:  '#EA580C',
+  REUNION_PLANIFIEE:  '#2563EB',
+  REUNION_TERMINEE:   '#16A34A',
+  REUNION_ANNULEE:    '#DC2626',
+  REUNION_MODIFIEE:   '#2563EB',
 };

@@ -6,12 +6,13 @@
  *              1. Hydrater le thème au démarrage (lire AsyncStorage)
  *              2. Bloquer l'affichage jusqu'à ce que le thème soit prêt
  *                 (évite le flash de thème incorrect)
- *              3. Monter les providers globaux (Auth)
- *              4. Lancer la navigation principale
+ *              3. Configurer les notifications locales (expo-notifications)
+ *              4. Monter les providers globaux (Auth)
+ *              5. Lancer la navigation principale
  *
  *              ORDRE D'EXÉCUTION AU DÉMARRAGE :
- *              App monte → useEffect → hydrate() → isHydrated = true
- *                    → AppNavigator s'affiche avec le bon thème
+ *              App monte → useEffect → configureNotifications() + hydrate()
+ *                    → isHydrated = true → AppNavigator s'affiche avec le bon thème
  *
  * @author Riahi Dorsaf
  */
@@ -24,14 +25,18 @@ import {
   Platform,
   StatusBar,
 } from 'react-native';
-import { AuthProvider }    from './src/context/AuthContext';
-import { AppNavigator }    from './src/navigation/AppNavigator';
-import { useThemeStore }   from './src/theme/themeStore';
-import { useTheme }        from './src/theme/themeStore';
+import { AuthProvider }   from './src/context/AuthContext';
+import { AppNavigator }   from './src/navigation/AppNavigator';
+import { useThemeStore }  from './src/theme/themeStore';
+import { useTheme }       from './src/theme/themeStore';
+import {
+  configureNotifications,
+} from './src/services/NotificationService';
 
 /**
  * Composant racine de l'application.
- * Gère l'hydratation du thème avant tout affichage.
+ * Gère l'hydratation du thème et la configuration
+ * des notifications avant tout affichage.
  */
 export default function App() {
   // Récupère l'action hydrate et l'état isHydrated depuis le store
@@ -42,13 +47,20 @@ export default function App() {
   const theme = useTheme();
 
   /**
-   * Hydratation au montage de l'application.
+   * Initialisation au montage de l'application.
    * useEffect avec [] = exécuté UNE SEULE FOIS au démarrage.
-   * Lit le schéma sauvegardé dans AsyncStorage et met à jour le store.
+   *
+   * 1. configureNotifications() — définit le comportement des
+   *    notifications locales quand l'app est au premier plan.
+   *    Doit être appelé le plus tôt possible dans le cycle de vie.
+   *
+   * 2. hydrate() — lit le schéma de thème sauvegardé dans
+   *    AsyncStorage et met à jour le store Zustand.
    */
   useEffect(() => {
+    configureNotifications();
     hydrate();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Écran de chargement — affiché pendant la lecture AsyncStorage.

@@ -1,279 +1,306 @@
 /**
  * @file AgendaScreen.styles.ts
- * @description Styles premium de l'écran Agenda.
+ * @description Styles — Agenda CRM redesign : calendrier mensuel + événements colorés.
  * @author Riahi Dorsaf
  */
 
 import { StyleSheet } from 'react-native';
 import { AppTheme }   from '../../theme';
-import { layout }     from '../../theme/dimensions';
 
 export const makeStyles = (theme: AppTheme) =>
   StyleSheet.create({
 
-    safe: { flex: 1, backgroundColor: theme.colors.bgApp },
-
-    // ── Header gradient ──────────────────────────────────────
-    headerGradient: {
-      paddingHorizontal: layout.screenPadding,
-      paddingTop:        theme.spacing[5],
-      paddingBottom:     theme.spacing[4],
+    safe: {
+      flex:            1,
+      backgroundColor: theme.colors.bgApp,
     },
 
-    headerRow: {
+    // ─── SECTION CALENDRIER ───────────────────────────────────────
+    calSection: {
+      backgroundColor:   theme.colors.bgSurface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      shadowColor:       '#000',
+      shadowOffset:      { width: 0, height: 2 },
+      shadowOpacity:     0.06,
+      shadowRadius:      6,
+      elevation:         4,
+    },
+
+    // Header : titre + bouton +
+    calHeader: {
       flexDirection:  'row',
-      alignItems:     'center',
       justifyContent: 'space-between',
-      marginBottom:   theme.spacing[4],
+      alignItems:     'center',
+      paddingHorizontal: 20,
+      paddingTop:        16,
+      paddingBottom:     10,
     },
 
-    headerTitle: {
-      fontSize:   theme.typography.size['2xl'],
+    calTitre: {
+      fontSize:   24,
       fontWeight: '800',
-      color:      theme.colors.white,
+      color:      theme.colors.textPrimary,
     },
 
-    headerSubtitle: {
-      fontSize: theme.typography.size.sm,
-      color:    'rgba(255,255,255,0.75)',
+    calSub: {
+      fontSize:  12,
+      color:     theme.colors.textSecondary,
       marginTop: 2,
     },
 
-    headerAddBtn: {
-      width:           44,
-      height:          44,
-      borderRadius:    22,
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      alignItems:      'center',
-      justifyContent:  'center',
-    },
-
-    // ── Sélecteur semaine ─────────────────────────────────────
-    semaineRow: {
-      flexDirection:  'row',
-      alignItems:     'center',
-      justifyContent: 'space-between',
-      marginBottom:   theme.spacing[3],
-    },
-
-    semaineBtnNav: {
-      width:           32,
-      height:          32,
-      borderRadius:    16,
-      backgroundColor: 'rgba(255,255,255,0.15)',
-      alignItems:      'center',
-      justifyContent:  'center',
-    },
-
-    semaineLabel: {
-      fontSize:   theme.typography.size.sm,
-      fontWeight: '600',
-      color:      theme.colors.white,
-    },
-
-    // ── Week strip ────────────────────────────────────────────
-    weekStrip: {
-      flexDirection:   'row',
-      justifyContent:  'space-between',
-      paddingVertical: theme.spacing[2],
-    },
-
-    dayBtn: {
-      flex:           1,
-      alignItems:     'center',
-      paddingVertical: theme.spacing[2],
-      borderRadius:   theme.radius.md,
-    },
-
-    dayBtnActive: {
-      backgroundColor: 'rgba(255,255,255,0.25)',
-    },
-
-    dayLabel: {
-      fontSize:   9,
-      fontWeight: '600',
-      color:      'rgba(255,255,255,0.65)',
-      textTransform: 'uppercase',
-      marginBottom: 4,
-    },
-
-    dayLabelActive: { color: theme.colors.white },
-
-    dayNum: {
-      fontSize:   theme.typography.size.base,
-      fontWeight: '700',
-      color:      'rgba(255,255,255,0.8)',
-    },
-
-    dayNumActive: { color: theme.colors.white },
-
-    dayDot: {
-      width:           5,
-      height:          5,
-      borderRadius:    3,
-      backgroundColor: 'rgba(255,255,255,0.9)',
-      marginTop:       3,
-    },
-
-    dayDotHidden: { opacity: 0 },
-
-    // ── Liste ─────────────────────────────────────────────────
-    listContent: {
-      paddingHorizontal: layout.screenPadding,
-      paddingTop:        theme.spacing[4],
-      paddingBottom:     theme.spacing[16],
-    },
-
-    // ── Jour header ───────────────────────────────────────────
-    jourHeader: {
-      fontSize:      theme.typography.size.xs,
-      fontWeight:    '700',
-      color:         theme.colors.textSecondary,
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-      marginBottom:  theme.spacing[2],
-      marginTop:     theme.spacing[4],
-    },
-
-    jourHeaderAujourdhui: {
-      color: theme.colors.primary,
-    },
-
-    // ── Card réunion premium ──────────────────────────────────
-    reunionCard: {
-      backgroundColor: theme.colors.bgSurface,
-      borderRadius:    theme.radius.xl,
-      marginBottom:    theme.spacing[3],
-      overflow:        'hidden',
-      shadowColor:     '#000',
-      shadowOffset:    { width: 0, height: 2 },
-      shadowOpacity:   0.07,
-      shadowRadius:    8,
-      elevation:       3,
-      flexDirection:   'row',
-    },
-
-    /** Barre colorée gauche selon le statut. */
-    reunionCardAccent: {
-      width:        4,
-      borderRadius: 0,
-    },
-
-    reunionCardBody: {
-      flex:    1,
-      padding: theme.spacing[4],
-    },
-
-    reunionCardTopRow: {
-      flexDirection:  'row',
-      alignItems:     'flex-start',
-      justifyContent: 'space-between',
-      marginBottom:   theme.spacing[2],
-    },
-
-    reunionHeure: {
-      fontSize:   theme.typography.size.sm,
-      fontWeight: '700',
-      color:      theme.colors.primary,
-    },
-
-    reunionDuree: {
-      fontSize:  theme.typography.size.xs,
-      color:     theme.colors.textTertiary,
-      marginTop: 2,
-    },
-
-    statutBadge: {
-      paddingHorizontal: theme.spacing[2],
-      paddingVertical:   2,
-      borderRadius:      theme.radius.full,
-    },
-
-    statutBadgeTxt: {
-      fontSize:   9,
-      fontWeight: '700',
-    },
-
-    reunionTitre: {
-      fontSize:     theme.typography.size.base,
-      fontWeight:   '700',
-      color:        theme.colors.textPrimary,
-      marginBottom: theme.spacing[1],
-    },
-
-    reunionMeta: {
-      fontSize: theme.typography.size.xs,
-      color:    theme.colors.textSecondary,
-      marginBottom: 2,
-    },
-
-    reunionLien: {
-      fontSize:   theme.typography.size.xs,
-      color:      theme.colors.primary,
-      fontWeight: '600',
-      marginTop:  2,
-    },
-
-    // ── Actions inline ────────────────────────────────────────
-    reunionActions: {
-      flexDirection:  'row',
-      columnGap:      theme.spacing[2],
-      marginTop:      theme.spacing[3],
-      paddingTop:     theme.spacing[2],
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.bgApp,
-    },
-
-    actionChip: {
-      flexDirection:     'row',
-      alignItems:        'center',
-      columnGap:         4,
-      paddingHorizontal: theme.spacing[3],
-      paddingVertical:   theme.spacing[2],
-      borderRadius:      theme.radius.lg,
-      borderWidth:       1,
-      borderColor:       theme.colors.border,
-    },
-
-    actionChipTxt: {
-      fontSize:   theme.typography.size.xs,
-      fontWeight: '600',
-      color:      theme.colors.textSecondary,
-    },
-
-    actionChipWhatsApp: {
-      borderColor:     '#25D366',
-      backgroundColor: '#F0FFF4',
-    },
-
-    actionChipWhatsAppTxt: { color: '#16A34A' },
-
-    actionChipEmail: {
-      borderColor:     theme.colors.primary,
-      backgroundColor: theme.colors.primaryLight,
-    },
-
-    actionChipEmailTxt: { color: theme.colors.primary },
-
-    // ── FAB ───────────────────────────────────────────────────
-    fab: {
-      position:        'absolute',
-      bottom:          theme.spacing[6],
-      right:           layout.screenPadding,
-      width:           56,
-      height:          56,
-      borderRadius:    28,
+    addBtn: {
+      width:           42,
+      height:          42,
+      borderRadius:    21,
       backgroundColor: theme.colors.primary,
       alignItems:      'center',
       justifyContent:  'center',
       shadowColor:     theme.colors.primary,
-      shadowOffset:    { width: 0, height: 6 },
-      shadowOpacity:   0.4,
-      shadowRadius:    10,
-      elevation:       8,
+      shadowOffset:    { width: 0, height: 3 },
+      shadowOpacity:   0.35,
+      shadowRadius:    6,
+      elevation:       4,
     },
 
-    loadingContainer: {
-      flex: 1, alignItems: 'center', justifyContent: 'center',
+    // Navigation mois
+    monthRow: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      justifyContent:    'space-between',
+      paddingHorizontal: 16,
+      marginBottom:      8,
+    },
+
+    monthArrow: {
+      width:           34,
+      height:          34,
+      borderRadius:    17,
+      backgroundColor: theme.colors.bgApp,
+      alignItems:      'center',
+      justifyContent:  'center',
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+    },
+
+    monthLabel: {
+      fontSize:   16,
+      fontWeight: '700',
+      color:      theme.colors.textPrimary,
+    },
+
+    // En-tête Lu Ma Me Je Ve Sa Di
+    daysHeader: {
+      flexDirection:     'row',
+      paddingHorizontal: 6,
+      marginBottom:      2,
+    },
+
+    dayHdrTxt: {
+      flex:            1,
+      textAlign:       'center',
+      fontSize:        11,
+      fontWeight:      '600',
+      color:           theme.colors.textSecondary,
+      textTransform:   'uppercase',
+      letterSpacing:   0.5,
+    },
+
+    dayHdrWknd: {
+      color: '#EF4444',
+    },
+
+    // Grille calendrier
+    calGrid: {
+      flexDirection:     'row',
+      flexWrap:          'wrap',
+      paddingHorizontal: 6,
+      paddingBottom:     10,
+    },
+
+    calCell: {
+      width:          `${100 / 7}%` as any,
+      alignItems:     'center',
+      paddingVertical: 3,
+      minHeight:       44,
+      justifyContent: 'center',
+    },
+
+    calCircle: {
+      width:           32,
+      height:          32,
+      borderRadius:    16,
+      alignItems:      'center',
+      justifyContent:  'center',
+    },
+
+    calCircleToday: {
+      borderWidth:  1.5,
+      borderColor:  theme.colors.primary,
+    },
+
+    calDayTxt: {
+      fontSize:   13,
+      color:      theme.colors.textPrimary,
+      fontWeight: '400',
+    },
+
+    calDayWknd: {
+      color: '#EF4444',
+    },
+
+    calDayTxtSel: {
+      color:      '#FFFFFF',
+      fontWeight: '700',
+    },
+
+    evDot: {
+      width:           4,
+      height:          4,
+      borderRadius:    2,
+      backgroundColor: theme.colors.primary,
+      marginTop:       1,
+    },
+
+    // ─── LABEL JOUR SÉLECTIONNÉ ────────────────────────────────────
+    dayLabelRow: {
+      flexDirection:     'row',
+      justifyContent:    'space-between',
+      alignItems:        'center',
+      paddingHorizontal: 20,
+      paddingVertical:   12,
+    },
+
+    dayLabel: {
+      fontSize:      11,
+      fontWeight:    '700',
+      color:         theme.colors.textSecondary,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+
+    dayCount: {
+      fontSize: 11,
+      color:    theme.colors.textSecondary,
+    },
+
+    // ─── LISTE ÉVÉNEMENTS ──────────────────────────────────────────
+    loader: {
+      flex:           1,
+      alignItems:     'center',
+      justifyContent: 'center',
+    },
+
+    listContent: {
+      paddingHorizontal: 16,
+      paddingBottom:     80,
+      paddingTop:        4,
+    },
+
+    // Card événement
+    eventCard: {
+      flexDirection: 'row',
+      borderRadius:  14,
+      marginBottom:  12,
+      overflow:      'hidden',
+      shadowColor:   '#000',
+      shadowOffset:  { width: 0, height: 2 },
+      shadowOpacity: 0.07,
+      shadowRadius:  6,
+      elevation:     2,
+    },
+
+    eventBar: {
+      width: 5,
+    },
+
+    eventBody: {
+      flex:                  1,
+      padding:               14,
+      borderTopRightRadius:  14,
+      borderBottomRightRadius: 14,
+    },
+
+    eventRow: {
+      flexDirection:  'row',
+      justifyContent: 'space-between',
+      alignItems:     'center',
+      marginBottom:   1,
+    },
+
+    eventHeure: {
+      fontSize:   16,
+      fontWeight: '800',
+    },
+
+    textStrike: {
+      textDecorationLine: 'line-through',
+      opacity:            0.6,
+    },
+
+    eventPill: {
+      paddingHorizontal: 8,
+      paddingVertical:   3,
+      borderRadius:      20,
+    },
+
+    eventPillTxt: {
+      fontSize:      10,
+      fontWeight:    '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
+    },
+
+    eventDuree: {
+      fontSize:     11,
+      color:        '#9CA3AF',
+      marginBottom: 5,
+    },
+
+    eventTitre: {
+      fontSize:     15,
+      fontWeight:   '700',
+      marginBottom: 5,
+    },
+
+    metaRow: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      columnGap:     4,
+      marginBottom:  2,
+    },
+
+    metaTxt: {
+      fontSize: 12,
+      color:    '#6B7280',
+    },
+
+    // Actions rapides (chips)
+    eventActions: {
+      flexDirection: 'row',
+      flexWrap:      'wrap',
+      gap:           6,
+      marginTop:     10,
+      paddingTop:    10,
+      borderTopWidth:  1,
+      borderTopColor:  'rgba(0,0,0,0.06)',
+    },
+
+    chip: {
+      flexDirection:   'row',
+      alignItems:      'center',
+      columnGap:       4,
+      paddingHorizontal: 10,
+      paddingVertical:   5,
+      borderRadius:    20,
+      borderWidth:     1,
+      borderColor:     '#E5E7EB',
+      backgroundColor: '#FFFFFF',
+    },
+
+    chipTxt: {
+      fontSize:   11,
+      fontWeight: '600',
+      color:      '#6B7280',
     },
   });

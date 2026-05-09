@@ -1,81 +1,84 @@
 /**
  * @file ReunionDetailScreen.styles.ts
- * @description Styles de la fiche détail d'une réunion.
+ * @description Styles fiche réunion — section client + participants individuels.
  * @author Riahi Dorsaf
  */
 
 import { StyleSheet } from 'react-native';
 import { AppTheme }   from '../../theme';
-import { layout }     from '../../theme/dimensions';
 
 export const makeStyles = (theme: AppTheme) =>
   StyleSheet.create({
 
-    safe:    { flex: 1, backgroundColor: theme.colors.bgApp },
-    scroll:  { flex: 1 },
-    content: {
-      paddingHorizontal: layout.screenPadding,
-      paddingBottom:     theme.spacing[12],
-      paddingTop:        theme.spacing[4],
-      rowGap:            theme.spacing[4],
+    safe: {
+      flex:            1,
+      backgroundColor: theme.colors.bgApp,
     },
 
-    // ── Header gradient ───────────────────────────────────────
-    headerGradient: {
-      paddingHorizontal: layout.screenPadding,
-      paddingTop:        theme.spacing[5],
-      paddingBottom:     theme.spacing[6],
-    },
-
-    headerTopRow: {
-      flexDirection:  'row',
+    loadingCenter: {
+      flex:           1,
       alignItems:     'center',
-      justifyContent: 'space-between',
-      marginBottom:   theme.spacing[4],
+      justifyContent: 'center',
     },
 
-    headerBtn: {
-      width:           40,
-      height:          40,
-      borderRadius:    20,
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      alignItems:      'center',
-      justifyContent:  'center',
+    // ── Hero gradient simulé (fond bleu dégradé) ──────────────────
+    hero: {
+      backgroundColor:   theme.colors.primary,
+      paddingHorizontal: 20,
+      paddingTop:        20,
+      paddingBottom:     28,
     },
 
-    statutBadge: {
-      paddingHorizontal: theme.spacing[3],
-      paddingVertical:   theme.spacing[1],
-      borderRadius:      theme.radius.full,
-      backgroundColor:   'rgba(255,255,255,0.2)',
+    statusPill: {
+      alignSelf:         'flex-start',
+      paddingHorizontal: 12,
+      paddingVertical:   4,
+      borderRadius:      20,
+      marginBottom:      10,
     },
 
-    statutBadgeTxt: {
-      fontSize:   theme.typography.size.sm,
+    statusPillTxt: {
+      fontSize:   11,
       fontWeight: '700',
-      color:      theme.colors.white,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
 
-    headerTitre: {
-      fontSize:     theme.typography.size['2xl'],
+    heroTitre: {
+      fontSize:     22,
       fontWeight:   '800',
-      color:        theme.colors.white,
-      marginBottom: theme.spacing[2],
+      color:        '#FFFFFF',
+      marginBottom: 12,
+      lineHeight:   28,
     },
 
-    headerMeta: {
-      fontSize: theme.typography.size.sm,
-      color:    'rgba(255,255,255,0.8)',
-      marginBottom: 4,
+    heroRow: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      columnGap:     8,
+      marginBottom:  5,
     },
 
-    // ── Section card ──────────────────────────────────────────
+    heroMeta: {
+      fontSize: 13,
+      color:    'rgba(255,255,255,0.85)',
+    },
+
+    // ── Contenu (fond gris) ───────────────────────────────────────
+    content: {
+      paddingHorizontal: 16,
+      paddingTop:        16,
+      paddingBottom:     40,
+    },
+
+    // ── Cards ─────────────────────────────────────────────────────
     card: {
       backgroundColor: theme.colors.bgSurface,
-      borderRadius:    theme.radius.xl,
-      padding:         theme.spacing[4],
+      borderRadius:    16,
       borderWidth:     1,
       borderColor:     theme.colors.border,
+      padding:         16,
+      marginBottom:    12,
       shadowColor:     '#000',
       shadowOffset:    { width: 0, height: 1 },
       shadowOpacity:   0.05,
@@ -83,179 +86,206 @@ export const makeStyles = (theme: AppTheme) =>
       elevation:       1,
     },
 
-    cardTitle: {
-      fontSize:     theme.typography.size.sm,
-      fontWeight:   '700',
-      color:        theme.colors.textSecondary,
-      textTransform:'uppercase',
-      letterSpacing: 0.8,
-      marginBottom:  theme.spacing[3],
+    cardTitre: {
+      fontSize:      11,
+      fontWeight:    '700',
+      color:         theme.colors.textSecondary,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom:  12,
     },
 
-    // ── Info row ─────────────────────────────────────────────
-    infoRow: {
-      flexDirection:     'row',
-      alignItems:        'flex-start',
-      columnGap:         theme.spacing[3],
-      paddingVertical:   theme.spacing[3],
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.bgApp,
+    // ── Lien réunion ──────────────────────────────────────────────
+    joinBtn: {
+      flexDirection:   'row',
+      alignItems:      'center',
+      justifyContent:  'center',
+      columnGap:       8,
+      paddingVertical: 12,
+      borderRadius:    12,
+      borderWidth:     1.5,
+      borderColor:     theme.colors.primary,
+      backgroundColor: theme.colors.primaryLight,
+      marginBottom:    8,
     },
 
-    infoLabel: {
-      fontSize:   theme.typography.size.sm,
-      color:      theme.colors.textSecondary,
-      width:      80,
-    },
-
-    infoValue: {
-      flex:       1,
-      fontSize:   theme.typography.size.sm,
-      color:      theme.colors.textPrimary,
-      fontWeight: '500',
-    },
-
-    infoValueLink: {
+    joinBtnTxt: {
+      fontSize:   15,
+      fontWeight: '700',
       color:      theme.colors.primary,
-      fontWeight: '600',
     },
 
-    // ── Participant item ──────────────────────────────────────
-    participantItem: {
-      flexDirection:     'row',
-      alignItems:        'center',
-      paddingVertical:   theme.spacing[3],
-      columnGap:         theme.spacing[3],
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.bgApp,
+    joinUrl: {
+      fontSize:  11,
+      color:     theme.colors.textSecondary,
+      textAlign: 'center',
     },
 
-    participantAvatar: {
+    // ── Ligne contact (client ou participant) ─────────────────────
+    contactRow: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      columnGap:     12,
+    },
+
+    participantRow: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      columnGap:     12,
+      paddingTop:    12,
+    },
+
+    participantSep: {
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.bgApp,
+    },
+
+    contactInfo: { flex: 1 },
+
+    contactNom: {
+      fontSize:     14,
+      fontWeight:   '700',
+      color:        theme.colors.textPrimary,
+      marginBottom: 2,
+    },
+
+    contactSub: {
+      fontSize: 12,
+      color:    theme.colors.textSecondary,
+      marginBottom: 2,
+    },
+
+    // ── Boutons icônes contact ────────────────────────────────────
+    contactBtns: {
+      flexDirection: 'row',
+      columnGap:     6,
+    },
+
+    iconBtn: {
       width:           38,
       height:          38,
       borderRadius:    19,
       backgroundColor: theme.colors.primaryLight,
       alignItems:      'center',
       justifyContent:  'center',
+      borderWidth:     1,
+      borderColor:     theme.colors.primary,
     },
 
-    participantAvatarTxt: {
-      fontSize:   theme.typography.size.sm,
-      fontWeight: '700',
-      color:      theme.colors.primary,
+    iconBtnWA: {
+      backgroundColor: '#F0FDF4',
+      borderColor:     '#16A34A',
     },
 
-    participantInfo: { flex: 1 },
-
-    participantNom: {
-      fontSize:   theme.typography.size.sm,
-      fontWeight: '600',
-      color:      theme.colors.textPrimary,
+    iconBtnSm: {
+      width:           32,
+      height:          32,
+      borderRadius:    16,
+      backgroundColor: theme.colors.primaryLight,
+      alignItems:      'center',
+      justifyContent:  'center',
+      borderWidth:     1,
+      borderColor:     theme.colors.primary,
     },
 
-    participantContact: {
-      fontSize: theme.typography.size.xs,
-      color:    theme.colors.textSecondary,
-    },
-
-    typeBadge: {
-      paddingHorizontal: theme.spacing[2],
+    // ── Badge type participant ─────────────────────────────────────
+    typePill: {
+      alignSelf:         'flex-start',
+      paddingHorizontal: 8,
       paddingVertical:   2,
-      borderRadius:      theme.radius.full,
+      borderRadius:      20,
+      backgroundColor:   '#FFF7ED',
+      marginTop:         4,
     },
 
-    typeBadgeTxt: {
-      fontSize:   9,
+    typePillInterne: {
+      backgroundColor: theme.colors.primaryLight,
+    },
+
+    typePillTxt: {
+      fontSize:   10,
       fontWeight: '700',
+      color:      '#EA580C',
     },
 
-    participantActions: {
-      flexDirection: 'row',
-      columnGap:     theme.spacing[2],
-    },
-
-    participantActionBtn: {
-      width:          32,
-      height:         32,
-      borderRadius:   16,
-      alignItems:     'center',
-      justifyContent: 'center',
-      borderWidth:    1,
-      borderColor:    theme.colors.border,
-    },
-
-    // ── Notes ─────────────────────────────────────────────────
+    // ── Notes ─────────────────────────────────────────────────────
     notesTxt: {
-      fontSize:   theme.typography.size.sm,
+      fontSize:   14,
       color:      theme.colors.textPrimary,
       lineHeight: 22,
     },
 
-    // ── Actions bottom ────────────────────────────────────────
-    actionsSection: { rowGap: theme.spacing[3] },
-
-    actionRow: {
-      flexDirection: 'row',
-      columnGap:     theme.spacing[3],
+    // ── Section actions ───────────────────────────────────────────
+    actionsSection: {
+      rowGap: 10,
+      marginTop: 4,
     },
 
-    actionBtn: {
-      flex:            1,
+    btnPrimary: {
       flexDirection:   'row',
       alignItems:      'center',
       justifyContent:  'center',
-      columnGap:       theme.spacing[2],
-      paddingVertical: theme.spacing[3],
-      borderRadius:    theme.radius.lg,
-      borderWidth:     1,
-      borderColor:     theme.colors.border,
-      backgroundColor: theme.colors.bgSurface,
-    },
-
-    actionBtnWhatsApp: { borderColor: '#25D366', backgroundColor: '#F0FFF4' },
-    actionBtnEmail:    { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryLight },
-    actionBtnLien:     { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryLight },
-
-    actionBtnTxt: {
-      fontSize:   theme.typography.size.sm,
-      fontWeight: '600',
-      color:      theme.colors.textSecondary,
-    },
-
-    btnModifier: {
+      columnGap:       8,
+      paddingVertical: 15,
+      borderRadius:    14,
       backgroundColor: theme.colors.primary,
-      borderRadius:    theme.radius.xl,
-      paddingVertical: theme.spacing[4],
-      alignItems:      'center',
-      flexDirection:   'row',
-      justifyContent:  'center',
-      columnGap:       theme.spacing[2],
       shadowColor:     theme.colors.primary,
-      shadowOffset:    { width: 0, height: 4 },
+      shadowOffset:    { width: 0, height: 3 },
       shadowOpacity:   0.3,
-      shadowRadius:    8,
+      shadowRadius:    6,
       elevation:       4,
     },
 
-    btnModifierTxt: {
-      fontSize:   theme.typography.size.base,
+    btnPrimaryTxt: {
+      fontSize:   15,
       fontWeight: '700',
-      color:      theme.colors.white,
+      color:      '#FFFFFF',
+    },
+
+    btnSuccess: {
+      flexDirection:   'row',
+      alignItems:      'center',
+      justifyContent:  'center',
+      columnGap:       8,
+      paddingVertical: 14,
+      borderRadius:    14,
+      backgroundColor: '#F0FDF4',
+      borderWidth:     1.5,
+      borderColor:     '#16A34A',
+    },
+
+    btnSuccessTxt: {
+      fontSize:   14,
+      fontWeight: '700',
+      color:      '#16A34A',
     },
 
     btnDanger: {
-      borderRadius:    theme.radius.xl,
-      paddingVertical: theme.spacing[4],
+      flexDirection:   'row',
       alignItems:      'center',
-      borderWidth:     1,
-      borderColor:     theme.colors.danger,
+      justifyContent:  'center',
+      columnGap:       8,
+      paddingVertical: 14,
+      borderRadius:    14,
+      backgroundColor: '#FFF1F2',
+      borderWidth:     1.5,
+      borderColor:     '#EF4444',
     },
 
     btnDangerTxt: {
-      fontSize:   theme.typography.size.sm,
-      fontWeight: '600',
-      color:      theme.colors.danger,
+      fontSize:   14,
+      fontWeight: '700',
+      color:      '#EF4444',
     },
 
-    loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    btnGhost: {
+      alignItems:      'center',
+      paddingVertical: 12,
+    },
+
+    btnGhostTxt: {
+      fontSize:   13,
+      color:      theme.colors.textSecondary,
+      fontWeight: '600',
+    },
   });
