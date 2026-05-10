@@ -7,6 +7,7 @@
 import apiClient                           from './axios.config';
 import { ApiResponse }                     from '../types/auth.types';
 import { ReunionRequest, ReunionResponse } from '../types/reunion.types';
+import { toLocalDateString }               from '../utils/dateUtils';
 
 /** Retourne toutes les réunions du propriétaire. */
 export const lister = async (): Promise<ApiResponse<ReunionResponse[]>> => {
@@ -35,7 +36,7 @@ export const listerSemaine = async (
  * Utilisé par le Dashboard pour la section "Réunions du jour".
  */
 export const listerAujourdhui = async (): Promise<ApiResponse<ReunionResponse[]>> => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateString(new Date());
   return listerSemaine(today, today);
 };
 

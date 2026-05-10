@@ -33,6 +33,9 @@ import {
   TYPE_PARTICIPANT_CONFIG,
 } from '../../types/reunion.types';
 import { ClientResponse } from '../../types/client.types';
+import { CalendarService } from '../../services/CalendarService';
+import { NotificationService } from '../../services/NotificationService';
+import { parseLocalDateTime } from '../../utils/dateUtils';
 
 // ─── HELPERS ─────────────────────────────────────────────────
 /** FIX Google Meet : ajoute https:// si absent */
@@ -40,12 +43,12 @@ const normaliserURL = (url: string): string =>
   url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
 
 const fmtDateLong = (iso: string): string =>
-  new Date(iso).toLocaleDateString('fr-FR', {
+  parseLocalDateTime(iso).toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
 const fmtHeure = (iso: string): string =>
-  new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  parseLocalDateTime(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
 const fmtDuree = (m: number): string => {
   if (m < 60) return `${m} min`;
@@ -165,8 +168,15 @@ export const ReunionDetailScreen: React.FC = () => {
       { text: 'Annuler', style: 'cancel' },
       { text: 'Supprimer', style: 'destructive', onPress: async () => {
         setActionLoading(true);
-        try { await ReunionApi.supprimer(reunion!.id); nav.goBack(); }
-        catch { Alert.alert('Erreur', 'Impossible de supprimer.'); setActionLoading(false); }
+        try {
+          await ReunionApi.supprimer(reunion!.id);
+          await NotificationService.cancelAllRemindersForReunion(reunion!.id);
+          await CalendarService.removeReunionFromCalendar(reunion!.id);
+          nav.goBack();
+        } catch {
+          Alert.alert('Erreur', 'Impossible de supprimer.');
+          setActionLoading(false);
+        }
       }},
     ]);
   };

@@ -20,7 +20,9 @@
 
 import * as Calendar from 'expo-calendar';
 import { Platform }  from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ReunionResponse } from '../types/reunion.types';
+import { parseLocalDateTime } from '../utils/dateUtils';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -90,29 +92,90 @@ export class CalendarService {
     }
   }
 
-  /**
-   * Trouve ou crée le calendrier "Easy Sales CRM" dans le calendrier natif.
-   * @returns L'ID du calendrier CRM
-   */
+  private static STORAGE_PREFIX = 'crm_reunion_calendar_event_id:';
+
+  private static async getStoredEventId(reunionId: number): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(`${this.STORAGE_PREFIX}${reunionId}`);
+    } catch (e) {
+      console.warn('[CalendarService] Erreur lecture storage eventId:', e);
+      return null;
+    }
+  }
+
+  private static async setStoredEventId(reunionId: number, eventId: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(`${this.STORAGE_PREFIX}${reunionId}`, eventId);
+    } catch (e) {
+      console.warn('[CalendarService] Erreur écriture storage eventId:', e);
+    }
+  }
+
+  private static async removeStoredEventId(reunionId: number): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(`${this.STORAGE_PREFIX}${reunionId}`);
+    } catch (e) {
+      console.warn('[CalendarService] Erreur suppression storage eventId:', e);
+    }
+  }
+
+  private static async getWritableCalendar(): Promise<Calendar.Calendar | null> {
+    const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+    if (calendars.length === 0) return null;
+
+    const defaultCalendar = await this.getDefaultCalendarSafely();
+    if (defaultCalendar) return defaultCalendar;
+
+    const modifiable = calendars.find(c => c.allowsModifications);
+    return modifiable ?? calendars[0];
+  }
+
+  private static async getDefaultCalendarSafely(): Promise<Calendar.Calendar | null> {
+    if (Platform.OS === 'ios') {
+      try {
+        return await Calendar.getDefaultCalendarAsync();
+      } catch {
+        // Safari / Expo Go iOS possible, fallback below.
+      }
+    }
+    return null;
+  }
+
   private static async getOrCreateCrmCalendar(): Promise<string | null> {
     try {
       const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-      const existing  = calendars.find(c => c.title === 'Easy Sales CRM');
+      const existing = calendars.find(c => c.title === 'Easy Sales CRM');
       if (existing) return existing.id;
 
-      // Créer le calendrier si inexistant
-      const defaultCalendar = await Calendar.getDefaultCalendarAsync();
-      const crmCalendarId   = await Calendar.createCalendarAsync({
-        title:       'Easy Sales CRM',
-        color:       '#2563EB',
-        entityType:  Calendar.EntityTypes.EVENT,
-        sourceId:    defaultCalendar.source.id,
-        source:      defaultCalendar.source,
-        name:        'easysalescrm',
-        ownerAccount: 'personal',
-        accessLevel: Calendar.CalendarAccessLevel.OWNER,
-      });
-      return crmCalendarId;
+      const writable = await this.getWritableCalendar();
+      if (!writable) {
+        console.warn('[CalendarService] Aucun calendrier modifiable trouvé.');
+        return null;
+      }
+
+      try {
+        const createOptions: any = {
+          title:        'Easy Sales CRM',
+          color:        '#2563EB',
+          entityType:   Calendar.EntityTypes.EVENT,
+          name:         'easysalescrm',
+          ownerAccount: writable.ownerAccount ?? 'personal',
+          accessLevel:  Calendar.CalendarAccessLevel.OWNER,
+        };
+
+        if (writable.source?.id) {
+          createOptions.sourceId = writable.source.id;
+        }
+        if (writable.source) {
+          createOptions.source = writable.source;
+        }
+
+        const crmCalendarId = await Calendar.createCalendarAsync(createOptions);
+        return crmCalendarId;
+      } catch (e) {
+        console.warn('[CalendarService] Impossible de créer le calendrier CRM, utilisation du calendrier modifiable existant.', e);
+        return writable.id;
+      }
     } catch (e) {
       console.warn('[CalendarService] Impossible de créer/trouver le calendrier CRM:', e);
       return null;
@@ -120,38 +183,51 @@ export class CalendarService {
   }
 
   /**
-   * Ajoute une réunion CRM dans le calendrier natif de l'appareil.
+   * Ajoute ou met à jour une réunion CRM dans le calendrier natif de l'appareil.
    * L'événement est marqué avec [EasySalesCRM] dans les notes pour
    * pouvoir le retrouver et le mettre à jour/supprimer plus tard.
    *
    * @param reunion - La réunion à ajouter au calendrier
-   * @returns L'ID de l'événement créé dans le calendrier natif, ou null
+   * @returns L'ID de l'événement créé ou mis à jour dans le calendrier natif, ou null
    */
   static async addReunionToCalendar(reunion: ReunionResponse): Promise<string | null> {
     const hasPermission = await Calendar.requestCalendarPermissionsAsync()
       .then(r => r.status === 'granted');
     if (!hasPermission) return null;
 
-    const crmCalendarId = await this.getOrCreateCrmCalendar();
-    if (!crmCalendarId) return null;
+    const calendarId = await this.getOrCreateCrmCalendar();
+    if (!calendarId) return null;
+
+    const startDate = parseLocalDateTime(reunion.dateHeure);
+    const endDate = new Date(startDate.getTime() + reunion.dureeMinutes * 60 * 1000);
+
+    const eventData: any = {
+      title:    reunion.titre,
+      startDate,
+      endDate,
+      location: reunion.lieu ?? '',
+      notes:    `Client : ${reunion.clientNom}\n[EasySalesCRM:${reunion.id}]`,
+      url:      reunion.lienReunion
+        ? (reunion.lienReunion.startsWith('http') ? reunion.lienReunion : `https://${reunion.lienReunion}`)
+        : undefined,
+      alarms:   reunion.rappelsMinutes?.map(m => ({ relativeOffset: -m })) ?? [],
+    };
+
+    const existingEventId = await this.getStoredEventId(reunion.id);
+    if (existingEventId) {
+      try {
+        await Calendar.updateEventAsync(existingEventId, eventData);
+        return existingEventId;
+      } catch {
+        // Si la mise à jour échoue, on retente avec un nouvel événement.
+        await Calendar.deleteEventAsync(existingEventId).catch(() => {});
+        await this.removeStoredEventId(reunion.id);
+      }
+    }
 
     try {
-      const startDate = new Date(reunion.dateHeure);
-      const endDate   = new Date(startDate.getTime() + reunion.dureeMinutes * 60 * 1000);
-
-      const eventId = await Calendar.createEventAsync(crmCalendarId, {
-        title:     reunion.titre,
-        startDate,
-        endDate,
-        location:  reunion.lieu ?? '',
-        notes:     `Client : ${reunion.clientNom}\n[EasySalesCRM:${reunion.id}]`,
-        url:       reunion.lienReunion
-          ? (reunion.lienReunion.startsWith('http') ? reunion.lienReunion : `https://${reunion.lienReunion}`)
-          : undefined,
-        alarms:    reunion.rappelsMinutes?.map(m => ({
-          relativeOffset: -m,
-        })) ?? [],
-      });
+      const eventId = await Calendar.createEventAsync(calendarId, eventData);
+      if (eventId) await this.setStoredEventId(reunion.id, eventId);
       return eventId;
     } catch (e) {
       console.warn('[CalendarService] Erreur addReunionToCalendar:', e);
@@ -160,14 +236,18 @@ export class CalendarService {
   }
 
   /**
-   * Supprime un événement du calendrier natif.
-   * @param nativeEventId - L'ID de l'événement natif retourné par addReunionToCalendar
+   * Supprime une réunion du calendrier natif en utilisant l'eventId stocké.
+   * @param reunionId - Identifiant de la réunion CRM
    */
-  static async removeFromCalendar(nativeEventId: string): Promise<void> {
+  static async removeReunionFromCalendar(reunionId: number): Promise<void> {
+    const eventId = await this.getStoredEventId(reunionId);
+    if (!eventId) return;
     try {
-      await Calendar.deleteEventAsync(nativeEventId);
+      await Calendar.deleteEventAsync(eventId);
     } catch (e) {
-      console.warn('[CalendarService] Erreur removeFromCalendar:', e);
+      console.warn('[CalendarService] Erreur removeReunionFromCalendar:', e);
+    } finally {
+      await this.removeStoredEventId(reunionId);
     }
   }
 }

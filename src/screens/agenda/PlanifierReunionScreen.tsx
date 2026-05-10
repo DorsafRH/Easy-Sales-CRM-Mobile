@@ -25,10 +25,13 @@ import { PlusStackParamList }  from '../../navigation/PlusStack';
 import * as ReunionApi from '../../api/reunion.api';
 import * as ClientApi  from '../../api/client.api';
 import {
-  ReunionRequest, ReunionParticipant, TypeParticipant,
+  ReunionRequest, ReunionResponse, ReunionParticipant, TypeParticipant,
   DUREES, RAPPELS, TYPE_PARTICIPANT_CONFIG,
 } from '../../types/reunion.types';
-import { ClientResponse } from '../../types/client.types';
+import { ClientResponse }        from '../../types/client.types';
+import { NotificationService }   from '../../services/NotificationService';
+import { CalendarService, NativeCalendarEvent } from '../../services/CalendarService';
+import { parseLocalDateTime, toLocalDateString, toLocalDateTimeString } from '../../utils/dateUtils';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -84,6 +87,10 @@ export const PlanifierReunionScreen: React.FC = () => {
   const [clients,        setClients]        = useState<ClientResponse[]>([]);
   const [recherche,      setRecherche]      = useState('');
   const [isSearching,    setIsSearching]    = useState(false);
+  const [nativeEvents,   setNativeEvents]   = useState<NativeCalendarEvent[]>([]);
+  const [crmEvents,      setCrmEvents]      = useState<ReunionResponse[]>([]);
+  const [isLoadingEvents,setIsLoadingEvents]= useState(false);
+  const [hasConflict,    setHasConflict]    = useState(false);
 
   // ── Recherche clients ─────────────────────────────────────
   const rechercherClients = useCallback(async (kw: string) => {
@@ -100,6 +107,50 @@ export const PlanifierReunionScreen: React.FC = () => {
   }, [recherche, showClientModal]);
 
   const fermerModalClient = () => { setShowClientModal(false); setRecherche(''); };
+
+  const checkConflicts = useCallback(() => {
+    const meetingStart = date.getTime();
+    const meetingEnd = meetingStart + dureeMinutes * 60 * 1000;
+
+    const overlaps = (start: Date, end: Date) => start.getTime() < meetingEnd && end.getTime() > meetingStart;
+
+    const nativeConflict = nativeEvents.some(e => overlaps(e.start, e.end));
+    const crmConflict = crmEvents.some(r => {
+      if (r.id === reunionId) return false;
+      const start = parseLocalDateTime(r.dateHeure);
+      const end = new Date(start.getTime() + r.dureeMinutes * 60 * 1000);
+      return overlaps(start, end);
+    });
+
+    setHasConflict(nativeConflict || crmConflict);
+  }, [crmEvents, date, dureeMinutes, nativeEvents, reunionId]);
+
+  const chargerPlage = useCallback(async () => {
+    setIsLoadingEvents(true);
+    try {
+      const [native, crmRes] = await Promise.all([
+        CalendarService.getEventsForDay(date),
+        ReunionApi.listerSemaine(
+          toLocalDateString(date),
+          toLocalDateString(date),
+        ).catch(() => ({ success: false, data: [] } as any)),
+      ]);
+      setNativeEvents(native);
+      if (crmRes.success) setCrmEvents(crmRes.data ?? []);
+    } catch (e) {
+      console.warn('[PlanifierReunionScreen] Erreur chargement événements jour:', e);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  }, [date]);
+
+  useEffect(() => {
+    chargerPlage();
+  }, [chargerPlage]);
+
+  useEffect(() => {
+    checkConflicts();
+  }, [checkConflicts]);
 
   // ── Édition ───────────────────────────────────────────────
   useEffect(() => {
@@ -167,7 +218,7 @@ export const PlanifierReunionScreen: React.FC = () => {
     try {
       const request: ReunionRequest = {
         titre:             titre.trim(),
-        dateHeure:         date.toISOString().slice(0, 19),
+        dateHeure:         toLocalDateTimeString(date),
         dureeMinutes,
         clientId,
         lieu:              lieu.trim() || undefined,
@@ -182,10 +233,23 @@ export const PlanifierReunionScreen: React.FC = () => {
       };
 
       if (isEdition && reunionId) {
-        await ReunionApi.modifier(reunionId, request);
+        const res = await ReunionApi.modifier(reunionId, request);
+        if (res.success) {
+          await NotificationService.cancelAllRemindersForReunion(reunionId);
+          await NotificationService.scheduleReunionReminders(
+            res.data.id, res.data.titre, res.data.dateHeure, res.data.rappelsMinutes,
+          );
+          await CalendarService.addReunionToCalendar(res.data);
+        }
         Alert.alert('✅', 'Réunion mise à jour.');
       } else {
-        await ReunionApi.creer(request);
+        const res = await ReunionApi.creer(request);
+        if (res.success) {
+          await NotificationService.scheduleReunionReminders(
+            res.data.id, res.data.titre, res.data.dateHeure, res.data.rappelsMinutes,
+          );
+          await CalendarService.addReunionToCalendar(res.data);
+        }
         Alert.alert('✅', 'Réunion planifiée avec succès.');
       }
       navigation.goBack();
@@ -257,6 +321,43 @@ export const PlanifierReunionScreen: React.FC = () => {
             <DateTimePicker value={date} mode="time" is24Hour
               onChange={(_, s) => { setShowHeure(false); if (s) setDate(s); }} />
           )}
+
+          <View style={styles.conflictBox}>
+            <Text style={styles.sectionTitle}>Plages occupées</Text>
+            {isLoadingEvents ? (
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            ) : (
+              <>
+                {nativeEvents.length === 0 && crmEvents.length === 0 ? (
+                  <Text style={styles.conflictTxt}>Aucun événement natif ou réunion CRM trouvé ce jour.</Text>
+                ) : (
+                  <>
+                    {nativeEvents.map(event => (
+                      <View key={`native-${event.id}`} style={styles.slotRow}>
+                        <Text style={styles.slotTitle}>{event.title}</Text>
+                        <Text style={styles.slotSub}>{`${event.start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} – ${event.end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}</Text>
+                      </View>
+                    ))}
+                    {crmEvents.filter(r => r.id !== reunionId).map(event => {
+                      const start = parseLocalDateTime(event.dateHeure);
+                      const end = new Date(start.getTime() + event.dureeMinutes * 60 * 1000);
+                      return (
+                        <View key={`crm-${event.id}`} style={styles.slotRow}>
+                          <Text style={styles.slotTitle}>{event.titre}</Text>
+                          <Text style={styles.slotSub}>{`${start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}</Text>
+                        </View>
+                      );
+                    })}
+                  </>
+                )}
+                {hasConflict && (
+                  <Text style={styles.warningTxt}>
+                    ⚠️ Conflit détecté : la plage sélectionnée chevauche un événement existant.
+                  </Text>
+                )}
+              </>
+            )}
+          </View>
 
           <View style={styles.field}>
             <Text style={styles.label}>Durée *</Text>

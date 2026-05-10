@@ -49,6 +49,22 @@ const getModule = async (): Promise<any | null> => {
 // CONFIGURATION GLOBALE
 // ─────────────────────────────────────────────────────────────
 
+const createAndroidChannelIfNeeded = async (Notifications: any): Promise<void> => {
+  if (Platform.OS !== 'android' || !Notifications.setNotificationChannelAsync) return;
+  try {
+    const channelId = 'reunions';
+    await Notifications.setNotificationChannelAsync(channelId, {
+      name: 'Réunions CRM',
+      importance: Notifications.AndroidImportance?.MAX ?? 5,
+      sound: 'default',
+      vibrationPattern: [0, 250, 250, 250],
+      enableLights: true,
+    });
+  } catch (e) {
+    console.warn('[NotificationService] setNotificationChannelAsync error:', e);
+  }
+};
+
 /**
  * Configure le comportement des notifications en foreground.
  * À appeler dans App.tsx au démarrage (useEffect).
@@ -56,7 +72,7 @@ const getModule = async (): Promise<any | null> => {
  */
 export const configureNotifications = (): void => {
   // Fire-and-forget : ne bloque pas le démarrage de l'app
-  getModule().then(Notifications => {
+  getModule().then(async Notifications => {
     if (!Notifications) return; // Expo Go → silencieux
     try {
       Notifications.setNotificationHandler({
@@ -66,6 +82,7 @@ export const configureNotifications = (): void => {
           shouldSetBadge:  false,
         }),
       });
+      await createAndroidChannelIfNeeded(Notifications);
     } catch (e) {
       console.warn('[NotificationService] setNotificationHandler error:', e);
     }
@@ -124,6 +141,9 @@ export class NotificationService {
     const reunionDate = new Date(dateHeure);
     const now         = new Date();
 
+    await createAndroidChannelIfNeeded(Notifications);
+    const triggerType = Notifications.SchedulableTriggerInputTypes?.DATE ?? 'date';
+
     for (const minutes of rappelsMinutes) {
       const triggerDate = new Date(reunionDate.getTime() - minutes * 60 * 1000);
       if (triggerDate <= now) continue;
@@ -138,8 +158,12 @@ export class NotificationService {
             body:  titre,
             sound: true,
             data:  { reunionId, type: 'REUNION_RAPPEL' },
+            channelId: 'reunions',
           },
-          trigger: { date: triggerDate },
+          trigger: {
+            type: triggerType,
+            date: triggerDate,
+          },
         });
       } catch (e) {
         console.warn(`[NotificationService] Schedule error ${identifier}:`, e);

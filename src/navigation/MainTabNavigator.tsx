@@ -1,7 +1,7 @@
 /**
  * @file MainTabNavigator.tsx
- * @description Bottom Tab Navigator principal de l'application (Sprint 2).
- *              5 onglets : Accueil / Clients / Ventes / Marketing / Plus
+ * @description Bottom Tab Navigator principal.
+ *   FIX : unmountOnBlur via cast (type BottomTabNavigationOptions incomplet dans certaines versions)
  * @author Riahi Dorsaf
  */
 
@@ -16,10 +16,6 @@ import { VentesStack }     from './VentesStack';
 import { MarketingStack }  from './MarketingStack';
 import { PlusStack }       from './PlusStack';
 
-// ─────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────
-
 export type MainTabParamList = {
   Accueil:   undefined;
   Clients:   undefined;
@@ -30,14 +26,6 @@ export type MainTabParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-// ─────────────────────────────────────────────────────────────
-// COMPOSANT
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Bottom Tab Navigator avec 5 onglets.
- * @author Riahi Dorsaf
- */
 export const MainTabNavigator: React.FC = () => {
   const theme = useTheme();
 
@@ -62,16 +50,11 @@ export const MainTabNavigator: React.FC = () => {
         tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => {
           const size = 24;
           switch (route.name) {
-            case 'Accueil':
-              return <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />;
-            case 'Clients':
-              return <Ionicons name={focused ? 'people' : 'people-outline'} size={size} color={color} />;
-            case 'Ventes':
-              return <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} size={size} color={color} />;
-            case 'Marketing':
-              return <Ionicons name={focused ? 'megaphone' : 'megaphone-outline'} size={size} color={color} />;
-            case 'Plus':
-              return <Ionicons name={focused ? 'grid' : 'grid-outline'} size={size} color={color} />;
+            case 'Accueil':   return <Ionicons name={focused ? 'home'      : 'home-outline'}      size={size} color={color} />;
+            case 'Clients':   return <Ionicons name={focused ? 'people'    : 'people-outline'}    size={size} color={color} />;
+            case 'Ventes':    return <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} size={size} color={color} />;
+            case 'Marketing': return <Ionicons name={focused ? 'megaphone' : 'megaphone-outline'} size={size} color={color} />;
+            case 'Plus':      return <Ionicons name={focused ? 'grid'      : 'grid-outline'}      size={size} color={color} />;
           }
         },
       })}
@@ -80,7 +63,17 @@ export const MainTabNavigator: React.FC = () => {
       <Tab.Screen name="Clients"   component={ClientsStack}    options={{ tabBarLabel: 'Clients'   }} />
       <Tab.Screen name="Ventes"    component={VentesStack}     options={{ tabBarLabel: 'Ventes'    }} />
       <Tab.Screen name="Marketing" component={MarketingStack}  options={{ tabBarLabel: 'Marketing' }} />
-      <Tab.Screen name="Plus"      component={PlusStack}       options={{ tabBarLabel: 'Plus'      }} />
+
+      {/*
+       * FIX : unmountOnBlur: true — le PlusStack est détruit à chaque sortie.
+       * "as any" contourne le bug de typage de certaines versions de @react-navigation/bottom-tabs
+       * (la propriété existe bien à l'exécution même si le type TS ne la déclare pas).
+       */}
+      <Tab.Screen
+        name="Plus"
+        component={PlusStack}
+        options={{ tabBarLabel: 'Plus', unmountOnBlur: true } as any}
+      />
     </Tab.Navigator>
   );
 };

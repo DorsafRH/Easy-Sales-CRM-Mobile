@@ -66,6 +66,47 @@ export const makeStyles = (theme: AppTheme) =>
       elevation:       1,
     },
 
+    conflictBox: {
+      backgroundColor: theme.colors.bgApp,
+      borderRadius:    theme.radius.md,
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+      padding:         theme.spacing[3],
+      rowGap:          theme.spacing[2],
+    },
+
+    conflictTxt: {
+      fontSize:  theme.typography.size.xs,
+      color:     theme.colors.textSecondary,
+    },
+
+    warningTxt: {
+      fontSize:  theme.typography.size.xs,
+      color:     '#B45309',
+      fontWeight:'700',
+    },
+
+    slotRow: {
+      flexDirection:  'row',
+      justifyContent: 'space-between',
+      alignItems:     'center',
+      paddingVertical: theme.spacing[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.bgApp,
+    },
+
+    slotTitle: {
+      flex:      1,
+      fontSize:  theme.typography.size.sm,
+      color:     theme.colors.textPrimary,
+    },
+
+    slotSub: {
+      fontSize: theme.typography.size.xs,
+      color:    theme.colors.textTertiary,
+      marginLeft: theme.spacing[2],
+    },
+
     sectionTitle: {
       fontSize:      theme.typography.size.xs,
       fontWeight:    '700',

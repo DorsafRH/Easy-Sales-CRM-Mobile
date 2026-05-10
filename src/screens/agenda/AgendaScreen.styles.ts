@@ -1,6 +1,7 @@
 /**
  * @file AgendaScreen.styles.ts
- * @description Styles — Agenda CRM redesign : calendrier mensuel + événements colorés.
+ * @description Styles Agenda — calendrier mensuel coloré.
+ *   Ajout : backBtn + calTitleBlock pour le nouveau header avec flèche retour.
  * @author Riahi Dorsaf
  */
 
@@ -27,18 +28,35 @@ export const makeStyles = (theme: AppTheme) =>
       elevation:         4,
     },
 
-    // Header : titre + bouton +
+    // Header : ← / Titre / +
     calHeader: {
       flexDirection:  'row',
-      justifyContent: 'space-between',
       alignItems:     'center',
-      paddingHorizontal: 20,
-      paddingTop:        16,
+      paddingHorizontal: 16,
+      paddingTop:        14,
       paddingBottom:     10,
+      columnGap:         10,
+    },
+
+    // Bouton retour ← vers PlusMenu
+    backBtn: {
+      width:           38,
+      height:          38,
+      borderRadius:    19,
+      backgroundColor: theme.colors.bgApp,
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+      alignItems:      'center',
+      justifyContent:  'center',
+    },
+
+    // Bloc titre + sous-titre (flex: 1 pour occuper l'espace entre ← et +)
+    calTitleBlock: {
+      flex: 1,
     },
 
     calTitre: {
-      fontSize:   24,
+      fontSize:   22,
       fontWeight: '800',
       color:      theme.colors.textPrimary,
     },
@@ -46,7 +64,7 @@ export const makeStyles = (theme: AppTheme) =>
     calSub: {
       fontSize:  12,
       color:     theme.colors.textSecondary,
-      marginTop: 2,
+      marginTop: 1,
     },
 
     addBtn: {
@@ -89,7 +107,7 @@ export const makeStyles = (theme: AppTheme) =>
       color:      theme.colors.textPrimary,
     },
 
-    // En-tête Lu Ma Me Je Ve Sa Di
+    // En-tête jours Lu Ma Me…
     daysHeader: {
       flexDirection:     'row',
       paddingHorizontal: 6,
@@ -97,13 +115,13 @@ export const makeStyles = (theme: AppTheme) =>
     },
 
     dayHdrTxt: {
-      flex:            1,
-      textAlign:       'center',
-      fontSize:        11,
-      fontWeight:      '600',
-      color:           theme.colors.textSecondary,
-      textTransform:   'uppercase',
-      letterSpacing:   0.5,
+      flex:          1,
+      textAlign:     'center',
+      fontSize:      11,
+      fontWeight:    '600',
+      color:         theme.colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
 
     dayHdrWknd: {
@@ -197,7 +215,6 @@ export const makeStyles = (theme: AppTheme) =>
       paddingTop:        4,
     },
 
-    // Card événement
     eventCard: {
       flexDirection: 'row',
       borderRadius:  14,
@@ -215,9 +232,9 @@ export const makeStyles = (theme: AppTheme) =>
     },
 
     eventBody: {
-      flex:                  1,
-      padding:               14,
-      borderTopRightRadius:  14,
+      flex:                    1,
+      padding:                 14,
+      borderTopRightRadius:    14,
       borderBottomRightRadius: 14,
     },
 
@@ -275,7 +292,6 @@ export const makeStyles = (theme: AppTheme) =>
       color:    '#6B7280',
     },
 
-    // Actions rapides (chips)
     eventActions: {
       flexDirection: 'row',
       flexWrap:      'wrap',
@@ -287,15 +303,15 @@ export const makeStyles = (theme: AppTheme) =>
     },
 
     chip: {
-      flexDirection:   'row',
-      alignItems:      'center',
-      columnGap:       4,
+      flexDirection:     'row',
+      alignItems:        'center',
+      columnGap:         4,
       paddingHorizontal: 10,
       paddingVertical:   5,
-      borderRadius:    20,
-      borderWidth:     1,
-      borderColor:     '#E5E7EB',
-      backgroundColor: '#FFFFFF',
+      borderRadius:      20,
+      borderWidth:       1,
+      borderColor:       '#E5E7EB',
+      backgroundColor:   '#FFFFFF',
     },
 
     chipTxt: {
