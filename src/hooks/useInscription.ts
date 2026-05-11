@@ -8,7 +8,7 @@ import * as EntrepriseApi from '../api/entreprise.api';
 
 export type InscriptionErrors = Partial<Record<keyof InscriptionFormState, string>>;
 
-interface UseInscriptionReturn {
+export interface UseInscriptionReturn {
   form:          InscriptionFormState;
   errors:        InscriptionErrors;
   isSubmitting:  boolean;

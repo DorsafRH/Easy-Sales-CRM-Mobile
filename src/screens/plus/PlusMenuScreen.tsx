@@ -1,17 +1,18 @@
 /**
  * @file PlusMenuScreen.tsx
- * @description Écran "Plus" — menu liste structuré en groupes.
+ * @description Ecran "Plus" — menu liste structuré en groupes.
+ *              Inclut le toggle dark/light mode.
  * @author Riahi Dorsaf
  */
 
 import React, { useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
 import { SafeAreaView }              from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
 import { Ionicons }                      from '@expo/vector-icons';
 
-import { useStyles, useTheme }  from '../../theme';
+import { useStyles, useTheme, useThemeStore } from '../../theme';
 import { makeStyles }           from './PlusMenuScreen.styles';
 import { Avatar }               from '../../components/ui/Avatar';
 import { useAuth }              from '../../context/AuthContext';
@@ -54,7 +55,7 @@ const MenuItemRow: React.FC<{ item: MenuItem; isLast?: boolean }> = ({ item, isL
         <Text style={[styles.menuItemLabel, item.disabled && { color: theme.colors.textSecondary }]}>
           {item.label}
         </Text>
-        {item.sub && <Text style={styles.menuItemSub}>{item.sub}</Text>}
+        {item.sub ? <Text style={styles.menuItemSub}>{item.sub}</Text> : null}
       </View>
       {item.badge ? (
         <View style={styles.menuItemBadge}>
@@ -74,13 +75,17 @@ const MenuItemRow: React.FC<{ item: MenuItem; isLast?: boolean }> = ({ item, isL
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Écran "Plus" — menu de navigation structuré.
+ * Ecran "Plus" — menu de navigation structure avec toggle dark mode.
  * @author Riahi Dorsaf
  */
 export const PlusMenuScreen: React.FC = () => {
   const styles  = useStyles(makeStyles);
   const theme   = useTheme();
   const { currentUser, logout, refreshUser } = useAuth();
+
+  // Store Zustand pour le toggle dark mode
+  const isDark        = useThemeStore(s => s.scheme === 'dark');
+  const toggleScheme  = useThemeStore(s => s.toggleScheme);
 
   const navigationPlus = useNavigation<NativeStackNavigationProp<PlusStackParamList>>();
   const navigationApp  = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
@@ -93,17 +98,18 @@ export const PlusMenuScreen: React.FC = () => {
   const nomEntreprise = currentUser?.nomEntreprise ?? '';
 
   const handleDeconnexion = () => {
-    Alert.alert('Déconnexion', 'Êtes-vous sûr de vouloir vous déconnecter ?', [
+    Alert.alert('Deconnexion', 'Etes-vous sur de vouloir vous deconnecter ?', [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Déconnecter', style: 'destructive', onPress: logout },
+      { text: 'Deconnecter', style: 'destructive', onPress: logout },
     ]);
   };
 
   // ── Groupes de menus ──────────────────────────────────────
+
   const crmItems: MenuItem[] = [
     {
       label:     'Clients',
-      sub:       'Gérer vos clients et contacts',
+      sub:       'Gerer vos clients et contacts',
       icon:      'people-outline',
       iconBg:    theme.colors.primaryLight,
       iconColor: theme.colors.primary,
@@ -111,7 +117,7 @@ export const PlusMenuScreen: React.FC = () => {
     },
     {
       label:     'Catalogue',
-      sub:       'Produits et catégories',
+      sub:       'Produits et categories',
       icon:      'grid-outline',
       iconBg:    '#EFF6FF',
       iconColor: '#0369A1',
@@ -119,7 +125,7 @@ export const PlusMenuScreen: React.FC = () => {
     },
     {
       label:     'Agenda',
-      sub:       'Réunions et rendez-vous clients',
+      sub:       'Reunions et rendez-vous clients',
       icon:      'calendar-outline',
       iconBg:    '#F0FDF4',
       iconColor: '#16A34A',
@@ -129,7 +135,7 @@ export const PlusMenuScreen: React.FC = () => {
 
   const ventesItems: MenuItem[] = [
     {
-      label:    'Leads & Opportunités',
+      label:    'Leads & Opportunites',
       sub:      'Disponible en Sprint 3',
       icon:     'trending-up-outline',
       iconBg:   '#F0FDF4',
@@ -162,7 +168,7 @@ export const PlusMenuScreen: React.FC = () => {
       onPress:  () => {},
     },
     {
-      label:    'Réseaux sociaux',
+      label:    'Reseaux sociaux',
       sub:      'Disponible en Sprint 4',
       icon:     'share-social-outline',
       iconBg:   '#F3E8FF',
@@ -194,8 +200,11 @@ export const PlusMenuScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── Carte utilisateur ── */}
         <View style={styles.userCard}>
           <Avatar nom={nomComplet || '?'} size="lg" />
@@ -203,7 +212,10 @@ export const PlusMenuScreen: React.FC = () => {
             <Text style={styles.userName}>{nomComplet}</Text>
             {nomEntreprise ? <Text style={styles.userEntreprise}>{nomEntreprise}</Text> : null}
           </View>
-          <TouchableOpacity style={styles.editProfileBtn} onPress={() => navigationApp.navigate('EditProfile')}>
+          <TouchableOpacity
+            style={styles.editProfileBtn}
+            onPress={() => navigationApp.navigate('EditProfile')}
+          >
             <Ionicons name="pencil-outline" size={16} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
@@ -236,16 +248,49 @@ export const PlusMenuScreen: React.FC = () => {
           ))}
         </View>
 
+        {/* ── Apparence — Dark Mode ── */}
+        <Text style={styles.sectionLabel}>Apparence</Text>
+        <View style={styles.menuGroup}>
+          <View style={[styles.menuItem, styles.menuItemLast]}>
+            <View style={[styles.menuIconWrapper, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}>
+              <Ionicons
+                name={isDark ? 'moon' : 'sunny-outline'}
+                size={20}
+                color={isDark ? '#93C5FD' : '#D97706'}
+              />
+            </View>
+            <View style={styles.menuItemContent}>
+              <Text style={styles.menuItemLabel}>
+                {isDark ? 'Mode sombre' : 'Mode clair'}
+              </Text>
+              <Text style={styles.menuItemSub}>
+                {isDark ? 'Interface en mode nuit' : 'Interface en mode jour'}
+              </Text>
+            </View>
+            <Switch
+              value={isDark}
+              onValueChange={toggleScheme}
+              trackColor={{ true: theme.colors.primary, false: theme.colors.border }}
+              thumbColor={theme.colors.white}
+            />
+          </View>
+        </View>
+
+        {/* ── Deconnexion ── */}
         <View style={[styles.logoutGroup, { marginTop: theme.spacing[5] }]}>
-          <TouchableOpacity style={styles.logoutItem} onPress={handleDeconnexion} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.logoutItem}
+            onPress={handleDeconnexion}
+            activeOpacity={0.7}
+          >
             <View style={styles.logoutIconWrapper}>
               <Ionicons name="log-out-outline" size={20} color={theme.colors.danger} />
             </View>
-            <Text style={styles.logoutLabel}>Se déconnecter</Text>
+            <Text style={styles.logoutLabel}>Se deconnecter</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>Easy Sales CRM — Sprint 2 • v2.0.0</Text>
+        <Text style={styles.version}>Easy Sales CRM v3.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
