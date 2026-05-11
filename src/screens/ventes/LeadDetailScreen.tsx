@@ -1,27 +1,29 @@
 /**
  * @file LeadDetailScreen.tsx
- * @description Fiche detail d'un lead : informations, score, pipeline statut,
- *              timeline des activites commerciales, actions qualifier/convertir/perdre.
+ * @description Fiche détail d'un lead : informations, score, statut pipeline,
+ *              timeline activités, actions qualifier/convertir/perdre.
+ *              Conversion : 3 choix (nouveau client auto / client existant / annuler).
  * @author Riahi Dorsaf
  */
 
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Modal, StyleSheet,
 } from 'react-native';
-import { SafeAreaView }                         from 'react-native-safe-area-context';
+import { SafeAreaView }                      from 'react-native-safe-area-context';
 import { useNavigation, useRoute,
-         RouteProp, useFocusEffect }            from '@react-navigation/native';
-import { NativeStackNavigationProp }            from '@react-navigation/native-stack';
-import { Ionicons }                             from '@expo/vector-icons';
+         RouteProp, useFocusEffect }         from '@react-navigation/native';
+import { NativeStackNavigationProp }         from '@react-navigation/native-stack';
+import { Ionicons }                          from '@expo/vector-icons';
 
-import { useStyles, useTheme }              from '../../theme';
-import { makeStyles }                       from './LeadDetailScreen.styles';
-import { ScoreBar }                         from '../../components/ui/ScoreBar';
-import { TimelineItem }                     from '../../components/ui/TimelineItem';
-import { SmartActionSheet }                 from '../../components/ui/SmartActionSheet';
-import { VentesStackParamList }             from '../../navigation/VentesStack';
+import { useStyles, useTheme }   from '../../theme';
+import { makeStyles }            from './LeadDetailScreen.styles';
+import { ScoreBar }              from '../../components/ui/ScoreBar';
+import { TimelineItem }          from '../../components/ui/TimelineItem';
+import { ClientPickerModal }     from '../../components/ui/ClientPickerModal';
+import { VentesStackParamList }  from '../../navigation/VentesStack';
+import { AppTheme }              from '../../theme';
 
 import * as VenteApi from '../../api/vente.api';
 import {
@@ -30,6 +32,7 @@ import {
   STATUT_LEAD_CONFIG,
   SOURCE_LEAD_LABELS,
 } from '../../types/vente.types';
+import { ClientResponse } from '../../types/client.types';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -39,49 +42,144 @@ type Nav   = NativeStackNavigationProp<VentesStackParamList, 'LeadDetail'>;
 type Route = RouteProp<VentesStackParamList, 'LeadDetail'>;
 
 // ─────────────────────────────────────────────────────────────
+// STYLES MODAL CONVERSION
+// ─────────────────────────────────────────────────────────────
+
+const makeConvStyles = (theme: AppTheme) =>
+  StyleSheet.create({
+    overlay: {
+      flex:            1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent:  'flex-end',
+    },
+    sheet: {
+      backgroundColor:      theme.colors.bgSurface,
+      borderTopLeftRadius:  theme.radius.xl,
+      borderTopRightRadius: theme.radius.xl,
+      padding:              theme.spacing[5],
+      paddingBottom:        theme.spacing[8],
+    },
+    handle: {
+      alignSelf:       'center',
+      width:           40,
+      height:          4,
+      borderRadius:    2,
+      backgroundColor: theme.colors.border,
+      marginBottom:    theme.spacing[4],
+    },
+    iconWrapper: {
+      width:           56,
+      height:          56,
+      borderRadius:    28,
+      alignSelf:       'center',
+      alignItems:      'center',
+      justifyContent:  'center',
+      backgroundColor: '#F0FDF4',
+      marginBottom:    theme.spacing[3],
+    },
+    title: {
+      fontSize:     theme.typography.size.lg,
+      fontWeight:   '700',
+      color:        theme.colors.textPrimary,
+      textAlign:    'center',
+      marginBottom: theme.spacing[2],
+    },
+    subtitle: {
+      fontSize:     theme.typography.size.sm,
+      color:        theme.colors.textSecondary,
+      textAlign:    'center',
+      lineHeight:   theme.typography.size.sm * 1.6,
+      marginBottom: theme.spacing[5],
+    },
+    choiceBtn: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      columnGap:         theme.spacing[3],
+      paddingVertical:   theme.spacing[4],
+      paddingHorizontal: theme.spacing[4],
+      borderRadius:      theme.radius.lg,
+      borderWidth:       1,
+      borderColor:       theme.colors.border,
+      backgroundColor:   theme.colors.bgApp,
+      marginBottom:      theme.spacing[3],
+    },
+    choiceBtnPrimary: {
+      borderColor:     theme.colors.primary,
+      backgroundColor: theme.colors.primaryLight,
+    },
+    choiceIconWrapper: {
+      width:          40,
+      height:         40,
+      borderRadius:   20,
+      alignItems:     'center',
+      justifyContent: 'center',
+    },
+    choiceContent: { flex: 1 },
+    choiceTitle: {
+      fontSize:     theme.typography.size.sm,
+      fontWeight:   '700',
+      color:        theme.colors.textPrimary,
+      marginBottom: 2,
+    },
+    choiceTitlePrimary: { color: theme.colors.primary },
+    choiceSub: {
+      fontSize: theme.typography.size.xs,
+      color:    theme.colors.textSecondary,
+    },
+    cancelBtn: {
+      alignItems:      'center',
+      paddingVertical: theme.spacing[3],
+      marginTop:       theme.spacing[1],
+    },
+    cancelBtnText: {
+      fontSize: theme.typography.size.sm,
+      color:    theme.colors.textSecondary,
+    },
+  });
+
+// ─────────────────────────────────────────────────────────────
 // COMPOSANT
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Fiche lead avec score, pipeline, timeline activites et actions CRM.
+ * Fiche lead avec score, pipeline, timeline et conversion intelligente.
  * @author Riahi Dorsaf
  */
 export const LeadDetailScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
+  const convStyles = useStyles(makeConvStyles);
   const theme      = useTheme();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { leadId } = route.params;
 
-  const [lead,         setLead]         = useState<LeadResponse | null>(null);
-  const [activites,    setActivites]    = useState<ActiviteCommercialeResponse[]>([]);
-  const [isLoading,    setIsLoading]    = useState(true);
-  const [smartVisible, setSmartVisible] = useState(false);
+  const [lead,               setLead]               = useState<LeadResponse | null>(null);
+  const [activites,          setActivites]          = useState<ActiviteCommercialeResponse[]>([]);
+  const [isLoading,          setIsLoading]          = useState(true);
+  const [isConverting,       setIsConverting]       = useState(false);
+  const [convSheetVisible,   setConvSheetVisible]   = useState(false);
+  const [clientPickerVisible, setClientPickerVisible] = useState(false);
 
   // ── Chargement ────────────────────────────────────────────
 
   const charger = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [leadRes] = await Promise.allSettled([
-        VenteApi.obtenirLead(leadId),
-        // Les activites seront chargees via un endpoint dedie Sprint 4
-      ]);
-      if (leadRes.status === 'fulfilled' && leadRes.value.success) {
-        setLead(leadRes.value.data);
-      }
+      const res = await VenteApi.obtenirLead(leadId);
+      if (res.success) setLead(res.data);
     } catch {
-      // silencieux
+      Alert.alert('Erreur', 'Impossible de charger le lead.');
+      navigation.goBack();
     } finally {
       setIsLoading(false);
     }
-  }, [leadId]);
+  }, [leadId, navigation]);
 
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
 
   // ── Actions pipeline ──────────────────────────────────────
 
-  const handleQualifier = async () => {
+  const handleQualifier = () => {
     if (!lead) return;
     Alert.alert('Qualifier ce lead', 'Confirmer la qualification ?', [
       { text: 'Annuler', style: 'cancel' },
@@ -92,7 +190,7 @@ export const LeadDetailScreen: React.FC = () => {
             const res = await VenteApi.changerStatutLead(lead.id, 'QUALIFIE');
             if (res.success) setLead(res.data);
           } catch {
-            Alert.alert('Erreur', 'Impossible de qualifier le lead.');
+            Alert.alert('Erreur', 'Impossible de qualifier.');
           }
         },
       },
@@ -101,10 +199,10 @@ export const LeadDetailScreen: React.FC = () => {
 
   const handlePerdre = () => {
     if (!lead) return;
-    Alert.alert('Marquer comme perdu', 'Indiquer une raison (optionnel) ?', [
+    Alert.alert('Marquer comme perdu', 'Confirmer ?', [
       { text: 'Annuler', style: 'cancel' },
       {
-        text: 'Marquer perdu',
+        text: 'Confirmer',
         style: 'destructive',
         onPress: async () => {
           try {
@@ -118,13 +216,12 @@ export const LeadDetailScreen: React.FC = () => {
     ]);
   };
 
-  const handleConvertir = () => {
-    setSmartVisible(true);
-  };
+  // ── Conversion : nouveau client auto ─────────────────────
 
-  const handleConvertirConfirm = async () => {
+  const handleConvertirNouveauClient = async () => {
     if (!lead) return;
-    setSmartVisible(false);
+    setConvSheetVisible(false);
+    setIsConverting(true);
     try {
       const res = await VenteApi.convertirLead(lead.id, { creerNouveauClient: true });
       if (res.success) {
@@ -132,6 +229,26 @@ export const LeadDetailScreen: React.FC = () => {
       }
     } catch (e: any) {
       Alert.alert('Erreur', e?.response?.data?.message ?? 'Erreur lors de la conversion.');
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
+  // ── Conversion : client existant ──────────────────────────
+
+  const handleConvertirClientExistant = async (client: ClientResponse) => {
+    if (!lead) return;
+    setClientPickerVisible(false);
+    setIsConverting(true);
+    try {
+      const res = await VenteApi.convertirLead(lead.id, { clientExistantId: client.id });
+      if (res.success) {
+        navigation.replace('OpportuniteDetail', { opportuniteId: res.data.id });
+      }
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.response?.data?.message ?? 'Erreur lors de la conversion.');
+    } finally {
+      setIsConverting(false);
     }
   };
 
@@ -139,7 +256,7 @@ export const LeadDetailScreen: React.FC = () => {
 
   if (isLoading || !lead) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -147,16 +264,15 @@ export const LeadDetailScreen: React.FC = () => {
     );
   }
 
-  const conf        = STATUT_LEAD_CONFIG[lead.statut];
-  const peutAgir    = lead.statut !== 'CONVERTI' && lead.statut !== 'PERDU';
-  const peutConv    = lead.statut !== 'CONVERTI' && lead.statut !== 'PERDU';
+  const conf     = STATUT_LEAD_CONFIG[lead.statut];
+  const peutAgir = lead.statut !== 'CONVERTI' && lead.statut !== 'PERDU';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
 
-        {/* ── Header ── */}
+        {/* ── Header avec flèche retour ── */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
@@ -178,15 +294,13 @@ export const LeadDetailScreen: React.FC = () => {
         {/* ── Statut + Score ── */}
         <View style={styles.scoreSection}>
           <View style={[styles.statutBadge, { backgroundColor: conf.bg, marginBottom: theme.spacing[3] }]}>
-            <Text style={[styles.statutBadgeText, { color: conf.color }]}>
-              {conf.label}
-            </Text>
+            <Text style={[styles.statutBadgeText, { color: conf.color }]}>{conf.label}</Text>
           </View>
           <Text style={styles.scoreLabel}>Score de qualification</Text>
           <ScoreBar score={lead.score} />
         </View>
 
-        {/* ── Informations ── */}
+        {/* ── Informations contact ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contact</Text>
           <View style={styles.card}>
@@ -208,23 +322,17 @@ export const LeadDetailScreen: React.FC = () => {
                 <Text style={styles.infoValue}>{lead.entreprise}</Text>
               </View>
             ) : null}
-            {lead.poste ? (
-              <View style={[styles.infoRow, styles.infoRowLast]}>
-                <Text style={styles.infoLabel}>Poste</Text>
-                <Text style={styles.infoValue}>{lead.poste}</Text>
-              </View>
-            ) : (
-              <View style={[styles.infoRow, styles.infoRowLast]}>
-                <Text style={styles.infoLabel}>Source</Text>
-                <Text style={styles.infoValue}>{SOURCE_LEAD_LABELS[lead.source]}</Text>
-              </View>
-            )}
+            <View style={[styles.infoRow, styles.infoRowLast]}>
+              <Text style={styles.infoLabel}>Source</Text>
+              <Text style={styles.infoValue}>{SOURCE_LEAD_LABELS[lead.source]}</Text>
+            </View>
           </View>
         </View>
 
+        {/* ── Besoin ── */}
         {lead.descriptionBesoin ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Besoin</Text>
+            <Text style={styles.sectionTitle}>Besoin identifie</Text>
             <View style={styles.card}>
               <View style={[styles.infoRow, styles.infoRowLast]}>
                 <Text style={[styles.infoValue, { textAlign: 'left', marginLeft: 0 }]}>
@@ -235,7 +343,7 @@ export const LeadDetailScreen: React.FC = () => {
           </View>
         ) : null}
 
-        {/* ── Activites ── */}
+        {/* ── Activités ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Activites ({activites.length})</Text>
           <View style={styles.timelineCard}>
@@ -274,43 +382,120 @@ export const LeadDetailScreen: React.FC = () => {
                 <Text style={[styles.actionBtnText, { color: theme.colors.danger }]}>Perdre</Text>
               </TouchableOpacity>
             </View>
-
-            {peutConv && (
-              <TouchableOpacity style={styles.convertBtn} onPress={handleConvertir}>
-                <Ionicons name="trending-up-outline" size={20} color={theme.colors.white} />
-                <Text style={styles.convertBtnText}>Convertir en opportunite</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[styles.convertBtn, isConverting && { opacity: 0.6 }]}
+              onPress={() => setConvSheetVisible(true)}
+              disabled={isConverting}
+            >
+              {isConverting ? (
+                <ActivityIndicator size="small" color={theme.colors.white} />
+              ) : (
+                <>
+                  <Ionicons name="trending-up-outline" size={20} color={theme.colors.white} />
+                  <Text style={styles.convertBtnText}>Convertir en opportunite</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         )}
 
-        {lead.raisonPerte ? (
+        {/* ── Converti — info ── */}
+        {lead.statut === 'CONVERTI' && (
           <View style={[styles.section, { marginTop: theme.spacing[4] }]}>
-            <Text style={styles.sectionTitle}>Raison de la perte</Text>
-            <View style={styles.card}>
-              <View style={[styles.infoRow, styles.infoRowLast]}>
-                <Text style={[styles.infoValue, { textAlign: 'left', marginLeft: 0, color: theme.colors.danger }]}>
-                  {lead.raisonPerte}
+            <View style={[styles.card, { padding: theme.spacing[4] }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: theme.spacing[2] }}>
+                <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
+                <Text style={{ fontSize: theme.typography.size.sm, fontWeight: '600', color: '#16A34A' }}>
+                  Lead converti en opportunite
                 </Text>
               </View>
             </View>
           </View>
-        ) : null}
+        )}
 
       </ScrollView>
 
-      {/* ── Smart Automation conversion ── */}
-      <SmartActionSheet
-        visible={smartVisible}
-        iconName="trending-up-outline"
-        iconColor="#16A34A"
-        iconBg="#F0FDF4"
-        title="Convertir ce lead"
-        subtitle="Un nouveau client et une opportunite seront crees automatiquement depuis les informations de ce lead."
-        confirmLabel="Convertir et creer l'opportunite"
-        dismissLabel="Annuler"
-        onConfirm={handleConvertirConfirm}
-        onDismiss={() => setSmartVisible(false)}
+      {/* ── Modal 3 choix conversion ── */}
+      <Modal
+        visible={convSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setConvSheetVisible(false)}
+      >
+        <TouchableOpacity
+          style={convStyles.overlay}
+          activeOpacity={1}
+          onPress={() => setConvSheetVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1}>
+            <View style={convStyles.sheet}>
+              <View style={convStyles.handle} />
+              <View style={convStyles.iconWrapper}>
+                <Ionicons name="trending-up-outline" size={28} color="#16A34A" />
+              </View>
+              <Text style={convStyles.title}>Convertir ce lead</Text>
+              <Text style={convStyles.subtitle}>
+                Choisissez comment associer ce lead a un client CRM pour creer l opportunite
+              </Text>
+
+              {/* Choix 1 — Nouveau client automatique */}
+              <TouchableOpacity
+                style={[convStyles.choiceBtn, convStyles.choiceBtnPrimary]}
+                onPress={handleConvertirNouveauClient}
+                activeOpacity={0.8}
+              >
+                <View style={[convStyles.choiceIconWrapper, { backgroundColor: '#F0FDF4' }]}>
+                  <Ionicons name="person-add-outline" size={20} color="#16A34A" />
+                </View>
+                <View style={convStyles.choiceContent}>
+                  <Text style={[convStyles.choiceTitle, convStyles.choiceTitlePrimary]}>
+                    Creer un nouveau client
+                  </Text>
+                  <Text style={convStyles.choiceSub}>
+                    Cree automatiquement depuis les infos du lead
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+              </TouchableOpacity>
+
+              {/* Choix 2 — Client existant */}
+              <TouchableOpacity
+                style={convStyles.choiceBtn}
+                onPress={() => {
+                  setConvSheetVisible(false);
+                  setTimeout(() => setClientPickerVisible(true), 300);
+                }}
+                activeOpacity={0.8}
+              >
+                <View style={[convStyles.choiceIconWrapper, { backgroundColor: '#EFF6FF' }]}>
+                  <Ionicons name="people-outline" size={20} color="#2563EB" />
+                </View>
+                <View style={convStyles.choiceContent}>
+                  <Text style={convStyles.choiceTitle}>Lier a un client existant</Text>
+                  <Text style={convStyles.choiceSub}>
+                    Choisir parmi les clients deja enregistres
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={convStyles.cancelBtn}
+                onPress={() => setConvSheetVisible(false)}
+              >
+                <Text style={convStyles.cancelBtnText}>Annuler</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Picker client existant ── */}
+      <ClientPickerModal
+        visible={clientPickerVisible}
+        titre="Lier a un client existant"
+        onSelect={handleConvertirClientExistant}
+        onClose={() => setClientPickerVisible(false)}
       />
     </SafeAreaView>
   );

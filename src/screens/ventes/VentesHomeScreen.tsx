@@ -1,7 +1,8 @@
 /**
  * @file VentesHomeScreen.tsx
- * @description Dashboard commercial — KPIs pipeline + acces rapide
- *              Leads, Opportunites, Devis, Factures.
+ * @description Dashboard commercial — KPIs pipeline + accès rapide
+ *              Leads, Opportunités, Devis, Factures.
+ *              Inclut la liste des leads récents et le bouton "Voir tous les leads".
  * @author Riahi Dorsaf
  */
 
@@ -19,10 +20,16 @@ import { useStyles, useTheme }        from '../../theme';
 import { makeStyles }                 from './VentesHomeScreen.styles';
 import { StatCard }                   from '../../components/ui/StatCard';
 import { EmptyState }                 from '../../components/ui/EmptyState';
+import { ScoreBar }                   from '../../components/ui/ScoreBar';
 import { VentesStackParamList }       from '../../navigation/VentesStack';
 
 import * as VenteApi from '../../api/vente.api';
-import { OpportuniteResponse, KANBAN_COLONNES } from '../../types/vente.types';
+import {
+  OpportuniteResponse,
+  LeadResponse,
+  KANBAN_COLONNES,
+  STATUT_LEAD_CONFIG,
+} from '../../types/vente.types';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -35,7 +42,7 @@ type Nav = NativeStackNavigationProp<VentesStackParamList, 'VentesHome'>;
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Ecran d'accueil du module Ventes.
+ * Dashboard Ventes avec KPIs, accès rapide et listes récentes.
  * @author Riahi Dorsaf
  */
 export const VentesHomeScreen: React.FC = () => {
@@ -44,37 +51,29 @@ export const VentesHomeScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
 
   const [opportunites,  setOpportunites]  = useState<OpportuniteResponse[]>([]);
-  const [nbLeads,       setNbLeads]       = useState(0);
+  const [leads,         setLeads]         = useState<LeadResponse[]>([]);
   const [nbDevis,       setNbDevis]       = useState(0);
-  const [nbFactures,    setNbFactures]    = useState(0);
   const [isLoading,     setIsLoading]     = useState(true);
   const [isRefreshing,  setIsRefreshing]  = useState(false);
 
   // ── Chargement ────────────────────────────────────────────
 
   const charger = useCallback(async (refresh = false) => {
-    if (refresh) setIsRefreshing(true);
-    else setIsLoading(true);
-
+    if (refresh) setIsRefreshing(true); else setIsLoading(true);
     try {
-      const [leadsRes, opRes, devisRes, facturesRes] = await Promise.allSettled([
+      const [leadsRes, opRes, devisRes] = await Promise.allSettled([
         VenteApi.listerLeads(),
         VenteApi.listerOpportunites(),
         VenteApi.listerDevis('ENVOYE'),
-        VenteApi.listerFactures('EMISE'),
       ]);
-
       if (leadsRes.status === 'fulfilled' && leadsRes.value.success) {
-        setNbLeads(leadsRes.value.data.length);
+        setLeads(leadsRes.value.data.slice(0, 3));
       }
       if (opRes.status === 'fulfilled' && opRes.value.success) {
-        setOpportunites(opRes.value.data.slice(0, 5));
+        setOpportunites(opRes.value.data.slice(0, 4));
       }
       if (devisRes.status === 'fulfilled' && devisRes.value.success) {
         setNbDevis(devisRes.value.data.length);
-      }
-      if (facturesRes.status === 'fulfilled' && facturesRes.value.success) {
-        setNbFactures(facturesRes.value.data.length);
       }
     } catch {
       // silencieux
@@ -86,54 +85,55 @@ export const VentesHomeScreen: React.FC = () => {
 
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
 
+  // ── Helpers ───────────────────────────────────────────────
+
+  const formatMontant = (v: number) =>
+    v.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND';
+
+  const montantPipeline = opportunites.reduce((acc, o) => acc + (o.montantEstime ?? 0), 0);
+
   // ── Actions rapides ───────────────────────────────────────
 
   const ACTIONS = [
     {
-      label:     'Nouveau lead',
-      iconName:  'person-add-outline',
-      iconColor: '#2563EB',
-      iconBg:    '#EFF6FF',
-      onPress:   () => navigation.navigate('LeadForm', {}),
+      label:    'Nouveau lead',
+      iconName: 'person-add-outline',
+      iconColor:'#2563EB',
+      iconBg:   '#EFF6FF',
+      onPress:  () => navigation.navigate('LeadForm', {}),
     },
     {
-      label:     'Kanban',
-      iconName:  'albums-outline',
-      iconColor: '#7C3AED',
-      iconBg:    '#F5F3FF',
-      onPress:   () => navigation.navigate('OpportunitesKanban'),
+      label:    'Kanban',
+      iconName: 'albums-outline',
+      iconColor:'#7C3AED',
+      iconBg:   '#F5F3FF',
+      onPress:  () => navigation.navigate('OpportunitesKanban'),
     },
     {
-      label:     'Devis',
-      iconName:  'document-text-outline',
-      iconColor: '#16A34A',
-      iconBg:    '#F0FDF4',
-      onPress:   () => navigation.navigate('DevisList'),
+      label:    'Devis',
+      iconName: 'document-text-outline',
+      iconColor:'#16A34A',
+      iconBg:   '#F0FDF4',
+      onPress:  () => navigation.navigate('DevisList'),
     },
     {
-      label:     'Factures',
-      iconName:  'receipt-outline',
-      iconColor: '#D97706',
-      iconBg:    '#FFFBEB',
-      onPress:   () => navigation.navigate('DevisList'),
+      label:    'Factures',
+      iconName: 'receipt-outline',
+      iconColor:'#D97706',
+      iconBg:   '#FFFBEB',
+      onPress:  () => navigation.navigate('DevisList'),
     },
   ] as const;
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       </SafeAreaView>
     );
   }
-
-  const montantPipeline = opportunites
-    .reduce((acc, o) => acc + (o.montantEstime ?? 0), 0);
-
-  const formatMontant = (v: number) =>
-    v.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -162,8 +162,8 @@ export const VentesHomeScreen: React.FC = () => {
               iconName="people-outline"
               iconColor="#2563EB"
               iconBg="#EFF6FF"
-              value={nbLeads}
-              label="Leads actifs"
+              value={leads.length}
+              label="Leads recents"
             />
           </View>
           <View style={styles.kpiItem}>
@@ -217,12 +217,68 @@ export const VentesHomeScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* ── Leads récents ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Leads recents</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('LeadsList')}>
+              <Text style={styles.sectionLink}>Voir tous</Text>
+            </TouchableOpacity>
+          </View>
+
+          {leads.length === 0 ? (
+            <EmptyState
+              icon="people-outline"
+              titre="Aucun lead"
+              soustitre="Ajoutez votre premier prospect"
+            />
+          ) : (
+            <View style={styles.recentCard}>
+              {leads.map((l, i) => {
+                const conf = STATUT_LEAD_CONFIG[l.statut];
+                return (
+                  <TouchableOpacity
+                    key={l.id}
+                    style={[
+                      styles.recentItem,
+                      i === leads.length - 1 && styles.recentItemLast,
+                    ]}
+                    onPress={() => navigation.navigate('LeadDetail', { leadId: l.id })}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[
+                      styles.recentIconWrapper,
+                      { backgroundColor: conf.bg },
+                    ]}>
+                      <Ionicons name="person-outline" size={18} color={conf.color} />
+                    </View>
+                    <View style={styles.recentContent}>
+                      <Text style={styles.recentTitle} numberOfLines={1}>{l.nom}</Text>
+                      <Text style={styles.recentSub} numberOfLines={1}>
+                        {l.entreprise ?? l.email ?? l.telephone ?? 'Aucune info'}
+                      </Text>
+                      <View style={{ marginTop: 4 }}>
+                        <ScoreBar score={l.score} showLabel={false} />
+                      </View>
+                    </View>
+                    <View style={[
+                      { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, backgroundColor: conf.bg },
+                    ]}>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: conf.color }}>
+                        {conf.label}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
         {/* ── Opportunités récentes ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              Opportunites ({opportunites.length})
-            </Text>
+            <Text style={styles.sectionTitle}>Opportunites ({opportunites.length})</Text>
             <TouchableOpacity onPress={() => navigation.navigate('OpportunitesKanban')}>
               <Text style={styles.sectionLink}>Kanban</Text>
             </TouchableOpacity>
@@ -241,8 +297,13 @@ export const VentesHomeScreen: React.FC = () => {
                 return (
                   <TouchableOpacity
                     key={o.id}
-                    style={[styles.recentItem, i === opportunites.length - 1 && styles.recentItemLast]}
-                    onPress={() => navigation.navigate('OpportuniteDetail', { opportuniteId: o.id })}
+                    style={[
+                      styles.recentItem,
+                      i === opportunites.length - 1 && styles.recentItemLast,
+                    ]}
+                    onPress={() =>
+                      navigation.navigate('OpportuniteDetail', { opportuniteId: o.id })
+                    }
                     activeOpacity={0.75}
                   >
                     <View style={[
@@ -270,6 +331,7 @@ export const VentesHomeScreen: React.FC = () => {
             </View>
           )}
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );

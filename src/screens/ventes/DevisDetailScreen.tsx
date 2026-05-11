@@ -11,17 +11,17 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert,
 } from 'react-native';
-import { SafeAreaView }             from 'react-native-safe-area-context';
+import { SafeAreaView }                         from 'react-native-safe-area-context';
 import { useNavigation, useRoute,
-         RouteProp, useFocusEffect } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons }                 from '@expo/vector-icons';
+         RouteProp, useFocusEffect }            from '@react-navigation/native';
+import { NativeStackNavigationProp }            from '@react-navigation/native-stack';
+import { Ionicons }                             from '@expo/vector-icons';
 
-import { useStyles, useTheme }       from '../../theme';
-import { makeStyles }                from './DevisDetailScreen.styles';
-import { Badge }                     from '../../components/ui/Badge';
-import { SmartActionSheet }          from '../../components/ui/SmartActionSheet';
-import { VentesStackParamList }      from '../../navigation/VentesStack';
+import { useStyles, useTheme }          from '../../theme';
+import { makeStyles }                   from './DevisDetailScreen.styles';
+import { Badge }                        from '../../components/ui/Badge';
+import { SmartActionSheet }             from '../../components/ui/SmartActionSheet';
+import { VentesStackParamList }         from '../../navigation/VentesStack';
 
 import * as VenteApi from '../../api/vente.api';
 import {
@@ -41,7 +41,7 @@ type Route = RouteProp<VentesStackParamList, 'DevisDetail'>;
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Fiche devis avec lignes produits et smart automation.
+ * Fiche devis avec lignes produits et smart automation conversion facture.
  * @author Riahi Dorsaf
  */
 export const DevisDetailScreen: React.FC = () => {
@@ -53,6 +53,7 @@ export const DevisDetailScreen: React.FC = () => {
 
   const [devis,        setDevis]        = useState<DevisResponse | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
+  // smartVisible controle la visibilite du SmartActionSheet
   const [smartVisible, setSmartVisible] = useState(false);
 
   // ── Chargement ────────────────────────────────────────────
@@ -63,15 +64,16 @@ export const DevisDetailScreen: React.FC = () => {
       const res = await VenteApi.obtenirDevis(devisId);
       if (res.success) setDevis(res.data);
     } catch {
-      // silencieux
+      Alert.alert('Erreur', 'Impossible de charger le devis.');
+      navigation.goBack();
     } finally {
       setIsLoading(false);
     }
-  }, [devisId]);
+  }, [devisId, navigation]);
 
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
 
-  // ── Actions ───────────────────────────────────────────────
+  // ── Actions statut ────────────────────────────────────────
 
   const handleEnvoyer = async () => {
     try {
@@ -102,8 +104,12 @@ export const DevisDetailScreen: React.FC = () => {
         text: 'Refuser',
         style: 'destructive',
         onPress: async () => {
-          const res = await VenteApi.changerStatutDevis(devisId, 'REFUSE');
-          if (res.success) setDevis(res.data);
+          try {
+            const res = await VenteApi.changerStatutDevis(devisId, 'REFUSE');
+            if (res.success) setDevis(res.data);
+          } catch (e: any) {
+            Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de refuser.');
+          }
         },
       },
     ]);
@@ -121,6 +127,8 @@ export const DevisDetailScreen: React.FC = () => {
     }
   };
 
+  // ── Rendu ─────────────────────────────────────────────────
+
   if (isLoading || !devis) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -131,19 +139,21 @@ export const DevisDetailScreen: React.FC = () => {
     );
   }
 
-  const conf            = STATUT_DEVIS_CONFIG[devis.statut];
-  const estBrouillon    = devis.statut === 'BROUILLON';
-  const estEnvoye       = devis.statut === 'ENVOYE';
-  const estAccepte      = devis.statut === 'ACCEPTE';
-  const peutModifier    = estBrouillon;
+  const conf         = STATUT_DEVIS_CONFIG[devis.statut];
+  const estBrouillon = devis.statut === 'BROUILLON';
+  const estEnvoye    = devis.statut === 'ENVOYE';
+  const estAccepte   = devis.statut === 'ACCEPTE';
 
   const fmt = (v: number) =>
     v.toLocaleString('fr-TN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' TND';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* ── Header ── */}
         <View style={styles.header}>
@@ -157,7 +167,7 @@ export const DevisDetailScreen: React.FC = () => {
           <Badge label={conf.label} variant="neutral" />
         </View>
 
-        {/* ── Infos client ── */}
+        {/* ── Infos generales ── */}
         <View style={styles.section}>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Informations</Text>
@@ -175,14 +185,14 @@ export const DevisDetailScreen: React.FC = () => {
               <Text style={styles.infoLabel}>Validite</Text>
               <Text style={styles.infoValue}>{devis.validiteJours} jours</Text>
             </View>
-            <View style={styles.infoRow}>
+            <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
               <Text style={styles.infoLabel}>Cree le</Text>
               <Text style={styles.infoValue}>{devis.dateRelative}</Text>
             </View>
           </View>
         </View>
 
-        {/* ── Lignes ── */}
+        {/* ── Lignes articles ── */}
         <View style={styles.section}>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Articles ({devis.lignes.length})</Text>
@@ -194,8 +204,8 @@ export const DevisDetailScreen: React.FC = () => {
                 </View>
                 <Text style={styles.ligneSub}>
                   {ligne.quantite} x {fmt(ligne.prixUnitaireHt)}
-                  {ligne.remise > 0 ? ` — Remise ${ligne.remise}%` : ''}
-                  {ligne.tauxTva > 0 ? ` — TVA ${ligne.tauxTva}%` : ''}
+                  {ligne.remise > 0 ? `  —  Remise ${ligne.remise}%` : ''}
+                  {ligne.tauxTva > 0 ? `  —  TVA ${ligne.tauxTva}%` : ''}
                 </Text>
               </View>
             ))}
@@ -220,22 +230,39 @@ export const DevisDetailScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* ── Notes ── */}
+        {devis.notes ? (
+          <View style={styles.section}>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Notes</Text>
+              <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                <Text style={[styles.infoValue, { textAlign: 'left', marginLeft: 0 }]}>
+                  {devis.notes}
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
         {/* ── Actions ── */}
         <View style={styles.actionsSection}>
+
+          {/* Brouillon → Envoyer */}
           {estBrouillon && (
-            <TouchableOpacity
-              style={styles.btnPrimary}
-              onPress={handleEnvoyer}
-            >
+            <TouchableOpacity style={styles.btnPrimary} onPress={handleEnvoyer}>
               <Ionicons name="send-outline" size={18} color={theme.colors.white} />
               <Text style={styles.btnPrimaryText}>Envoyer le devis</Text>
             </TouchableOpacity>
           )}
 
+          {/* Envoye → Accepter / Refuser */}
           {estEnvoye && (
             <View style={styles.actionRow}>
               <TouchableOpacity
-                style={[styles.actionBtn, { borderColor: '#16A34A', backgroundColor: '#F0FDF4' }]}
+                style={[
+                  styles.actionBtn,
+                  { borderColor: '#16A34A', backgroundColor: '#F0FDF4' },
+                ]}
                 onPress={handleAccepter}
               >
                 <Ionicons name="checkmark-outline" size={16} color="#16A34A" />
@@ -251,17 +278,16 @@ export const DevisDetailScreen: React.FC = () => {
             </View>
           )}
 
+          {/* Accepte → Convertir en facture */}
           {estAccepte && (
-            <TouchableOpacity
-              style={styles.btnPrimary}
-              onPress={() => setSmartVisible(true)}
-            >
+            <TouchableOpacity style={styles.btnPrimary} onPress={() => setSmartVisible(true)}>
               <Ionicons name="receipt-outline" size={18} color={theme.colors.white} />
               <Text style={styles.btnPrimaryText}>Convertir en facture</Text>
             </TouchableOpacity>
           )}
 
-          {peutModifier && (
+          {/* Modifier — seulement si brouillon */}
+          {estBrouillon && (
             <TouchableOpacity
               style={styles.btnDanger}
               onPress={() => navigation.navigate('DevisForm', { devisId })}
@@ -269,6 +295,7 @@ export const DevisDetailScreen: React.FC = () => {
               <Text style={styles.btnDangerText}>Modifier le devis</Text>
             </TouchableOpacity>
           )}
+
         </View>
       </ScrollView>
 
@@ -281,6 +308,7 @@ export const DevisDetailScreen: React.FC = () => {
         title="Devis accepte !"
         subtitle="Voulez-vous generer la facture maintenant ?"
         confirmLabel="Creer la facture"
+        dismissLabel="Plus tard"
         onConfirm={handleConvertirEnFacture}
         onDismiss={() => setSmartVisible(false)}
       />

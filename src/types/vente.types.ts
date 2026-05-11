@@ -70,22 +70,22 @@ export type ResultatActivite =
 // ─────────────────────────────────────────────────────────────
 
 export interface LeadResponse {
-  id:                number;
-  nom:               string;
-  email:             string | null;
-  telephone:         string | null;
-  entreprise:        string | null;
-  poste:             string | null;
-  source:            SourceLead;
+  id:               number;
+  nom:              string;
+  email:            string | null;
+  telephone:        string | null;
+  entreprise:       string | null;
+  poste:            string | null;
+  source:           SourceLead;
   descriptionBesoin: string | null;
-  statut:            StatutLead;
-  score:             number;
-  raisonPerte:       string | null;
-  clientId:          number | null;
-  clientNom:         string | null;
-  dateCreation:      string;
-  dateModification:  string | null;
-  dateRelative:      string;
+  statut:           StatutLead;
+  score:            number;
+  raisonPerte:      string | null;
+  clientId:         number | null;
+  clientNom:        string | null;
+  dateCreation:     string;
+  dateModification: string | null;
+  dateRelative:     string;
 }
 
 export interface LeadRequest {
@@ -104,33 +104,33 @@ export interface LeadRequest {
 // ─────────────────────────────────────────────────────────────
 
 export interface OpportuniteResponse {
-  id:                number;
-  titre:             string;
-  description:       string | null;
-  montantEstime:     number | null;
-  probabilite:       number | null;
-  statut:            StatutOpportunite;
+  id:               number;
+  titre:            string;
+  description:      string | null;
+  montantEstime:    number | null;
+  probabilite:      number | null;
+  statut:           StatutOpportunite;
   dateCloturePrevue: string | null;
-  raisonPerte:       string | null;
-  clientId:          number;
-  clientNom:         string;
-  leadId:            number | null;
-  leadNom:           string | null;
-  dateCreation:      string;
-  dateModification:  string | null;
-  dateRelative:      string;
+  raisonPerte:      string | null;
+  clientId:         number;
+  clientNom:        string;
+  leadId:           number | null;
+  leadNom:          string | null;
+  dateCreation:     string;
+  dateModification: string | null;
+  dateRelative:     string;
 }
 
 export interface OpportuniteRequest {
-  titre:              string;
-  description?:       string;
-  montantEstime?:     number;
-  probabilite?:       number;
-  statut?:            StatutOpportunite;
+  titre:             string;
+  description?:      string;
+  montantEstime?:    number;
+  probabilite?:      number;
+  statut?:           StatutOpportunite;
   dateCloturePrevue?: string;
-  raisonPerte?:       string;
-  clientId:           number;
-  leadId?:            number;
+  raisonPerte?:      string;
+  clientId:          number;
+  leadId?:           number;
 }
 
 /** Structure retournee par GET /opportunites/kanban */
@@ -141,12 +141,12 @@ export type KanbanData = Record<StatutOpportunite, OpportuniteResponse[]>;
 // ─────────────────────────────────────────────────────────────
 
 export interface LigneDevisRequest {
-  produitId:       number;
-  designation?:    string;
-  quantite:        number;
-  prixUnitaireHt?: number;
-  tauxTva?:        number;
-  remise?:         number;
+  produitId:        number;
+  designation?:     string;
+  quantite:         number;
+  prixUnitaireHt?:  number;
+  tauxTva?:         number;
+  remise?:          number;
 }
 
 export interface LigneDevisResponse {
@@ -271,9 +271,8 @@ export interface PipelineKpiResponse {
 
 // ─────────────────────────────────────────────────────────────
 // CONFIGURATIONS VISUELLES
-// IMPORTANT : tous les Record<K, V> sont sur UNE SEULE LIGNE
-// Le parseur Babel d'Expo ne supporte pas le generique Record
-// decouppe sur plusieurs lignes dans une declaration const.
+// Note: tous les Record<K, V> sont sur UNE SEULE LIGNE
+// pour eviter l'erreur Babel "Missing initializer in const"
 // ─────────────────────────────────────────────────────────────
 
 /** Configuration visuelle des badges de statut Lead */
@@ -326,13 +325,13 @@ export const TYPE_ACTIVITE_COMMERCIALE_CONFIG: Record<TypeActiviteCommerciale, {
 
 /** Labels lisibles des sources de lead */
 export const SOURCE_LEAD_LABELS: Record<SourceLead, string> = {
-  SITE_WEB:      'Site web',
-  LINKEDIN:      'LinkedIn',
-  REFERENCE:     'Reference',
-  EMAIL:         'Email',
-  SALON:         'Salon',
+  SITE_WEB:     'Site web',
+  LINKEDIN:     'LinkedIn',
+  REFERENCE:    'Reference',
+  EMAIL:        'Email',
+  SALON:        'Salon',
   APPEL_ENTRANT: 'Appel entrant',
-  AUTRE:         'Autre',
+  AUTRE:        'Autre',
 };
 
 export { PageResponse };

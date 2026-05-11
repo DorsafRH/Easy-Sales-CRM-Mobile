@@ -1,7 +1,7 @@
 /**
  * @file OpportuniteFormScreen.tsx
- * @description Formulaire de creation et d'edition d'une opportunite commerciale.
- *              Champs : titre, description, montant, probabilite, statut, date cloture.
+ * @description Formulaire de création et d'édition d'une opportunité commerciale.
+ *              Inclut la sélection obligatoire d'un client via ClientPickerModal.
  * @author Riahi Dorsaf
  */
 
@@ -10,23 +10,26 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert,
 } from 'react-native';
-import { SafeAreaView }                         from 'react-native-safe-area-context';
+import { SafeAreaView }                      from 'react-native-safe-area-context';
 import { useNavigation, useRoute,
-         RouteProp, useFocusEffect }            from '@react-navigation/native';
-import { NativeStackNavigationProp }            from '@react-navigation/native-stack';
-import { Ionicons }                             from '@expo/vector-icons';
+         RouteProp, useFocusEffect }         from '@react-navigation/native';
+import { NativeStackNavigationProp }         from '@react-navigation/native-stack';
+import { Ionicons }                          from '@expo/vector-icons';
 
-import { useStyles, useTheme }       from '../../theme';
-import { makeStyles }                from './OpportuniteFormScreen.styles';
-import { Input }                     from '../../components/ui/Input';
-import { VentesStackParamList }      from '../../navigation/VentesStack';
+import { useStyles, useTheme }   from '../../theme';
+import { makeStyles }            from './OpportuniteFormScreen.styles';
+import { Input }                 from '../../components/ui/Input';
+import { ClientPickerModal }     from '../../components/ui/ClientPickerModal';
+import { VentesStackParamList }  from '../../navigation/VentesStack';
 
-import * as VenteApi from '../../api/vente.api';
+import * as VenteApi  from '../../api/vente.api';
+import * as ClientApi from '../../api/client.api';
 import {
   OpportuniteRequest,
   StatutOpportunite,
   KANBAN_COLONNES,
 } from '../../types/vente.types';
+import { ClientResponse } from '../../types/client.types';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -40,7 +43,7 @@ type Route = RouteProp<VentesStackParamList, 'OpportuniteForm'>;
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Formulaire creation / edition opportunite.
+ * Formulaire création / édition opportunité avec sélection client obligatoire.
  * @author Riahi Dorsaf
  */
 export const OpportuniteFormScreen: React.FC = () => {
@@ -48,79 +51,105 @@ export const OpportuniteFormScreen: React.FC = () => {
   const theme      = useTheme();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
-  const { opportuniteId, leadId, clientId } = route.params ?? {};
+  const { opportuniteId, leadId, clientId: clientIdParam } = route.params ?? {};
 
   const estEdition = !!opportuniteId;
 
-  const [titre,         setTitre]         = useState('');
-  const [description,   setDescription]   = useState('');
-  const [montant,       setMontant]       = useState('');
-  const [probabilite,   setProbabilite]   = useState('');
-  const [statut,        setStatut]        = useState<StatutOpportunite>('PROSPECTION');
-  const [dateCloture,   setDateCloture]   = useState('');
-  const [titreError,    setTitreError]    = useState('');
-  const [isLoading,     setIsLoading]     = useState(estEdition);
-  const [isSaving,      setIsSaving]      = useState(false);
+  // ── État formulaire ───────────────────────────────────────
+  const [clientSelectionne, setClientSelectionne] = useState<ClientResponse | null>(null);
+  const [titre,             setTitre]             = useState('');
+  const [description,       setDescription]       = useState('');
+  const [montant,           setMontant]           = useState('');
+  const [probabilite,       setProbabilite]       = useState('');
+  const [statut,            setStatut]            = useState<StatutOpportunite>('PROSPECTION');
+  const [dateCloture,       setDateCloture]       = useState('');
+  const [titreError,        setTitreError]        = useState('');
+  const [clientError,       setClientError]       = useState('');
+  const [pickerVisible,     setPickerVisible]     = useState(false);
+  const [isLoading,         setIsLoading]         = useState(estEdition || !!clientIdParam);
+  const [isSaving,          setIsSaving]          = useState(false);
 
-  // ── Chargement en mode edition ────────────────────────────
+  // ── Chargement initial ────────────────────────────────────
 
   const charger = useCallback(async () => {
-    if (!opportuniteId) return;
     setIsLoading(true);
     try {
-      const res = await VenteApi.obtenirOpportunite(opportuniteId);
-      if (res.success) {
-        const o = res.data;
-        setTitre(o.titre);
-        setDescription(o.description ?? '');
-        setMontant(o.montantEstime ? String(o.montantEstime) : '');
-        setProbabilite(o.probabilite ? String(o.probabilite) : '');
-        setStatut(o.statut);
-        setDateCloture(o.dateCloturePrevue ?? '');
+      // Si clientId passé en paramètre (depuis conversion lead), charger ce client
+      if (clientIdParam && !estEdition) {
+        const clientRes = await ClientApi.obtenirClient(clientIdParam);
+        if (clientRes.success) setClientSelectionne(clientRes.data);
+      }
+      // En mode édition, charger l'opportunité et son client
+      if (opportuniteId) {
+        const res = await VenteApi.obtenirOpportunite(opportuniteId);
+        if (res.success) {
+          const o = res.data;
+          setTitre(o.titre);
+          setDescription(o.description ?? '');
+          setMontant(o.montantEstime ? String(o.montantEstime) : '');
+          setProbabilite(o.probabilite ? String(o.probabilite) : '');
+          setStatut(o.statut);
+          setDateCloture(o.dateCloturePrevue ?? '');
+          const clientRes = await ClientApi.obtenirClient(o.clientId);
+          if (clientRes.success) setClientSelectionne(clientRes.data);
+        }
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger l opportunite.');
+      Alert.alert('Erreur', 'Impossible de charger les données.');
       navigation.goBack();
     } finally {
       setIsLoading(false);
     }
-  }, [opportuniteId, navigation]);
+  }, [opportuniteId, clientIdParam, estEdition, navigation]);
 
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
+
+  // ── Validation ────────────────────────────────────────────
+
+  const valider = (): boolean => {
+    let valide = true;
+    if (!clientSelectionne) {
+      setClientError('Veuillez selectionner un client');
+      valide = false;
+    } else {
+      setClientError('');
+    }
+    if (!titre.trim()) {
+      setTitreError('Le titre est obligatoire');
+      valide = false;
+    } else {
+      setTitreError('');
+    }
+    return valide;
+  };
 
   // ── Soumission ────────────────────────────────────────────
 
   const handleSoumettre = async () => {
-    if (!titre.trim()) {
-      setTitreError('Le titre est obligatoire');
-      return;
-    }
-    setTitreError('');
-
-    if (!clientId && !estEdition) {
-      Alert.alert('Erreur', 'Aucun client associe. Creez d abord un client.');
-      return;
-    }
+    if (!valider()) return;
 
     const request: OpportuniteRequest = {
-      titre:            titre.trim(),
-      description:      description.trim() || undefined,
-      montantEstime:    montant ? Number(montant) : undefined,
-      probabilite:      probabilite ? Number(probabilite) : undefined,
+      titre:             titre.trim(),
+      description:       description.trim() || undefined,
+      montantEstime:     montant ? Number(montant) : undefined,
+      probabilite:       probabilite ? Number(probabilite) : undefined,
       statut,
       dateCloturePrevue: dateCloture || undefined,
-      clientId:         clientId ?? 0,
-      leadId:           leadId ?? undefined,
+      clientId:          clientSelectionne!.id,
+      leadId:            leadId ?? undefined,
     };
 
     setIsSaving(true);
     try {
       if (estEdition && opportuniteId) {
         await VenteApi.modifierOpportunite(opportuniteId, request);
+        navigation.goBack();
       } else {
-        await VenteApi.creerOpportunite(request);
+        const res = await VenteApi.creerOpportunite(request);
+        if (res.success) {
+          navigation.replace('OpportuniteDetail', { opportuniteId: res.data.id });
+        }
       }
-      navigation.goBack();
     } catch (e: any) {
       Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de sauvegarder.');
     } finally {
@@ -128,9 +157,11 @@ export const OpportuniteFormScreen: React.FC = () => {
     }
   };
 
+  // ── Rendu ─────────────────────────────────────────────────
+
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -140,10 +171,13 @@ export const OpportuniteFormScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-
-        {/* ── Header ── */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* ── Header avec flèche retour ── */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
@@ -151,6 +185,59 @@ export const OpportuniteFormScreen: React.FC = () => {
           <Text style={styles.headerTitle}>
             {estEdition ? 'Modifier l opportunite' : 'Nouvelle opportunite'}
           </Text>
+        </View>
+
+        {/* ── Sélection client obligatoire ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Client associe *</Text>
+          <TouchableOpacity
+            style={[
+              styles.clientSelectBtn,
+              !!clientSelectionne  && styles.clientSelectBtnActif,
+              !!clientError        && styles.clientSelectBtnError,
+            ]}
+            onPress={() => setPickerVisible(true)}
+            activeOpacity={0.75}
+          >
+            <View style={styles.clientSelectLeft}>
+              <Ionicons
+                name={clientSelectionne ? 'person-circle-outline' : 'person-add-outline'}
+                size={22}
+                color={clientSelectionne ? theme.colors.primary : theme.colors.textTertiary}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.clientSelectText,
+                    !!clientSelectionne && styles.clientSelectTextActif,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {clientSelectionne
+                    ? clientSelectionne.nomAffichage
+                    : 'Selectionner un client'}
+                </Text>
+                {clientSelectionne && (
+                  <Text style={styles.clientSelectMeta} numberOfLines={1}>
+                    {clientSelectionne.typeClient === 'ENTREPRISE'
+                      ? 'Entreprise'
+                      : 'Individuel'}
+                    {clientSelectionne.email
+                      ? '  •  ' + clientSelectionne.email
+                      : ''}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={theme.colors.textTertiary}
+            />
+          </TouchableOpacity>
+          {!!clientError && (
+            <Text style={styles.fieldError}>{clientError}</Text>
+          )}
         </View>
 
         {/* ── Informations ── */}
@@ -175,7 +262,7 @@ export const OpportuniteFormScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* ── Commercial ── */}
+        {/* ── Données commerciales ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Donnees commerciales</Text>
           <View style={styles.fieldGroup}>
@@ -202,7 +289,7 @@ export const OpportuniteFormScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* ── Statut ── */}
+        {/* ── Statut pipeline ── */}
         <View style={styles.section}>
           <Text style={styles.selectLabel}>Statut dans le pipeline</Text>
           <View style={styles.statutGrid}>
@@ -211,7 +298,10 @@ export const OpportuniteFormScreen: React.FC = () => {
                 key={col.statut}
                 style={[
                   styles.statutChip,
-                  statut === col.statut && { borderColor: col.color, backgroundColor: col.bg },
+                  statut === col.statut && {
+                    borderColor:     col.color,
+                    backgroundColor: col.bg,
+                  },
                 ]}
                 onPress={() => setStatut(col.statut)}
               >
@@ -237,7 +327,9 @@ export const OpportuniteFormScreen: React.FC = () => {
               <ActivityIndicator size="small" color={theme.colors.white} />
             ) : (
               <Text style={styles.submitBtnText}>
-                {estEdition ? 'Enregistrer les modifications' : 'Creer l opportunite'}
+                {estEdition
+                  ? 'Enregistrer les modifications'
+                  : 'Creer l opportunite'}
               </Text>
             )}
           </TouchableOpacity>
@@ -247,6 +339,17 @@ export const OpportuniteFormScreen: React.FC = () => {
         </View>
 
       </ScrollView>
+
+      {/* ── Modal sélection client ── */}
+      <ClientPickerModal
+        visible={pickerVisible}
+        onSelect={client => {
+          setClientSelectionne(client);
+          setClientError('');
+          setPickerVisible(false);
+        }}
+        onClose={() => setPickerVisible(false)}
+      />
     </SafeAreaView>
   );
 };
