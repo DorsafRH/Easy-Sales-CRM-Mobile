@@ -120,6 +120,55 @@ export const makeStyles = (theme: AppTheme) =>
     opportunitesPlaceholder: { alignItems: 'center', padding: theme.spacing[6] },
     opportunitesText: { fontSize: theme.typography.size.sm, color: theme.colors.textSecondary, textAlign: 'center' },
 
+    // ── Items ventes (opportunités / devis / factures) ────────
+    venteItem: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      paddingVertical:   theme.spacing[3],
+      paddingHorizontal: theme.spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.bgApp,
+      columnGap:         theme.spacing[3],
+    },
+    venteItemLast: { borderBottomWidth: 0 },
+
+    venteIconWrapper: {
+      width:           36,
+      height:          36,
+      borderRadius:    18,
+      alignItems:      'center',
+      justifyContent:  'center',
+    },
+    venteInfo:   { flex: 1 },
+    venteTitle: {
+      fontSize:     theme.typography.size.sm,
+      fontWeight:   '600',
+      color:        theme.colors.textPrimary,
+      marginBottom: 2,
+    },
+    venteSub: {
+      fontSize: theme.typography.size.xs,
+      color:    theme.colors.textSecondary,
+    },
+    venteRight: {
+      alignItems: 'flex-end',
+      rowGap:     theme.spacing[1],
+    },
+    venteMontant: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '700',
+      color:      theme.colors.primary,
+    },
+    venteBadge: {
+      paddingHorizontal: theme.spacing[2],
+      paddingVertical:   2,
+      borderRadius:      theme.radius.full,
+    },
+    venteBadgeText: {
+      fontSize:   10,
+      fontWeight: '700',
+    },
+
     deleteBtn: {
       marginHorizontal: layout.screenPadding, marginTop: theme.spacing[4],
       paddingVertical: theme.spacing[3], borderRadius: theme.radius.md,

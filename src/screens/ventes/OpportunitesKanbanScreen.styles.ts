@@ -26,6 +26,17 @@ export const makeStyles = (theme: AppTheme) =>
       borderBottomColor: theme.colors.border,
       columnGap:         theme.spacing[3],
     },
+    backBtn: {
+      width:           40,
+      height:          40,
+      borderRadius:    20,
+      backgroundColor: theme.colors.bgApp,
+      alignItems:      'center',
+      justifyContent:  'center',
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+    },
+
     headerTitle: {
       flex:       1,
       fontSize:   theme.typography.size.lg,

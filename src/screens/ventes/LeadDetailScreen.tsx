@@ -24,11 +24,11 @@ import { TimelineItem }          from '../../components/ui/TimelineItem';
 import { ClientPickerModal }     from '../../components/ui/ClientPickerModal';
 import { VentesStackParamList }  from '../../navigation/VentesStack';
 import { AppTheme }              from '../../theme';
+import { useTimeline }           from '../../hooks/useTimeline';
 
 import * as VenteApi from '../../api/vente.api';
 import {
   LeadResponse,
-  ActiviteCommercialeResponse,
   STATUT_LEAD_CONFIG,
   SOURCE_LEAD_LABELS,
 } from '../../types/vente.types';
@@ -154,8 +154,10 @@ export const LeadDetailScreen: React.FC = () => {
   const { leadId } = route.params;
 
   const [lead,               setLead]               = useState<LeadResponse | null>(null);
-  const [activites,          setActivites]          = useState<ActiviteCommercialeResponse[]>([]);
   const [isLoading,          setIsLoading]          = useState(true);
+
+  // ── Timeline activités depuis le reporting ────────────────
+  const { activites } = useTimeline('LEAD', leadId);
   const [isConverting,       setIsConverting]       = useState(false);
   const [convSheetVisible,   setConvSheetVisible]   = useState(false);
   const [clientPickerVisible, setClientPickerVisible] = useState(false);

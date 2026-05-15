@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { CommonActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 
@@ -66,13 +67,24 @@ export const MainTabNavigator: React.FC = () => {
 
       {/*
        * FIX : unmountOnBlur: true — le PlusStack est détruit à chaque sortie.
-       * "as any" contourne le bug de typage de certaines versions de @react-navigation/bottom-tabs
-       * (la propriété existe bien à l'exécution même si le type TS ne la déclare pas).
+       * listeners tabPress — réinitialise vers PlusMenu quand l'onglet est re-sélectionné
+       * (gère le cas où l'utilisateur est déjà sur Plus/CatalogueHome et re-appuie sur l'onglet).
        */}
       <Tab.Screen
         name="Plus"
         component={PlusStack}
         options={{ tabBarLabel: 'Plus', unmountOnBlur: true } as any}
+        listeners={({ navigation }: { navigation: any }) => ({
+          tabPress: (e: any) => {
+            e.preventDefault();
+            navigation.dispatch(
+              CommonActions.navigate({
+                name: 'Plus',
+                params: { screen: 'PlusMenu' },
+              }),
+            );
+          },
+        })}
       />
     </Tab.Navigator>
   );

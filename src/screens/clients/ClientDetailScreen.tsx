@@ -29,8 +29,17 @@ import { ClientsStackParamList }   from '../../navigation/ClientsStack';
 
 import * as ClientApi      from '../../api/client.api';
 import * as ContactApi     from '../../api/contact.api';
+import * as VenteApi       from '../../api/vente.api';
 import { ClientResponse }  from '../../types/client.types';
 import { ContactResponse } from '../../types/contact.types';
+import {
+  OpportuniteResponse,
+  DevisResponse,
+  FactureResponse,
+  STATUT_DEVIS_CONFIG,
+  STATUT_FACTURE_CONFIG,
+  KANBAN_COLONNES,
+} from '../../types/vente.types';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -75,19 +84,28 @@ export const ClientDetailScreen: React.FC = () => {
   const route      = useRoute<Route>();
   const { clientId } = route.params;
 
-  const [client,    setClient]    = useState<ClientResponse | null>(null);
-  const [contacts,  setContacts]  = useState<ContactResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [client,       setClient]       = useState<ClientResponse | null>(null);
+  const [contacts,     setContacts]     = useState<ContactResponse[]>([]);
+  const [opportunites, setOpportunites] = useState<OpportuniteResponse[]>([]);
+  const [devis,        setDevis]        = useState<DevisResponse[]>([]);
+  const [factures,     setFactures]     = useState<FactureResponse[]>([]);
+  const [isLoading,    setIsLoading]    = useState(true);
 
   const charger = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [cRes, ctRes] = await Promise.all([
+      const [cRes, ctRes, opRes, devisRes, factRes] = await Promise.all([
         ClientApi.obtenirClient(clientId),
         ContactApi.listerContacts(clientId),
+        VenteApi.listerOpportunites(),
+        VenteApi.listerDevis(),
+        VenteApi.listerFactures(),
       ]);
-      if (cRes.success)  setClient(cRes.data);
-      if (ctRes.success) setContacts(ctRes.data);
+      if (cRes.success)    setClient(cRes.data);
+      if (ctRes.success)   setContacts(ctRes.data);
+      if (opRes.success)   setOpportunites(opRes.data.filter(o => o.clientId === clientId));
+      if (devisRes.success) setDevis(devisRes.data.filter(d => d.clientId === clientId));
+      if (factRes.success) setFactures(factRes.data.filter(f => f.clientId === clientId));
     } catch { /* silencieux */ }
     finally { setIsLoading(false); }
   }, [clientId]);
@@ -331,15 +349,180 @@ export const ClientDetailScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* ── Opportunités (Sprint 3) ── */}
+        {/* ── Opportunités ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Opportunités</Text>
+            <Text style={styles.sectionTitle}>
+              Opportunités ({opportunites.length})
+            </Text>
+            {opportunites.length > 3 && (
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.dispatch(
+                    CommonActions.navigate({ name: 'Ventes', params: { screen: 'OpportunitesKanban' } }),
+                  )
+                }
+              >
+                <Text style={styles.addBtnText}>Voir tout</Text>
+              </TouchableOpacity>
+            )}
           </View>
           <View style={styles.card}>
-            <View style={styles.opportunitesPlaceholder}>
-              <Text style={styles.opportunitesText}>Disponible en Sprint 3</Text>
-            </View>
+            {opportunites.length === 0 ? (
+              <View style={styles.opportunitesPlaceholder}>
+                <Text style={styles.opportunitesText}>Aucune opportunité</Text>
+              </View>
+            ) : (
+              opportunites.slice(0, 3).map((op, i) => {
+                const col = KANBAN_COLONNES.find(c => c.statut === op.statut);
+                return (
+                  <TouchableOpacity
+                    key={op.id}
+                    style={[
+                      styles.venteItem,
+                      i === Math.min(opportunites.length, 3) - 1 && styles.venteItemLast,
+                    ]}
+                    onPress={() =>
+                      navigation.dispatch(
+                        CommonActions.navigate({
+                          name: 'Ventes',
+                          params: { screen: 'OpportuniteDetail', params: { opportuniteId: op.id } },
+                        }),
+                      )
+                    }
+                    activeOpacity={0.75}
+                  >
+                    <View style={[styles.venteIconWrapper, { backgroundColor: col?.bg ?? '#F3F4F6' }]}>
+                      <Ionicons name={(col?.iconName ?? 'trending-up-outline') as any} size={16} color={col?.color ?? '#6B7280'} />
+                    </View>
+                    <View style={styles.venteInfo}>
+                      <Text style={styles.venteTitle} numberOfLines={1}>{op.titre}</Text>
+                      <Text style={styles.venteSub}>{op.dateRelative}</Text>
+                    </View>
+                    {op.montantEstime ? (
+                      <Text style={styles.venteMontant}>
+                        {op.montantEstime.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} TND
+                      </Text>
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
+        </View>
+
+        {/* ── Devis ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Devis ({devis.length})</Text>
+            {devis.length > 3 && (
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.dispatch(
+                    CommonActions.navigate({ name: 'Ventes', params: { screen: 'DevisList' } }),
+                  )
+                }
+              >
+                <Text style={styles.addBtnText}>Voir tout</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.card}>
+            {devis.length === 0 ? (
+              <View style={styles.opportunitesPlaceholder}>
+                <Text style={styles.opportunitesText}>Aucun devis</Text>
+              </View>
+            ) : (
+              devis.slice(0, 3).map((d, i) => {
+                const conf = STATUT_DEVIS_CONFIG[d.statut];
+                return (
+                  <TouchableOpacity
+                    key={d.id}
+                    style={[
+                      styles.venteItem,
+                      i === Math.min(devis.length, 3) - 1 && styles.venteItemLast,
+                    ]}
+                    onPress={() =>
+                      navigation.dispatch(
+                        CommonActions.navigate({
+                          name: 'Ventes',
+                          params: { screen: 'DevisDetail', params: { devisId: d.id } },
+                        }),
+                      )
+                    }
+                    activeOpacity={0.75}
+                  >
+                    <View style={[styles.venteIconWrapper, { backgroundColor: conf.bg }]}>
+                      <Ionicons name="document-text-outline" size={16} color={conf.color} />
+                    </View>
+                    <View style={styles.venteInfo}>
+                      <Text style={styles.venteTitle} numberOfLines={1}>{d.numero}</Text>
+                      <Text style={styles.venteSub}>{d.dateRelative}</Text>
+                    </View>
+                    <View style={styles.venteRight}>
+                      <Text style={styles.venteMontant}>
+                        {d.montantTtc.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} TND
+                      </Text>
+                      <View style={[styles.venteBadge, { backgroundColor: conf.bg }]}>
+                        <Text style={[styles.venteBadgeText, { color: conf.color }]}>{conf.label}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
+        </View>
+
+        {/* ── Factures ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Factures ({factures.length})</Text>
+          </View>
+          <View style={styles.card}>
+            {factures.length === 0 ? (
+              <View style={styles.opportunitesPlaceholder}>
+                <Text style={styles.opportunitesText}>Aucune facture</Text>
+              </View>
+            ) : (
+              factures.slice(0, 3).map((f, i) => {
+                const conf = STATUT_FACTURE_CONFIG[f.statut];
+                return (
+                  <TouchableOpacity
+                    key={f.id}
+                    style={[
+                      styles.venteItem,
+                      i === Math.min(factures.length, 3) - 1 && styles.venteItemLast,
+                    ]}
+                    onPress={() =>
+                      navigation.dispatch(
+                        CommonActions.navigate({
+                          name: 'Ventes',
+                          params: { screen: 'FactureDetail', params: { factureId: f.id } },
+                        }),
+                      )
+                    }
+                    activeOpacity={0.75}
+                  >
+                    <View style={[styles.venteIconWrapper, { backgroundColor: conf.bg }]}>
+                      <Ionicons name="receipt-outline" size={16} color={conf.color} />
+                    </View>
+                    <View style={styles.venteInfo}>
+                      <Text style={styles.venteTitle} numberOfLines={1}>{f.numero}</Text>
+                      <Text style={styles.venteSub}>{f.dateRelative}</Text>
+                    </View>
+                    <View style={styles.venteRight}>
+                      <Text style={styles.venteMontant}>
+                        {f.montantTtc.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} TND
+                      </Text>
+                      <View style={[styles.venteBadge, { backgroundColor: conf.bg }]}>
+                        <Text style={[styles.venteBadgeText, { color: conf.color }]}>{conf.label}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
         </View>
 

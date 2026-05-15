@@ -12,6 +12,7 @@ import {
 import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
+import { Ionicons }                      from '@expo/vector-icons';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles }          from './DevisListScreen.styles';
@@ -121,6 +122,9 @@ export const DevisListScreen: React.FC = () => {
       {/* ── Header ── */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Devis</Text>
         </View>
         <FilterChips chips={FILTRE_CHIPS} selected={filtre} onSelect={setFiltre} />

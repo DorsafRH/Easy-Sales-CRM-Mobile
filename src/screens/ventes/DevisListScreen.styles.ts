@@ -20,12 +20,25 @@ export const makeStyles = (theme: AppTheme) =>
       borderBottomColor: theme.colors.border,
     },
     headerTopRow: {
-      flexDirection:  'row',
-      justifyContent: 'space-between',
-      alignItems:     'center',
-      marginBottom:   theme.spacing[3],
+      flexDirection: 'row',
+      alignItems:    'center',
+      columnGap:     theme.spacing[3],
+      marginBottom:  theme.spacing[3],
     },
+
+    backBtn: {
+      width:           40,
+      height:          40,
+      borderRadius:    20,
+      backgroundColor: theme.colors.bgApp,
+      alignItems:      'center',
+      justifyContent:  'center',
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+    },
+
     headerTitle: {
+      flex:       1,
       fontSize:   theme.typography.size.xl,
       fontWeight: '700',
       color:      theme.colors.textPrimary,

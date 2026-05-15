@@ -163,6 +163,7 @@ export const DevisFormScreen: React.FC = () => {
             ...l,
             produit,
             designation:    produit.nom,
+            quantite:       produit.type === 'SERVICE' ? '1' : l.quantite,
             prixUnitaireHt: String(produit.prixHT ?? ''),
             tauxTva:        String(produit.tauxTVA ?? '19'),
           }
@@ -340,12 +341,25 @@ export const DevisFormScreen: React.FC = () => {
                     <View style={styles.ligneRow}>
                       <View style={styles.ligneFieldHalf}>
                         <Input
-                          label="Qte"
+                          label={ligne.produit?.type === 'SERVICE' ? 'Prestation unique' : 'Qte'}
                           value={ligne.quantite}
                           onChangeText={v => mettreAJourLigne(ligne.id, 'quantite', v)}
                           keyboardType="numeric"
                           placeholder="1"
+                          editable={ligne.produit?.type !== 'SERVICE'}
                         />
+                        {ligne.produit?.type === 'STOCKABLE' &&
+                         ligne.produit.stockDisponible !== null &&
+                         Number(ligne.quantite) > (ligne.produit.stockDisponible ?? 0) ? (
+                          <Text style={{ fontSize: theme.typography.size.xs, color: theme.colors.danger, marginTop: 2 }}>
+                            Stock disponible : {ligne.produit.stockDisponible}
+                          </Text>
+                        ) : ligne.produit?.type === 'STOCKABLE' &&
+                           ligne.produit.stockDisponible !== null ? (
+                          <Text style={{ fontSize: theme.typography.size.xs, color: theme.colors.textSecondary, marginTop: 2 }}>
+                            Stock disponible : {ligne.produit.stockDisponible}
+                          </Text>
+                        ) : null}
                       </View>
                       <View style={styles.ligneFieldHalf}>
                         <Input
@@ -468,7 +482,23 @@ export const DevisFormScreen: React.FC = () => {
                   activeOpacity={0.75}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.pickerItemNom}>{item.nom}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 6, marginBottom: 2 }}>
+                      <Text style={styles.pickerItemNom}>{item.nom}</Text>
+                      <View style={{
+                        paddingHorizontal: 6,
+                        paddingVertical:   2,
+                        borderRadius:      10,
+                        backgroundColor:   item.type === 'SERVICE' ? '#F5F3FF' : '#EFF6FF',
+                      }}>
+                        <Text style={{
+                          fontSize:   9,
+                          fontWeight: '700',
+                          color:      item.type === 'SERVICE' ? '#7C3AED' : '#2563EB',
+                        }}>
+                          {item.type === 'SERVICE' ? 'SERVICE' : 'STOCKABLE'}
+                        </Text>
+                      </View>
+                    </View>
                     {item.description ? (
                       <Text style={{ fontSize: theme.typography.size.xs, color: theme.colors.textSecondary }} numberOfLines={1}>
                         {item.description}

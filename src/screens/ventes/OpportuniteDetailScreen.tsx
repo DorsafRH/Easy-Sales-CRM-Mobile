@@ -22,11 +22,11 @@ import { makeStyles }                   from './OpportuniteDetailScreen.styles';
 import { TimelineItem }                 from '../../components/ui/TimelineItem';
 import { SmartActionSheet }             from '../../components/ui/SmartActionSheet';
 import { VentesStackParamList }         from '../../navigation/VentesStack';
+import { useTimeline }                  from '../../hooks/useTimeline';
 
 import * as VenteApi from '../../api/vente.api';
 import {
   OpportuniteResponse,
-  ActiviteCommercialeResponse,
   KANBAN_COLONNES,
 } from '../../types/vente.types';
 
@@ -53,8 +53,10 @@ export const OpportuniteDetailScreen: React.FC = () => {
   const { opportuniteId } = route.params;
 
   const [opportunite,  setOpportunite]  = useState<OpportuniteResponse | null>(null);
-  const [activites,    setActivites]    = useState<ActiviteCommercialeResponse[]>([]);
   const [isLoading,    setIsLoading]    = useState(true);
+
+  // ── Timeline activités depuis le reporting ────────────────
+  const { activites } = useTimeline('OPPORTUNITE', opportuniteId);
   const [smartVisible, setSmartVisible] = useState(false);
 
   // ── Chargement ────────────────────────────────────────────

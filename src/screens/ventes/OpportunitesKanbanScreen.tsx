@@ -261,6 +261,9 @@ export const OpportunitesKanbanScreen: React.FC = () => {
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* ── Header ── */}
       <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>
           Pipeline ({totalOpportunites})
         </Text>

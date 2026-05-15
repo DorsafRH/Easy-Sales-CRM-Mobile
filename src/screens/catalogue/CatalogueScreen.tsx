@@ -134,7 +134,12 @@ export const CatalogueScreen: React.FC = () => {
 
       {/* ── Header ── */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Catalogue</Text>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Catalogue</Text>
+        </View>
         <View style={styles.searchWrapper}>
           <SearchBar
             value={searchText}

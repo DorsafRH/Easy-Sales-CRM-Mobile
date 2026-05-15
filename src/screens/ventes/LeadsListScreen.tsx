@@ -12,6 +12,7 @@ import {
 import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
+import { Ionicons }                      from '@expo/vector-icons';
 
 import { useStyles, useTheme }   from '../../theme';
 import { makeStyles }            from './LeadsListScreen.styles';
@@ -113,6 +114,9 @@ export const LeadsListScreen: React.FC = () => {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Leads</Text>
           <Text style={styles.headerCount}>
             {isLoading ? '...' : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
