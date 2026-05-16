@@ -130,7 +130,7 @@ export const CatalogueScreen: React.FC = () => {
   useEffect(() => { charger(); }, [charger]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
 
       {/* ── Header ── */}
       <View style={styles.header}>

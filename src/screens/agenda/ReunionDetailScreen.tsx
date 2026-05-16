@@ -184,7 +184,7 @@ export const ReunionDetailScreen: React.FC = () => {
   // ── Loading ───────────────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.loadingCenter}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
       </SafeAreaView>
     );
@@ -199,7 +199,7 @@ export const ReunionDetailScreen: React.FC = () => {
   // RENDU
   // ─────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* ── Hero ── */}

@@ -135,7 +135,7 @@ export const ClientsListScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       {/* ── Header ── */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>

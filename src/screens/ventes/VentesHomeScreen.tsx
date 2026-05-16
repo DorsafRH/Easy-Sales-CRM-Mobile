@@ -1,6 +1,7 @@
 /**
  * @file VentesHomeScreen.tsx
- * @description Dashboard commercial — 4 tabs : Résumé, Leads, Pipeline, Devis & Factures.
+ * @description Dashboard commercial — 3 tabs actifs : Dashboard, Leads, Devis & Factures.
+ *              Le tab Pipeline navigue directement vers le Kanban.
  * @author Riahi Dorsaf
  */
 
@@ -38,12 +39,16 @@ import {
 // ─────────────────────────────────────────────────────────────
 
 type Nav    = NativeStackNavigationProp<VentesStackParamList, 'VentesHome'>;
-type TabKey = 'resume' | 'leads' | 'pipeline' | 'devis';
+type TabKey = 'resume' | 'leads' | 'devis';
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'resume',   label: 'Résumé'       },
-  { key: 'leads',    label: 'Leads'        },
-  { key: 'pipeline', label: 'Pipeline'     },
+// Tabs : les tabs normaux changent activeTab, Pipeline navigue directement.
+const TABS: Array<
+  | { key: TabKey;     label: string; navigate?: false }
+  | { key: 'pipeline'; label: string; navigate: true  }
+> = [
+  { key: 'resume',   label: 'Dashboard'     },
+  { key: 'leads',    label: 'Leads'         },
+  { key: 'pipeline', label: 'Pipeline', navigate: true },
   { key: 'devis',    label: 'Devis & Fact.' },
 ];
 
@@ -52,7 +57,8 @@ const TABS: { key: TabKey; label: string }[] = [
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Dashboard Ventes avec 4 tabs : Résumé, Leads, Pipeline, Devis & Factures.
+ * Dashboard Ventes avec 3 tabs actifs (Dashboard, Leads, Devis & Factures)
+ * et un tab Pipeline qui navigue directement vers le Kanban.
  */
 export const VentesHomeScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
@@ -157,7 +163,7 @@ export const VentesHomeScreen: React.FC = () => {
     },
   ] as const;
 
-  // ── Tab : Résumé ──────────────────────────────────────────
+  // ── Tab : Dashboard ───────────────────────────────────────
 
   const renderResumeTab = () => (
     <ScrollView
@@ -402,75 +408,6 @@ export const VentesHomeScreen: React.FC = () => {
     </View>
   );
 
-  // ── Tab : Pipeline ────────────────────────────────────────
-
-  const renderPipelineTab = () => (
-    <View style={styles.tabContent}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={refreshControl}
-      >
-        {/* Bouton Voir Kanban */}
-        <View style={[styles.section, { marginTop: theme.spacing[4] }]}>
-          <TouchableOpacity
-            style={styles.kanbanButton}
-            onPress={() => navigation.navigate('OpportunitesKanban')}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="albums-outline" size={18} color={theme.colors.primary} />
-            <Text style={styles.kanbanButtonText}>Voir Kanban</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Groupes par statut */}
-        <View style={styles.section}>
-          {allOpportunites.length === 0 ? (
-            <EmptyState
-              icon="trending-up-outline"
-              titre="Aucune opportunite"
-              soustitre="Convertissez un lead ou creez une opportunite"
-            />
-          ) : (
-            KANBAN_COLONNES.map(col => {
-              const items = allOpportunites.filter(o => o.statut === col.statut);
-              if (items.length === 0) return null;
-              return (
-                <View key={col.statut}>
-                  <Text style={styles.groupLabel}>{col.label} ({items.length})</Text>
-                  {items.map(o => (
-                    <TouchableOpacity
-                      key={o.id}
-                      style={styles.listItem}
-                      onPress={() =>
-                        navigation.navigate('OpportuniteDetail', { opportuniteId: o.id })
-                      }
-                      activeOpacity={0.75}
-                    >
-                      <View style={[styles.recentIconWrapper, { backgroundColor: col.bg }]}>
-                        <Ionicons name={col.iconName as any} size={18} color={col.color} />
-                      </View>
-                      <View style={styles.recentContent}>
-                        <Text style={styles.recentTitle} numberOfLines={1}>{o.titre}</Text>
-                        <Text style={styles.recentSub}>{o.clientNom}</Text>
-                      </View>
-                      {o.montantEstime ? (
-                        <Text style={styles.recentMontant}>
-                          {formatMontant(o.montantEstime)}
-                        </Text>
-                      ) : null}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              );
-            })
-          )}
-        </View>
-      </ScrollView>
-    </View>
-  );
-
   // ── Tab : Devis & Factures ────────────────────────────────
 
   const renderDevisTab = () => (
@@ -596,25 +533,33 @@ export const VentesHomeScreen: React.FC = () => {
 
       {/* Barre de tabs */}
       <View style={styles.tabBar}>
-        {TABS.map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive]}
-            onPress={() => setActiveTab(tab.key)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.tabItemText, activeTab === tab.key && styles.tabItemTextActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {TABS.map(tab => {
+          const isActive = !tab.navigate && activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tabItem, isActive && styles.tabItemActive]}
+              onPress={() => {
+                if (tab.navigate) {
+                  navigation.navigate('OpportunitesKanban');
+                } else {
+                  setActiveTab(tab.key);
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.tabItemText, isActive && styles.tabItemTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Contenu du tab actif */}
-      {activeTab === 'resume'   && renderResumeTab()}
-      {activeTab === 'leads'    && renderLeadsTab()}
-      {activeTab === 'pipeline' && renderPipelineTab()}
-      {activeTab === 'devis'    && renderDevisTab()}
+      {activeTab === 'resume' && renderResumeTab()}
+      {activeTab === 'leads'  && renderLeadsTab()}
+      {activeTab === 'devis'  && renderDevisTab()}
 
     </SafeAreaView>
   );

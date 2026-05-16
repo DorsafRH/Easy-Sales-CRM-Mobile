@@ -143,7 +143,7 @@ export const LeadFormScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -152,7 +152,7 @@ export const LeadFormScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 

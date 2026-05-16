@@ -239,7 +239,7 @@ export const CategorieFormScreen: React.FC = () => {
   const icone = iconeDepuisNom(form.nom);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
 
       {/* ── Header ── */}
       <View style={styles.header}>

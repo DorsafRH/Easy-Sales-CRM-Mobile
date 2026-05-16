@@ -131,7 +131,7 @@ export const StatutCompteScreen: React.FC = () => {
   // ── Chargement ────────────────────────────────────────────
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.center}>
           <Text style={styles.loading}>Chargement...</Text>
         </View>
@@ -142,7 +142,7 @@ export const StatutCompteScreen: React.FC = () => {
   // ── Erreur réseau ─────────────────────────────────────────
   if (hasError) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.center}>
           <Text style={styles.loading}>⚠️ Impossible de contacter le serveur.</Text>
           <Button
@@ -170,7 +170,7 @@ export const StatutCompteScreen: React.FC = () => {
   if (statut === 'ACTIVE') return null;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}

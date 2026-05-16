@@ -136,7 +136,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
 
   if (isLoading || !opportunite) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -153,7 +153,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
     v ? v.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND' : 'Non renseigne';
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
 

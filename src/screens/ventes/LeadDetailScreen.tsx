@@ -258,7 +258,7 @@ export const LeadDetailScreen: React.FC = () => {
 
   if (isLoading || !lead) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -270,7 +270,7 @@ export const LeadDetailScreen: React.FC = () => {
   const peutAgir = lead.statut !== 'CONVERTI' && lead.statut !== 'PERDU';
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
 

@@ -177,7 +177,7 @@ export const ProduitDetailScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -191,7 +191,7 @@ export const ProduitDetailScreen: React.FC = () => {
   const estActif   = produit.statut === 'ACTIF';
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
 
       {/* ── Header ── */}
       <View style={styles.header}>

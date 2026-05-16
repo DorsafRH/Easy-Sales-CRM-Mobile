@@ -179,7 +179,7 @@ export const ClientDetailScreen: React.FC = () => {
   // ── Chargement ────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -196,7 +196,7 @@ export const ClientDetailScreen: React.FC = () => {
   // RENDU
   // ─────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}

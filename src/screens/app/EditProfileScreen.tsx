@@ -129,7 +129,7 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.center}>
           <Text style={styles.loadingText}>Chargement...</Text>
         </View>
@@ -138,7 +138,7 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content"
         backgroundColor={Platform.OS === 'android' ? '#FFFFFF' : 'transparent'} />
 

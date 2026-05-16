@@ -254,7 +254,7 @@ export const AgendaScreen: React.FC = () => {
   // RENDU PRINCIPAL
   // ─────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
 
       {/* ══════════ SECTION CALENDRIER ══════════ */}
       <View style={styles.calSection}>

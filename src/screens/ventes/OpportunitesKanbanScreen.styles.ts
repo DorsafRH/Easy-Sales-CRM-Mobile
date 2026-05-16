@@ -14,8 +14,9 @@ export const KANBAN_CARD_WIDTH = CARD_WIDTH;
 
 export const makeStyles = (theme: AppTheme) =>
   StyleSheet.create({
-    safe:    { flex: 1, backgroundColor: theme.colors.bgApp },
+    safe: { flex: 1, backgroundColor: theme.colors.bgApp },
 
+    // ── Header ────────────────────────────────────────────────
     header: {
       flexDirection:     'row',
       alignItems:        'center',
@@ -36,7 +37,6 @@ export const makeStyles = (theme: AppTheme) =>
       borderWidth:     1,
       borderColor:     theme.colors.border,
     },
-
     headerTitle: {
       flex:       1,
       fontSize:   theme.typography.size.lg,
@@ -74,15 +74,19 @@ export const makeStyles = (theme: AppTheme) =>
       width:        CARD_WIDTH,
       borderRadius: theme.radius.xl,
       overflow:     'hidden',
+      maxHeight:    Dimensions.get('window').height * 0.72,
     },
     colonneHeader: {
-      flexDirection:     'row',
-      alignItems:        'center',
-      paddingHorizontal: theme.spacing[3],
-      paddingVertical:   theme.spacing[3],
+      flexDirection:        'row',
+      alignItems:           'center',
+      paddingHorizontal:    theme.spacing[3],
+      paddingVertical:      theme.spacing[3],
       borderTopLeftRadius:  theme.radius.xl,
       borderTopRightRadius: theme.radius.xl,
-      columnGap:         theme.spacing[2],
+      columnGap:            theme.spacing[2],
+    },
+    colonneHeaderDrop: {
+      backgroundColor: theme.colors.primary,
     },
     colonneTitle: {
       flex:       1,
@@ -100,12 +104,17 @@ export const makeStyles = (theme: AppTheme) =>
       fontWeight: '700',
     },
     colonneBody: {
-      backgroundColor: theme.colors.bgApp,
-      minHeight:       120,
-      padding:         theme.spacing[2],
-      rowGap:          theme.spacing[2],
+      backgroundColor:         theme.colors.bgApp,
+      flex:                    1,
+      maxHeight:               Dimensions.get('window').height * 0.55,
       borderBottomLeftRadius:  theme.radius.xl,
       borderBottomRightRadius: theme.radius.xl,
+    },
+    emptyColonne: {
+      fontSize:        11,
+      color:           theme.colors.textTertiary,
+      textAlign:       'center',
+      paddingVertical: 12,
     },
 
     // ── Card opportunité ──────────────────────────────────────
@@ -121,6 +130,11 @@ export const makeStyles = (theme: AppTheme) =>
       shadowRadius:    3,
       elevation:       1,
     },
+    cardDragging: {
+      opacity:     0.4,
+      borderColor: theme.colors.primary,
+      borderWidth: 2,
+    },
     cardTitre: {
       fontSize:     theme.typography.size.sm,
       fontWeight:   '600',
@@ -128,37 +142,71 @@ export const makeStyles = (theme: AppTheme) =>
       marginBottom: theme.spacing[1],
     },
     cardClient: {
-      fontSize:     theme.typography.size.xs,
-      color:        theme.colors.textSecondary,
-      marginBottom: theme.spacing[2],
+      fontSize: theme.typography.size.xs,
+      color:    theme.colors.textSecondary,
     },
     cardMontant: {
       fontSize:   theme.typography.size.sm,
       fontWeight: '700',
       color:      theme.colors.primary,
     },
+
+    // ── Ligne méta (montant · date · point âge) ───────────────
+    cardMeta: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      columnGap:     6,
+      marginTop:     theme.spacing[2],
+    },
+    cardDateRelative: {
+      fontSize: 10,
+      color:    theme.colors.textTertiary,
+    },
+    cardAgeDot: {
+      width:        8,
+      height:       8,
+      borderRadius: 4,
+    },
+
+    // ── Boutons d'action de la card ───────────────────────────
     cardActionsRow: {
       flexDirection:  'row',
-      columnGap:      theme.spacing[1],
+      columnGap:      theme.spacing[2],
       marginTop:      theme.spacing[2],
       paddingTop:     theme.spacing[2],
       borderTopWidth: 1,
       borderTopColor: theme.colors.bgApp,
     },
-    cardActionBtn: {
+    cardDevisBtn: {
       flex:            1,
-      paddingVertical: theme.spacing[1],
+      paddingVertical: theme.spacing[2],
       borderRadius:    theme.radius.md,
       borderWidth:     1,
-      borderColor:     theme.colors.border,
+      borderColor:     theme.colors.primary,
+      backgroundColor: theme.colors.primaryLight,
       alignItems:      'center',
     },
-    cardActionBtnText: {
-      fontSize:   9,
-      fontWeight: '600',
-      color:      theme.colors.textSecondary,
+    cardDevisBtnText: {
+      fontSize:   10,
+      fontWeight: '700',
+      color:      theme.colors.primary,
+    },
+    cardPerdreBtn: {
+      flex:            1,
+      paddingVertical: theme.spacing[2],
+      borderRadius:    theme.radius.md,
+      borderWidth:     1,
+      borderColor:     theme.colors.danger,
+      backgroundColor: theme.colors.dangerLight,
+      alignItems:      'center',
+    },
+    cardPerdreBtnText: {
+      fontSize:   10,
+      fontWeight: '700',
+      color:      theme.colors.danger,
     },
 
+    // ── Bouton Ajouter ────────────────────────────────────────
     addCardBtn: {
       flexDirection:   'row',
       alignItems:      'center',
@@ -171,8 +219,35 @@ export const makeStyles = (theme: AppTheme) =>
       borderColor:     theme.colors.border,
     },
     addCardBtnText: {
-      fontSize:   theme.typography.size.xs,
-      color:      theme.colors.textTertiary,
+      fontSize: theme.typography.size.xs,
+      color:    theme.colors.textTertiary,
+    },
+
+    // ── Card fantôme pendant le drag ──────────────────────────
+    dragGhost: {
+      position:        'absolute',
+      zIndex:          1000,
+      backgroundColor: theme.colors.bgSurface,
+      borderRadius:    theme.radius.lg,
+      padding:         theme.spacing[3],
+      width:           200,
+      borderWidth:     2,
+      borderColor:     theme.colors.primary,
+      shadowColor:     theme.colors.black,
+      shadowOffset:    { width: 0, height: 4 },
+      shadowOpacity:   0.3,
+      shadowRadius:    8,
+      elevation:       10,
+    },
+    dragGhostTitre: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '700',
+      color:      theme.colors.textPrimary,
+    },
+    dragGhostClient: {
+      fontSize:  theme.typography.size.xs,
+      color:     theme.colors.textSecondary,
+      marginTop: 2,
     },
 
     // ── Vue liste ─────────────────────────────────────────────
