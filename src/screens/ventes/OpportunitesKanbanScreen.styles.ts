@@ -302,4 +302,14 @@ export const makeStyles = (theme: AppTheme) =>
     loadingContainer: {
       flex: 1, alignItems: 'center', justifyContent: 'center',
     },
+
+    // ── Vue liste — search + filtres ──────────────────────────
+    searchWrapper: {
+      paddingHorizontal: layout.screenPadding,
+      paddingTop:        theme.spacing[3],
+      paddingBottom:     theme.spacing[2],
+    },
+    filtresWrapper: {
+      paddingBottom: theme.spacing[2],
+    },
   });

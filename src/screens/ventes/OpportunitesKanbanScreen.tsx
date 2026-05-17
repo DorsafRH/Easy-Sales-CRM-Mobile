@@ -1,7 +1,7 @@
 /**
  * @file OpportunitesKanbanScreen.tsx
  * @description Pipeline Kanban horizontal scrollable + vue Liste groupee.
- *              Drag & drop inter-colonnes via PanResponder (sans rebuild natif).
+ *              Drag & drop inter-colonnes via PanResponder (long press 600 ms).
  *              Cards enrichies : titre, client, montant, âge, boutons Devis/Perdre.
  * @author Riahi Dorsaf
  */
@@ -10,17 +10,18 @@ import React, { useCallback, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   ActivityIndicator, RefreshControl, Alert,
-  Animated, PanResponder,
+  Animated, PanResponder, Vibration,
 } from 'react-native';
 import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
 import { Ionicons }                      from '@expo/vector-icons';
-import { GestureHandlerRootView }        from 'react-native-gesture-handler';
 
 import { useStyles, useTheme }       from '../../theme';
 import { makeStyles }                from './OpportunitesKanbanScreen.styles';
 import { SmartActionSheet }          from '../../components/ui/SmartActionSheet';
+import { SearchBar }                 from '../../components/ui/SearchBar';
+import { FilterChips }               from '../../components/ui/FilterChips';
 import { VentesStackParamList }      from '../../navigation/VentesStack';
 
 import * as VenteApi from '../../api/vente.api';
@@ -35,8 +36,9 @@ import {
 // TYPES
 // ─────────────────────────────────────────────────────────────
 
-type Nav      = NativeStackNavigationProp<VentesStackParamList, 'OpportunitesKanban'>;
-type ViewMode = 'kanban' | 'liste';
+type Nav        = NativeStackNavigationProp<VentesStackParamList, 'OpportunitesKanban'>;
+type ViewMode   = 'kanban' | 'liste';
+type ListFiltre = StatutOpportunite | 'TOUS';
 
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT
@@ -44,8 +46,7 @@ type ViewMode = 'kanban' | 'liste';
 
 /**
  * Pipeline Kanban horizontal scrollable avec drag & drop inter-colonnes.
- * Drag via PanResponder — aucun rebuild natif nécessaire.
- * @author Riahi Dorsaf
+ * Drag via PanResponder — long press 600 ms requis avant activation.
  */
 export const OpportunitesKanbanScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
@@ -66,12 +67,19 @@ export const OpportunitesKanbanScreen: React.FC = () => {
   const [isDragging,       setIsDragging]       = useState(false);
   const [draggedItem,      setDraggedItem]       = useState<OpportuniteResponse | null>(null);
   const [dropTargetStatut, setDropTargetStatut] = useState<StatutOpportunite | null>(null);
-  const draggingRef    = useRef<OpportuniteResponse | null>(null);
-  const dragPos        = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const colonneRefs    = useRef<Partial<Record<StatutOpportunite, any>>>({});
-  const colonneRects   = useRef<Partial<Record<StatutOpportunite, {
+
+  const draggingRef     = useRef<OpportuniteResponse | null>(null);
+  const dropTargetRef   = useRef<StatutOpportunite | null>(null);
+  const touchStartTime  = useRef(0);
+  const dragPos         = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const colonneRefs     = useRef<Partial<Record<StatutOpportunite, any>>>({});
+  const colonneRects    = useRef<Partial<Record<StatutOpportunite, {
     x: number; y: number; width: number; height: number;
   }>>>({});
+
+  // ── États vue liste ───────────────────────────────────────
+  const [listFiltre, setListFiltre] = useState<ListFiltre>('TOUS');
+  const [listSearch, setListSearch] = useState('');
 
   // ── Chargement ────────────────────────────────────────────
 
@@ -120,43 +128,111 @@ export const OpportunitesKanbanScreen: React.FC = () => {
     return null;
   };
 
+  // ── Confirmation perte (partagée) ─────────────────────────
+
+  const demanderConfirmationPerte = (titre: string, onConfirm: () => void) => {
+    Alert.alert(
+      'Marquer comme perdue',
+      `Confirmer la perte de "${titre}" ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Confirmer', style: 'destructive', onPress: onConfirm },
+      ],
+    );
+  };
+
   // ── Drop sur colonne ──────────────────────────────────────
 
-  const handleDrop = async (
+  const handleDrop = (
     opportunite: OpportuniteResponse,
     nouveauStatut: StatutOpportunite,
   ) => {
     if (opportunite.statut === nouveauStatut) return;
-    try {
-      await VenteApi.changerStatutOpportunite(opportunite.id, nouveauStatut);
-      if (nouveauStatut === 'GAGNEE') {
-        setSmartSheet({ visible: true, opportuniteId: opportunite.id });
-      } else {
-        charger(true);
+
+    const doMove = async () => {
+      try {
+        await VenteApi.changerStatutOpportunite(opportunite.id, nouveauStatut);
+        if (nouveauStatut === 'GAGNEE') {
+          setSmartSheet({ visible: true, opportuniteId: opportunite.id });
+        } else {
+          charger(true);
+        }
+      } catch (e: any) {
+        Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de déplacer.');
       }
-    } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de déplacer.');
+    };
+
+    // GAGNEE → PERDUE : message spécifique
+    if (opportunite.statut === 'GAGNEE' && nouveauStatut === 'PERDUE') {
+      Alert.alert(
+        'Annuler la victoire ?',
+        'Cette opportunité était marquée GAGNÉE. Confirmer ?',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Confirmer', style: 'destructive', onPress: doMove },
+        ],
+      );
+      return;
     }
+
+    // Toute autre colonne → PERDUE
+    if (nouveauStatut === 'PERDUE') {
+      demanderConfirmationPerte(opportunite.titre, doMove);
+      return;
+    }
+
+    // PERDUE → GAGNEE
+    if (opportunite.statut === 'PERDUE' && nouveauStatut === 'GAGNEE') {
+      Alert.alert(
+        'Changer résultat ?',
+        'Êtes-vous sûr de vouloir passer de PERDUE à GAGNÉE ?',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Confirmer', onPress: doMove },
+        ],
+      );
+      return;
+    }
+
+    // Régression dans les étapes normales
+    const ORDRE      = KANBAN_COLONNES.map(c => c.statut);
+    const idxActuel  = ORDRE.indexOf(opportunite.statut);
+    const idxCible   = ORDRE.indexOf(nouveauStatut);
+    const labelActuel = KANBAN_COLONNES.find(c => c.statut === opportunite.statut)?.label ?? opportunite.statut;
+    const labelCible  = KANBAN_COLONNES.find(c => c.statut === nouveauStatut)?.label ?? nouveauStatut;
+
+    if (idxCible < idxActuel) {
+      Alert.alert(
+        'Rétrograder ?',
+        `Faire reculer "${opportunite.titre}" de "${labelActuel}" vers "${labelCible}" ?`,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Confirmer', onPress: doMove },
+        ],
+      );
+      return;
+    }
+
+    // Déplacement vers l'avant — direct
+    doMove();
   };
 
-  // ── PanResponder factory ──────────────────────────────────
+  // ── PanResponder factory (long press 600 ms) ──────────────
 
   const createPanResponder = (opportunite: OpportuniteResponse) =>
     PanResponder.create({
-      onStartShouldSetPanResponder:         () => false,
-      onStartShouldSetPanResponderCapture:  () => false,
-      onMoveShouldSetPanResponder:          () => true,
-      onMoveShouldSetPanResponderCapture:   () => true,
+      onStartShouldSetPanResponder:        () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponder:         () => Date.now() - touchStartTime.current >= 600,
+      onMoveShouldSetPanResponderCapture:  () => Date.now() - touchStartTime.current >= 600,
 
       onPanResponderGrant: (evt) => {
-        dragPos.setValue({
-          x: evt.nativeEvent.pageX,
-          y: evt.nativeEvent.pageY,
-        });
+        const { pageX, pageY } = evt.nativeEvent;
+        dragPos.setValue({ x: pageX, y: pageY });
         draggingRef.current = opportunite;
-        setDraggedItem(opportunite);
+        Vibration.vibrate(30);
         setIsDragging(true);
-        // Mesurer les colonnes au début du drag
+        setDraggedItem(opportunite);
         setTimeout(mesurerColonnes, 50);
       },
 
@@ -164,16 +240,18 @@ export const OpportunitesKanbanScreen: React.FC = () => {
         const { pageX, pageY } = evt.nativeEvent;
         dragPos.setValue({ x: pageX, y: pageY });
         const colonne = detecterColonne(pageX, pageY);
+        dropTargetRef.current = colonne;
         setDropTargetStatut(colonne);
       },
 
       onPanResponderRelease: () => {
         const item   = draggingRef.current;
-        const target = dropTargetStatut;
+        const target = dropTargetRef.current;
         setIsDragging(false);
         setDraggedItem(null);
         setDropTargetStatut(null);
-        draggingRef.current = null;
+        draggingRef.current   = null;
+        dropTargetRef.current = null;
         if (item && target && item.statut !== target) {
           handleDrop(item, target);
         }
@@ -183,28 +261,18 @@ export const OpportunitesKanbanScreen: React.FC = () => {
         setIsDragging(false);
         setDraggedItem(null);
         setDropTargetStatut(null);
-        draggingRef.current = null;
+        draggingRef.current   = null;
+        dropTargetRef.current = null;
       },
     });
 
-  // ── Perdre ────────────────────────────────────────────────
+  // ── Perdre (bouton card) ──────────────────────────────────
 
   const handlePerdre = (o: OpportuniteResponse) => {
-    Alert.alert(
-      'Marquer comme perdue',
-      `Confirmer la perte de "${o.titre}" ?`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text:  'Confirmer',
-          style: 'destructive',
-          onPress: async () => {
-            await VenteApi.changerStatutOpportunite(o.id, 'PERDUE');
-            charger(true);
-          },
-        },
-      ],
-    );
+    demanderConfirmationPerte(o.titre, async () => {
+      await VenteApi.changerStatutOpportunite(o.id, 'PERDUE');
+      charger(true);
+    });
   };
 
   // ── Smart Automation ──────────────────────────────────────
@@ -289,13 +357,14 @@ export const OpportunitesKanbanScreen: React.FC = () => {
   // ── Rendu Kanban card ─────────────────────────────────────
 
   const renderKanbanCard = (o: OpportuniteResponse, colStatut: StatutOpportunite) => {
-    const panResponder = createPanResponder(o);
+    const panResponder   = createPanResponder(o);
     const isBeingDragged = draggedItem?.id === o.id;
 
     return (
       <View
         key={o.id}
         {...panResponder.panHandlers}
+        onTouchStart={() => { touchStartTime.current = Date.now(); }}
         style={[
           styles.opportuniteCard,
           isBeingDragged && styles.cardDragging,
@@ -319,49 +388,78 @@ export const OpportunitesKanbanScreen: React.FC = () => {
 
   const renderListeGroupee = () => {
     if (!kanban) return null;
+
+    const chips = [
+      { value: 'TOUS', label: 'Tous' },
+      ...KANBAN_COLONNES.map(c => ({ value: c.statut, label: c.label })),
+    ];
+
     return (
-      <ScrollView
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => charger(true)}
-            tintColor={theme.colors.primary}
+      <View style={{ flex: 1 }}>
+        <View style={styles.searchWrapper}>
+          <SearchBar
+            value={listSearch}
+            onChangeText={setListSearch}
+            placeholder="Rechercher..."
           />
-        }
-      >
-        {KANBAN_COLONNES.map(col => {
-          const items = kanban[col.statut] ?? [];
-          if (items.length === 0) return null;
-          return (
-            <View key={col.statut}>
-              <Text style={styles.groupTitle}>{col.label} ({items.length})</Text>
-              {items.map(o => (
-                <TouchableOpacity
-                  key={o.id}
-                  style={styles.listCard}
-                  onPress={() =>
-                    navigation.navigate('OpportuniteDetail', { opportuniteId: o.id })
-                  }
-                  activeOpacity={0.75}
-                >
-                  <View style={[styles.listCardIcon, { backgroundColor: col.bg }]}>
-                    <Ionicons name={col.iconName as any} size={18} color={col.color} />
-                  </View>
-                  <View style={styles.listCardContent}>
-                    <Text style={styles.listCardTitre} numberOfLines={1}>{o.titre}</Text>
-                    <Text style={styles.listCardClient}>{o.clientNom}</Text>
-                  </View>
-                  {o.montantEstime ? (
-                    <Text style={styles.listCardMontant}>{formatMontant(o.montantEstime)}</Text>
-                  ) : null}
-                </TouchableOpacity>
-              ))}
-            </View>
-          );
-        })}
-      </ScrollView>
+        </View>
+        <View style={styles.filtresWrapper}>
+          <FilterChips
+            chips={chips}
+            selected={listFiltre}
+            onSelect={v => setListFiltre(v as ListFiltre)}
+          />
+        </View>
+        <ScrollView
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => charger(true)}
+              tintColor={theme.colors.primary}
+            />
+          }
+        >
+          {KANBAN_COLONNES
+            .filter(col => listFiltre === 'TOUS' || col.statut === listFiltre)
+            .map(col => {
+              const q = listSearch.toLowerCase();
+              const items = (kanban[col.statut] ?? []).filter(o =>
+                !q ||
+                o.titre.toLowerCase().includes(q) ||
+                o.clientNom.toLowerCase().includes(q),
+              );
+              if (items.length === 0) return null;
+              return (
+                <View key={col.statut}>
+                  <Text style={styles.groupTitle}>{col.label} ({items.length})</Text>
+                  {items.map(o => (
+                    <TouchableOpacity
+                      key={o.id}
+                      style={styles.listCard}
+                      onPress={() =>
+                        navigation.navigate('OpportuniteDetail', { opportuniteId: o.id })
+                      }
+                      activeOpacity={0.75}
+                    >
+                      <View style={[styles.listCardIcon, { backgroundColor: col.bg }]}>
+                        <Ionicons name={col.iconName as any} size={18} color={col.color} />
+                      </View>
+                      <View style={styles.listCardContent}>
+                        <Text style={styles.listCardTitre} numberOfLines={1}>{o.titre}</Text>
+                        <Text style={styles.listCardClient}>{o.clientNom}</Text>
+                      </View>
+                      {o.montantEstime ? (
+                        <Text style={styles.listCardMontant}>{formatMontant(o.montantEstime)}</Text>
+                      ) : null}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              );
+            })}
+        </ScrollView>
+      </View>
     );
   };
 
@@ -369,13 +467,11 @@ export const OpportunitesKanbanScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-          </View>
-        </SafeAreaView>
-      </GestureHandlerRootView>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -386,151 +482,149 @@ export const OpportunitesKanbanScreen: React.FC = () => {
   // ── Rendu principal ───────────────────────────────────────
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
 
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pipeline ({totalOpportunites})</Text>
-          <TouchableOpacity
-            style={styles.toggleBtn}
-            onPress={() => setViewMode(v => v === 'kanban' ? 'liste' : 'kanban')}
+      {/* ── Header ── */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Pipeline ({totalOpportunites})</Text>
+        <TouchableOpacity
+          style={styles.toggleBtn}
+          onPress={() => setViewMode(v => v === 'kanban' ? 'liste' : 'kanban')}
+        >
+          <Ionicons
+            name={viewMode === 'kanban' ? 'list-outline' : 'albums-outline'}
+            size={16}
+            color={theme.colors.textSecondary}
+          />
+          <Text style={styles.toggleBtnText}>
+            {viewMode === 'kanban' ? 'Liste' : 'Kanban'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Vue Liste ── */}
+      {viewMode === 'liste' && renderListeGroupee()}
+
+      {/* ── Vue Kanban horizontale ── */}
+      {viewMode === 'kanban' && (
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            horizontal
+            style={styles.kanbanScroll}
+            contentContainerStyle={styles.kanbanContent}
+            showsHorizontalScrollIndicator={false}
+            scrollEnabled={!isDragging}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={() => charger(true)}
+                tintColor={theme.colors.primary}
+              />
+            }
           >
-            <Ionicons
-              name={viewMode === 'kanban' ? 'list-outline' : 'albums-outline'}
-              size={16}
-              color={theme.colors.textSecondary}
-            />
-            <Text style={styles.toggleBtnText}>
-              {viewMode === 'kanban' ? 'Liste' : 'Kanban'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            {KANBAN_COLONNES.map(col => {
+              const items        = kanban ? (kanban[col.statut] ?? []) : [];
+              const isDropTarget = isDragging && dropTargetStatut === col.statut;
 
-        {/* ── Vue Liste ── */}
-        {viewMode === 'liste' && renderListeGroupee()}
-
-        {/* ── Vue Kanban horizontale ── */}
-        {viewMode === 'kanban' && (
-          <View style={{ flex: 1 }}>
-            <ScrollView
-              horizontal
-              style={styles.kanbanScroll}
-              contentContainerStyle={styles.kanbanContent}
-              showsHorizontalScrollIndicator={false}
-              scrollEnabled={!isDragging}
-              refreshControl={
-                <RefreshControl
-                  refreshing={isRefreshing}
-                  onRefresh={() => charger(true)}
-                  tintColor={theme.colors.primary}
-                />
-              }
-            >
-              {KANBAN_COLONNES.map(col => {
-                const items       = kanban ? (kanban[col.statut] ?? []) : [];
-                const isDropTarget = isDragging && dropTargetStatut === col.statut;
-
-                return (
+              return (
+                <View
+                  key={col.statut}
+                  style={styles.colonne}
+                  ref={ref => { colonneRefs.current[col.statut] = ref; }}
+                >
+                  {/* Header colonne */}
                   <View
-                    key={col.statut}
-                    style={styles.colonne}
-                    ref={ref => { colonneRefs.current[col.statut] = ref; }}
+                    style={[
+                      styles.colonneHeader,
+                      { backgroundColor: isDropTarget ? theme.colors.primary : col.color },
+                    ]}
                   >
-                    {/* Header colonne */}
-                    <View
-                      style={[
-                        styles.colonneHeader,
-                        { backgroundColor: isDropTarget ? theme.colors.primary : col.color },
-                      ]}
-                    >
-                      <Ionicons name={col.iconName as any} size={16} color="#FFFFFF" />
-                      <Text style={[styles.colonneTitle, { color: '#FFFFFF' }]}>
-                        {isDropTarget ? `→ ${col.label}` : col.label}
+                    <Ionicons name={col.iconName as any} size={16} color="#FFFFFF" />
+                    <Text style={[styles.colonneTitle, { color: '#FFFFFF' }]}>
+                      {isDropTarget ? `→ ${col.label}` : col.label}
+                    </Text>
+                    <View style={styles.colonneBadge}>
+                      <Text style={[styles.colonneBadgeText, { color: '#FFFFFF' }]}>
+                        {items.length}
                       </Text>
-                      <View style={styles.colonneBadge}>
-                        <Text style={[styles.colonneBadgeText, { color: '#FFFFFF' }]}>
-                          {items.length}
-                        </Text>
-                      </View>
                     </View>
-
-                    {/* Body colonne — scroll vertical */}
-                    <ScrollView
-                      style={styles.colonneBody}
-                      nestedScrollEnabled={true}
-                      showsVerticalScrollIndicator={false}
-                      scrollEnabled={!isDragging}
-                      contentContainerStyle={{
-                        rowGap:        theme.spacing[2],
-                        paddingBottom: theme.spacing[3],
-                        padding:       theme.spacing[2],
-                      }}
-                    >
-                      {items.length === 0 && (
-                        <Text style={styles.emptyColonne}>
-                          {isDragging && isDropTarget ? 'Déposer ici' : 'Vide'}
-                        </Text>
-                      )}
-                      {items.map(o => renderKanbanCard(o, col.statut))}
-
-                      {col.statut === 'PROSPECTION' && (
-                        <TouchableOpacity
-                          style={styles.addCardBtn}
-                          onPress={() => navigation.navigate('OpportuniteForm', {})}
-                        >
-                          <Ionicons name="add" size={14} color={theme.colors.textTertiary} />
-                          <Text style={styles.addCardBtnText}>Ajouter</Text>
-                        </TouchableOpacity>
-                      )}
-                    </ScrollView>
                   </View>
-                );
-              })}
-            </ScrollView>
 
-            {/* ── Card fantôme qui suit le doigt ── */}
-            {isDragging && draggedItem && (
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.dragGhost,
-                  {
-                    left:      dragPos.x,
-                    top:       dragPos.y,
-                    transform: [{ translateX: -100 }, { translateY: -50 }],
-                  },
-                ]}
-              >
-                <Text style={styles.dragGhostTitre} numberOfLines={1}>
-                  {draggedItem.titre}
-                </Text>
-                <Text style={styles.dragGhostClient} numberOfLines={1}>
-                  {draggedItem.clientNom}
-                </Text>
-              </Animated.View>
-            )}
-          </View>
-        )}
+                  {/* Body colonne */}
+                  <ScrollView
+                    style={styles.colonneBody}
+                    nestedScrollEnabled={true}
+                    showsVerticalScrollIndicator={false}
+                    scrollEnabled={!isDragging}
+                    contentContainerStyle={{
+                      rowGap:        theme.spacing[2],
+                      paddingBottom: theme.spacing[3],
+                      padding:       theme.spacing[2],
+                    }}
+                  >
+                    {items.length === 0 && (
+                      <Text style={styles.emptyColonne}>
+                        {isDragging && isDropTarget ? 'Déposer ici' : 'Vide'}
+                      </Text>
+                    )}
+                    {items.map(o => renderKanbanCard(o, col.statut))}
 
-        {/* ── Smart Automation ── */}
-        <SmartActionSheet
-          visible={smartSheet.visible}
-          iconName="trophy-outline"
-          iconColor="#16A34A"
-          iconBg="#F0FDF4"
-          title="Opportunite gagnee !"
-          subtitle="Voulez-vous creer un devis maintenant ?"
-          confirmLabel="Creer le devis"
-          dismissLabel="Plus tard"
-          onConfirm={handleSmartConfirm}
-          onDismiss={handleSmartDismiss}
-        />
+                    {col.statut === 'PROSPECTION' && (
+                      <TouchableOpacity
+                        style={styles.addCardBtn}
+                        onPress={() => navigation.navigate('OpportuniteForm', {})}
+                      >
+                        <Ionicons name="add" size={14} color={theme.colors.textTertiary} />
+                        <Text style={styles.addCardBtnText}>Ajouter</Text>
+                      </TouchableOpacity>
+                    )}
+                  </ScrollView>
+                </View>
+              );
+            })}
+          </ScrollView>
 
-      </SafeAreaView>
-    </GestureHandlerRootView>
+          {/* Card fantôme qui suit le doigt */}
+          {isDragging && draggedItem && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.dragGhost,
+                {
+                  left:      dragPos.x,
+                  top:       dragPos.y,
+                  transform: [{ translateX: -100 }, { translateY: -50 }],
+                },
+              ]}
+            >
+              <Text style={styles.dragGhostTitre} numberOfLines={1}>
+                {draggedItem.titre}
+              </Text>
+              <Text style={styles.dragGhostClient} numberOfLines={1}>
+                {draggedItem.clientNom}
+              </Text>
+            </Animated.View>
+          )}
+        </View>
+      )}
+
+      {/* ── Smart Automation ── */}
+      <SmartActionSheet
+        visible={smartSheet.visible}
+        iconName="trophy-outline"
+        iconColor="#16A34A"
+        iconBg="#F0FDF4"
+        title="Opportunite gagnee !"
+        subtitle="Voulez-vous creer un devis maintenant ?"
+        confirmLabel="Creer le devis"
+        dismissLabel="Plus tard"
+        onConfirm={handleSmartConfirm}
+        onDismiss={handleSmartDismiss}
+      />
+
+    </SafeAreaView>
   );
 };
