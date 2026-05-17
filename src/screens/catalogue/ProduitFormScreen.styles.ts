@@ -47,7 +47,7 @@ export const makeStyles = (theme: AppTheme) =>
     },
 
     // ── Contenu ──────────────────────────────────────────────
-    scroll:  { flex: 1 },
+    scroll: { flex: 1 },
 
     content: {
       flexGrow:          1,
@@ -85,18 +85,14 @@ export const makeStyles = (theme: AppTheme) =>
       color:      theme.colors.textSecondary,
     },
 
-    typeBtnTextActive: {
-      color: theme.colors.primary,
-    },
+    typeBtnTextActive: { color: theme.colors.primary },
 
     typeBtnSub: {
       fontSize: theme.typography.size.xs,
       color:    theme.colors.textTertiary,
     },
 
-    typeBtnSubActive: {
-      color: theme.colors.primary,
-    },
+    typeBtnSubActive: { color: theme.colors.primary },
 
     // ── Cartes ────────────────────────────────────────────────
     card: {
@@ -119,7 +115,7 @@ export const makeStyles = (theme: AppTheme) =>
     row:     { flexDirection: 'row', columnGap: theme.spacing[3] },
     rowItem: { flex: 1 },
 
-    // ── Sélecteur catégorie ───────────────────────────────────
+    // ── Sélecteur catégorie / unité ───────────────────────────
     categorieSelector: {
       flexDirection:     'row',
       alignItems:        'center',
@@ -141,6 +137,14 @@ export const makeStyles = (theme: AppTheme) =>
     categorieLabelSelected: {
       color:      theme.colors.textPrimary,
       fontWeight: '500',
+    },
+
+    // ── Hint sous le champ stock minimum ─────────────────────
+    stockHint: {
+      fontSize:   theme.typography.size.xs,
+      color:      theme.colors.textTertiary,
+      marginTop:  theme.spacing[2],
+      lineHeight: theme.typography.size.xs * 1.5,
     },
 
     // ── Sélecteur statut ──────────────────────────────────────
@@ -172,7 +176,7 @@ export const makeStyles = (theme: AppTheme) =>
 
     statutBtnTextActive: { color: theme.colors.primary },
 
-    // ── Alerte erreur ────────────────────────────────────────
+    // ── Alerte erreur API ────────────────────────────────────
     alertError: {
       backgroundColor: theme.colors.dangerLight,
       borderWidth:     1,
@@ -189,7 +193,7 @@ export const makeStyles = (theme: AppTheme) =>
 
     btnSubmit: { marginTop: theme.spacing[2] },
 
-    // ── Modal catégorie ───────────────────────────────────────
+    // ── Modal catégorie / unité ───────────────────────────────
     modalOverlay: {
       flex:            1,
       backgroundColor: 'rgba(0,0,0,0.4)',
