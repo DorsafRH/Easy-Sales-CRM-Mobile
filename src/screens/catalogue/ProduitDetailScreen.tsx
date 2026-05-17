@@ -236,6 +236,9 @@ export const ProduitDetailScreen: React.FC = () => {
               variant={variantFromValue(produit.statut)}
               withDot
             />
+            {produit.enAlerte && (
+              <Badge label="Stock critique" variant="warning" withDot />
+            )}
           </View>
         </View>
 
@@ -269,6 +272,17 @@ export const ProduitDetailScreen: React.FC = () => {
                 <Text style={styles.rowLabel}>Stock</Text>
                 <Text style={styles.rowValue}>
                   {produit.stockDisponible ?? 0} unité(s)
+                </Text>
+              </View>
+            )}
+            {produit.type === 'STOCKABLE' && (
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>Seuil alerte</Text>
+                <Text style={[
+                  styles.rowValue,
+                  produit.enAlerte && { color: theme.colors.warning },
+                ]}>
+                  {produit.stockMinimum ?? '—'} unité(s)
                 </Text>
               </View>
             )}

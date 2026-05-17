@@ -240,6 +240,29 @@ export const makeStyles = (theme: AppTheme) =>
       color:      theme.colors.primary,
     },
 
+    // ── Warnings inline ───────────────────────────────────────
+    stockRuptureWarning: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      columnGap:         4,
+      backgroundColor:   theme.colors.warningLight,
+      borderRadius:      theme.radius.md,
+      paddingHorizontal: theme.spacing[2],
+      paddingVertical:   theme.spacing[1],
+      marginTop:         theme.spacing[1],
+    },
+    stockRuptureText: {
+      flex:       1,
+      fontSize:   theme.typography.size.xs,
+      color:      theme.colors.warning,
+      fontWeight: '600',
+    },
+    doublonWarningText: {
+      fontSize:   theme.typography.size.xs,
+      color:      theme.colors.warning,
+      marginTop:  theme.spacing[1],
+    },
+
     // ── Actions ───────────────────────────────────────────────
     submitSection: {
       paddingHorizontal: layout.screenPadding,

@@ -81,6 +81,15 @@ const formatPrix = (prixHT: number, unite?: string | null): string => {
   return `${prix} TND${unite ? `/${unite}` : ''}`;
 };
 
+const getStockBadge = (
+  produit: ProduitResponse,
+): { label: string; variant: 'danger' | 'warning' | 'success' } | null => {
+  if (produit.type !== 'STOCKABLE') return null;
+  if (produit.stockDisponible === 0)  return { label: 'Rupture',  variant: 'danger'  };
+  if (produit.enAlerte)               return { label: 'Stock bas', variant: 'warning' };
+  return { label: `${produit.stockDisponible} en stock`, variant: 'success' };
+};
+
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT PRINCIPAL
 // ─────────────────────────────────────────────────────────────
@@ -281,47 +290,55 @@ export const CatalogueScreen: React.FC = () => {
                 }
               />
             ) : (
-              produits.map((produit) => (
-                <TouchableOpacity
-                  key={produit.id}
-                  style={[
-                    styles.produitItem,
-                    produit.statut === 'ARCHIVE' && styles.produitItemArchive,
-                  ]}
-                  onPress={() =>
-                    navigation.navigate('ProduitDetail', { produitId: produit.id })
-                  }
-                  activeOpacity={0.75}
-                >
-                  <View style={styles.produitIconWrapper}>
-                    <Ionicons
-                      name={iconeCategorie(produit.categorieNom) as any}
-                      size={22}
-                      color={theme.colors.textSecondary}
-                    />
-                  </View>
+              produits.map((produit) => {
+                const stockBadge = getStockBadge(produit);
+                return (
+                  <TouchableOpacity
+                    key={produit.id}
+                    style={[
+                      styles.produitItem,
+                      produit.statut === 'ARCHIVE' && styles.produitItemArchive,
+                    ]}
+                    onPress={() =>
+                      navigation.navigate('ProduitDetail', { produitId: produit.id })
+                    }
+                    activeOpacity={0.75}
+                  >
+                    <View style={styles.produitIconWrapper}>
+                      <Ionicons
+                        name={iconeCategorie(produit.categorieNom) as any}
+                        size={22}
+                        color={theme.colors.textSecondary}
+                      />
+                    </View>
 
-                  <View style={styles.produitInfo}>
-                    <Text style={styles.produitNom} numberOfLines={1}>
-                      {produit.nom}
-                    </Text>
-                    <Text style={styles.produitCategorie}>
-                      {produit.categorieNom ??
-                        (produit.type === 'SERVICE' ? 'Service' : 'Stockable')}
-                    </Text>
-                  </View>
+                    <View style={styles.produitInfo}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 6, marginBottom: 2 }}>
+                        <Text style={[styles.produitNom, { marginBottom: 0, flex: 1 }]} numberOfLines={1}>
+                          {produit.nom}
+                        </Text>
+                        {stockBadge && (
+                          <Badge label={stockBadge.label} variant={stockBadge.variant} />
+                        )}
+                      </View>
+                      <Text style={styles.produitCategorie}>
+                        {produit.categorieNom ??
+                          (produit.type === 'SERVICE' ? 'Service' : 'Stockable')}
+                      </Text>
+                    </View>
 
-                  <View style={styles.produitRight}>
-                    <Text style={styles.produitPrix}>
-                      {formatPrix(produit.prixHT, produit.unite)}
-                    </Text>
-                    <Badge
-                      label={produit.statut}
-                      variant={variantFromValue(produit.statut)}
-                    />
-                  </View>
-                </TouchableOpacity>
-              ))
+                    <View style={styles.produitRight}>
+                      <Text style={styles.produitPrix}>
+                        {formatPrix(produit.prixHT, produit.unite)}
+                      </Text>
+                      <Badge
+                        label={produit.statut}
+                        variant={variantFromValue(produit.statut)}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
             )}
           </View>
         </ScrollView>

@@ -36,13 +36,14 @@ type Route = RouteProp<VentesStackParamList, 'DevisForm'>;
 
 /** Ligne en cours d'edition dans le formulaire */
 interface LigneEdition {
-  id:            string;
-  produit:       ProduitResponse | null;
-  designation:   string;
-  quantite:      string;
-  prixUnitaireHt: string;
-  tauxTva:       string;
-  remise:        string;
+  id:              string;
+  produit:         ProduitResponse | null;
+  designation:     string;
+  quantite:        string;
+  prixUnitaireHt:  string;
+  tauxTva:         string;
+  remise:          string;
+  doublonWarning?: boolean;
 }
 
 const LIGNE_VIDE = (): LigneEdition => ({
@@ -157,6 +158,12 @@ export const DevisFormScreen: React.FC = () => {
 
   const selectionnerProduit = (produit: ProduitResponse) => {
     if (!lignePickerId) return;
+
+    // Avertissement doublon : STOCKABLE déjà présent dans une autre ligne
+    const estDoublon =
+      produit.type === 'STOCKABLE' &&
+      lignes.some(l => l.id !== lignePickerId && l.produit?.id === produit.id);
+
     setLignes(prev => prev.map(l =>
       l.id === lignePickerId
         ? {
@@ -166,6 +173,7 @@ export const DevisFormScreen: React.FC = () => {
             quantite:       produit.type === 'SERVICE' ? '1' : l.quantite,
             prixUnitaireHt: String(produit.prixHT ?? ''),
             tauxTva:        String(produit.tauxTVA ?? '19'),
+            doublonWarning: estDoublon,
           }
         : l,
     ));
@@ -190,50 +198,67 @@ export const DevisFormScreen: React.FC = () => {
   // ── Soumission ────────────────────────────────────────────
 
   const handleSoumettre = async () => {
-    // Validation : toutes les lignes doivent avoir un produit et une qte
+    // Validation basique
     const lignesInvalides = lignes.filter(l => !l.produit && !l.designation.trim());
     if (lignesInvalides.length > 0) {
       Alert.alert('Erreur', 'Chaque ligne doit avoir un produit selectionne.');
       return;
     }
-
     if (!clientId && !estEdition) {
       Alert.alert('Erreur', 'Aucun client associe a ce devis.');
       return;
     }
 
-    const lignesRequest: LigneDevisRequest[] = lignes.map(l => ({
-      produitId:      l.produit?.id ?? 0,
-      designation:    l.designation.trim() || l.produit?.nom,
-      quantite:       Number(l.quantite) || 1,
-      prixUnitaireHt: Number(l.prixUnitaireHt) || undefined,
-      tauxTva:        Number(l.tauxTva) || 0,
-      remise:         Number(l.remise) || 0,
-    }));
-
-    const request: DevisRequest = {
-      clientId:      clientId ?? 0,
-      opportuniteId: opportuniteId ?? undefined,
-      notes:         notes.trim() || undefined,
-      validiteJours: Number(validite) || 30,
-      lignes:        lignesRequest,
+    // Logique d'envoi extraite pour éviter la duplication
+    const doSubmit = async () => {
+      const lignesRequest: LigneDevisRequest[] = lignes.map(l => ({
+        produitId:      l.produit?.id ?? 0,
+        designation:    l.designation.trim() || l.produit?.nom,
+        quantite:       Number(l.quantite) || 1,
+        prixUnitaireHt: Number(l.prixUnitaireHt) || undefined,
+        tauxTva:        Number(l.tauxTva) || 0,
+        remise:         Number(l.remise) || 0,
+      }));
+      const request: DevisRequest = {
+        clientId:      clientId ?? 0,
+        opportuniteId: opportuniteId ?? undefined,
+        notes:         notes.trim() || undefined,
+        validiteJours: Number(validite) || 30,
+        lignes:        lignesRequest,
+      };
+      setIsSaving(true);
+      try {
+        if (estEdition && devisId) {
+          const res = await VenteApi.modifierDevis(devisId, request);
+          if (res.success) navigation.goBack();
+        } else {
+          const res = await VenteApi.creerDevis(request);
+          if (res.success) {
+            navigation.replace('DevisDetail', { devisId: res.data.id });
+          }
+        }
+      } catch (e: any) {
+        Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de sauvegarder le devis.');
+      } finally {
+        setIsSaving(false);
+      }
     };
 
-    setIsSaving(true);
-    try {
-      if (estEdition && devisId) {
-        const res = await VenteApi.modifierDevis(devisId, request);
-        if (res.success) navigation.goBack();
-      } else {
-        const res = await VenteApi.creerDevis(request);
-        if (res.success) {
-          navigation.replace('DevisDetail', { devisId: res.data.id });
-        }
-      }
-    } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de sauvegarder le devis.');
-    } finally {
-      setIsSaving(false);
+    // Correction 3 — Blocage soft si rupture de stock
+    const lignesEnRupture = lignes.filter(
+      l => l.produit?.type === 'STOCKABLE' && l.produit.stockDisponible === 0,
+    );
+    if (lignesEnRupture.length > 0) {
+      Alert.alert(
+        'Stock insuffisant',
+        'Une ou plusieurs lignes concernent des produits en rupture de stock.\nVoulez-vous quand même créer le devis ?',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Créer quand même', onPress: doSubmit },
+        ],
+      );
+    } else {
+      doSubmit();
     }
   };
 
@@ -327,6 +352,24 @@ export const DevisFormScreen: React.FC = () => {
                         </Text>
                         <Ionicons name="chevron-down" size={16} color={theme.colors.textTertiary} />
                       </TouchableOpacity>
+
+                      {/* Correction 1 — Rupture de stock */}
+                      {ligne.produit?.type === 'STOCKABLE' &&
+                       ligne.produit.stockDisponible === 0 && (
+                        <View style={styles.stockRuptureWarning}>
+                          <Ionicons name="warning-outline" size={14} color={theme.colors.warning} />
+                          <Text style={styles.stockRuptureText}>
+                            Rupture de stock — commande impossible
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Correction 2 — Doublon STOCKABLE */}
+                      {ligne.doublonWarning && (
+                        <Text style={styles.doublonWarningText}>
+                          ⚠ Ce produit STOCKABLE est déjà dans le devis — vérifier la quantité totale
+                        </Text>
+                      )}
                     </View>
 
                     {/* Designation libre */}

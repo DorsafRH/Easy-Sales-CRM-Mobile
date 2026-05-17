@@ -328,6 +328,52 @@ export const makeStyles = (theme: AppTheme) =>
       elevation:       1,
     },
 
+    // ── Widget alertes stock ──────────────────────────────────
+    stockAlertCard: {
+      backgroundColor: theme.colors.bgSurface,
+      borderRadius:    theme.radius.lg,
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.colors.warning,
+      padding:         theme.spacing[4],
+    },
+    stockAlertHeader: {
+      flexDirection:  'row',
+      justifyContent: 'space-between',
+      alignItems:     'center',
+      marginBottom:   theme.spacing[3],
+    },
+    stockAlertTitle: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '700',
+      color:      theme.colors.warning,
+    },
+    stockAlertVoirTout: {
+      fontSize:   theme.typography.size.sm,
+      color:      theme.colors.primary,
+      fontWeight: '600',
+    },
+    stockAlertItem: {
+      flexDirection:     'row',
+      justifyContent:    'space-between',
+      alignItems:        'center',
+      paddingVertical:   theme.spacing[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.bgApp,
+    },
+    stockAlertNom: {
+      flex:       1,
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '600',
+      color:      theme.colors.textPrimary,
+    },
+    stockAlertStock: {
+      fontSize:   theme.typography.size.xs,
+      color:      theme.colors.warning,
+      fontWeight: '600',
+    },
+
     // ── Chargement ────────────────────────────────────────────
     loadingContainer: {
       flex:            1,

@@ -26,8 +26,10 @@ import { makeStyles }          from './DashboardScreen.styles';
 import { useAuth }             from '../../context/AuthContext';
 import { Avatar }              from '../../components/ui/Avatar';
 
-import * as ReportingApi from '../../api/reporting.api';
-import * as ReunionApi   from '../../api/reunion.api';
+import * as ReportingApi  from '../../api/reporting.api';
+import * as ReunionApi    from '../../api/reunion.api';
+import * as CatalogueApi  from '../../api/catalogue.api';
+import { ProduitResponse } from '../../types/catalogue.types';
 import {
   ReportingKpisResponse,
   ActiviteRecenteItem,
@@ -81,6 +83,7 @@ export const DashboardScreen: React.FC = () => {
 
   const [kpis,           setKpis]           = useState<ReportingKpisResponse | null>(null);
   const [reunionsDuJour, setReunionsDuJour] = useState<ReunionResponse[]>([]);
+  const [produitAlertes, setProduitAlertes] = useState<ProduitResponse[]>([]);
   const [isLoading,      setIsLoading]      = useState(true);
   const [isRefreshing,   setIsRefreshing]   = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
@@ -89,6 +92,20 @@ export const DashboardScreen: React.FC = () => {
   const isInitialLoad = useRef(true);
 
   useFocusEffect(useCallback(() => { refreshUser(); }, [refreshUser]));
+
+  // ── Alertes stock ─────────────────────────────────────────────
+  const chargerAlertes = useCallback(async () => {
+    try {
+      const res = await CatalogueApi.listerProduits(undefined, 'ACTIF');
+      if (res.success) {
+        setProduitAlertes(
+          (res.data ?? []).filter(p => p.enAlerte || p.stockDisponible === 0),
+        );
+      }
+    } catch { /* silencieux */ }
+  }, []);
+
+  useEffect(() => { chargerAlertes(); }, [chargerAlertes]);
 
   // ── Chargement KPIs + réunions du jour ───────────────────────
   const chargerKpis = useCallback(async (options?: {
@@ -367,6 +384,38 @@ export const DashboardScreen: React.FC = () => {
             ))}
           </View>
         </View>
+
+        {/* ══════════════════ ALERTES STOCK ══════════════════ */}
+        {produitAlertes.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.stockAlertCard}>
+              <View style={styles.stockAlertHeader}>
+                <Text style={styles.stockAlertTitle}>
+                  ⚠ Alertes stock ({produitAlertes.length})
+                </Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Plus', {
+                    screen: 'CatalogueHome',
+                  })}
+                >
+                  <Text style={styles.stockAlertVoirTout}>Voir tout</Text>
+                </TouchableOpacity>
+              </View>
+              {produitAlertes.slice(0, 3).map(p => (
+                <View key={p.id} style={styles.stockAlertItem}>
+                  <Text style={styles.stockAlertNom} numberOfLines={1}>
+                    {p.nom}
+                  </Text>
+                  <Text style={styles.stockAlertStock}>
+                    {p.stockDisponible === 0
+                      ? 'Rupture'
+                      : `${p.stockDisponible} / ${p.stockMinimum}`}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* ══════════════════ RÉUNIONS DU JOUR ══════════════════ */}
         <View style={styles.section}>
