@@ -33,6 +33,7 @@ import {
   STATUT_DEVIS_CONFIG,
   STATUT_FACTURE_CONFIG,
 } from '../../types/vente.types';
+import { calculerCA } from '../../utils/vente.utils';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -103,7 +104,7 @@ export const VentesHomeScreen: React.FC = () => {
         setNbDevis(data.filter(d => d.statut === 'ENVOYE').length);
       }
       if (facturesRes.status === 'fulfilled' && facturesRes.value.success) {
-        setFactures(facturesRes.value.data.slice(0, 5));
+        setFactures(facturesRes.value.data);
       }
     } catch {
       // silencieux
@@ -120,7 +121,7 @@ export const VentesHomeScreen: React.FC = () => {
   const formatMontant = (v: number) =>
     v.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND';
 
-  const montantPipeline = allOpportunites.reduce((acc, o) => acc + (o.montantEstime ?? 0), 0);
+  const ca = calculerCA(factures);
 
   const refreshControl = (
     <RefreshControl
@@ -197,8 +198,8 @@ export const VentesHomeScreen: React.FC = () => {
             iconName="cash-outline"
             iconColor="#16A34A"
             iconBg="#F0FDF4"
-            value={formatMontant(montantPipeline)}
-            label="Pipeline"
+            value={formatMontant(ca)}
+            label="Chiffre d'affaires"
           />
         </View>
         <View style={styles.kpiItem}>

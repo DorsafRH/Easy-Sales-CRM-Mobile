@@ -84,7 +84,7 @@ const genererHtmlFacture = (f: FactureResponse): string => `
 <body>
   <div class="header">
     <div>
-      <div class="brand">Easy Sales CRM</div>
+      <div class="brand">${f.proprietaireNom ?? 'Easy Sales CRM'}</div>
       <div class="brand-sub">Votre solution CRM mobile</div>
     </div>
     <div class="facture-info">
@@ -148,11 +148,23 @@ const genererHtmlFacture = (f: FactureResponse): string => `
   ${f.notes ? `<div style="margin-top:32px;"><div class="section-label">Notes</div><p style="color:#4B5563;font-size:12px;margin-top:4px;">${f.notes}</p></div>` : ''}
 
   <div class="footer">
-    Facture generee par Easy Sales CRM &mdash; Merci de votre confiance
+    Facture generee par ${f.proprietaireNom ?? 'Easy Sales CRM'} &mdash; Merci de votre confiance
   </div>
 </body>
 </html>
 `;
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS PURS
+// ─────────────────────────────────────────────────────────────
+
+const factureConcerneStock = (facture: FactureResponse): boolean =>
+  facture.lignes?.some(l => l.typeProduit === 'STOCKABLE') ?? false;
+
+const messageConfirmationLivraison = (facture: FactureResponse): string =>
+  factureConcerneStock(facture)
+    ? 'Cette action decrementera le stock des produits concernes. Confirmer ?'
+    : 'Confirmer la livraison de cette facture ?';
 
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT
@@ -216,6 +228,36 @@ export const FactureDetailScreen: React.FC = () => {
     ]);
   };
 
+  const handleMarquerLivre = () => {
+    Alert.alert(
+      'Marquer livree',
+      messageConfirmationLivraison(facture!),
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: async () => {
+            try {
+              const res = await VenteApi.changerStatutFacture(factureId, 'LIVREE');
+              if (res.success) setFacture(res.data);
+            } catch (e: any) {
+              Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de changer le statut.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handlePayerDepuisLivre = async () => {
+    try {
+      const res = await VenteApi.changerStatutFacture(factureId, 'PAYEE');
+      if (res.success) setFacture(res.data);
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de changer le statut.');
+    }
+  };
+
   const handleExportPdf = async () => {
     if (!facture) return;
     setIsExporting(true);
@@ -277,7 +319,8 @@ export const FactureDetailScreen: React.FC = () => {
   const estBrouillon  = facture.statut === 'BROUILLON';
   const estEmise      = facture.statut === 'EMISE';
   const estEnRetard   = facture.statut === 'EN_RETARD';
-  const peutAnnuler   = estEmise || estEnRetard;
+  const estLivree     = facture.statut === 'LIVREE';
+  const peutAnnuler   = estEmise || estEnRetard || estLivree;
 
   const fmt = (v: number) =>
     v.toLocaleString('fr-TN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' TND';
@@ -341,6 +384,16 @@ export const FactureDetailScreen: React.FC = () => {
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Date d'emission</Text>
                 <Text style={styles.infoValue}>{facture.dateEmission.split('T')[0]}</Text>
+              </View>
+            ) : null}
+            {facture.statut === 'LIVREE' && facture.dateLivraison ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Date de livraison</Text>
+                <Text style={styles.infoValue}>
+                  {new Date(facture.dateLivraison).toLocaleDateString('fr-FR', {
+                    day: '2-digit', month: 'long', year: 'numeric',
+                  })}
+                </Text>
               </View>
             ) : null}
             {facture.dateEcheance ? (
@@ -429,7 +482,23 @@ export const FactureDetailScreen: React.FC = () => {
             </TouchableOpacity>
           )}
 
-          {/* Marquer payee */}
+          {/* Marquer livree — avec avertissement stock */}
+          {estEmise && (
+            <TouchableOpacity style={styles.btnLivre} onPress={handleMarquerLivre}>
+              <Ionicons name="cube-outline" size={18} color={theme.colors.info} />
+              <Text style={styles.btnLivreText}>Marquer livre</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Marquer payee depuis LIVREE — sans confirmation */}
+          {estLivree && (
+            <TouchableOpacity style={styles.successBtn} onPress={handlePayerDepuisLivre}>
+              <Ionicons name="checkmark-circle-outline" size={20} color={theme.colors.white} />
+              <Text style={styles.successBtnText}>Marquer payee</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Marquer payee depuis EMISE / EN_RETARD */}
           {(estEmise || estEnRetard) && (
             <TouchableOpacity
               style={styles.successBtn}

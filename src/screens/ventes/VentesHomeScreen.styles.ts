@@ -243,6 +243,14 @@ export const makeStyles = (theme: AppTheme) =>
       elevation:       6,
     },
 
+    // ── Sous-titre CA ──────────────────────────────────────────
+    caSubtitle: {
+      fontSize:  theme.typography.size.xs,
+      color:     theme.colors.textSecondary,
+      textAlign: 'center',
+      marginTop: theme.spacing[1],
+    },
+
     // ── Chargement ─────────────────────────────────────────────
     loadingContainer: {
       flex:            1,

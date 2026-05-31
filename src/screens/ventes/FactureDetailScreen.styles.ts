@@ -224,5 +224,23 @@ export const makeStyles = (theme: AppTheme) =>
       fontSize: theme.typography.size.sm, fontWeight: '600', color: theme.colors.textSecondary,
     },
 
+    // ── Bouton Livré ──────────────────────────────────────────
+    btnLivre: {
+      flexDirection:   'row',
+      alignItems:      'center',
+      justifyContent:  'center',
+      columnGap:       theme.spacing[2],
+      paddingVertical: theme.spacing[3],
+      borderRadius:    theme.radius.lg,
+      borderWidth:     1,
+      borderColor:     theme.colors.info,
+      backgroundColor: theme.colors.infoLight,
+    },
+    btnLivreText: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '700',
+      color:      theme.colors.info,
+    },
+
     loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   });

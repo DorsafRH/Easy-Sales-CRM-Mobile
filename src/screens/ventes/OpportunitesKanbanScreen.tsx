@@ -28,6 +28,8 @@ import * as VenteApi from '../../api/vente.api';
 import {
   KanbanData,
   OpportuniteResponse,
+  DevisResponse,
+  FactureResponse,
   StatutOpportunite,
   KANBAN_COLONNES,
 } from '../../types/vente.types';
@@ -39,6 +41,28 @@ import {
 type Nav        = NativeStackNavigationProp<VentesStackParamList, 'OpportunitesKanban'>;
 type ViewMode   = 'kanban' | 'liste';
 type ListFiltre = StatutOpportunite | 'TOUS';
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+
+const trouverDevisActif = (
+  devisList: DevisResponse[],
+  opportuniteId: number,
+): DevisResponse | undefined =>
+  devisList.find(
+    d => d.opportuniteId === opportuniteId &&
+         d.statut !== 'REFUSE' &&
+         d.statut !== 'EXPIRE',
+  );
+
+const trouverFactureLiee = (
+  factureList: FactureResponse[],
+  devisNumero: string | undefined,
+): FactureResponse | undefined => {
+  if (!devisNumero) return undefined;
+  return factureList.find(f => f.devisNumero === devisNumero);
+};
 
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT
@@ -77,6 +101,10 @@ export const OpportunitesKanbanScreen: React.FC = () => {
     x: number; y: number; width: number; height: number;
   }>>>({});
 
+  // ── États devis / factures ────────────────────────────────
+  const [devisList,   setDevisList]   = useState<DevisResponse[]>([]);
+  const [factureList, setFactureList] = useState<FactureResponse[]>([]);
+
   // ── États vue liste ───────────────────────────────────────
   const [listFiltre, setListFiltre] = useState<ListFiltre>('TOUS');
   const [listSearch, setListSearch] = useState('');
@@ -85,15 +113,19 @@ export const OpportunitesKanbanScreen: React.FC = () => {
 
   const charger = useCallback(async (refresh = false) => {
     if (refresh) setIsRefreshing(true); else setIsLoading(true);
-    try {
-      const res = await VenteApi.obtenirKanban();
-      if (res.success) setKanban(res.data);
-    } catch {
-      // silencieux
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
+    const [kanbanRes, devisRes, factureRes] = await Promise.allSettled([
+      VenteApi.obtenirKanban(),
+      VenteApi.listerDevis(),
+      VenteApi.listerFactures(),
+    ]);
+    if (kanbanRes.status === 'fulfilled' && kanbanRes.value.success)
+      setKanban(kanbanRes.value.data);
+    if (devisRes.status === 'fulfilled' && devisRes.value.success)
+      setDevisList(devisRes.value.data);
+    if (factureRes.status === 'fulfilled' && factureRes.value.success)
+      setFactureList(factureRes.value.data);
+    setIsLoading(false);
+    setIsRefreshing(false);
   }, []);
 
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
@@ -299,12 +331,63 @@ export const OpportunitesKanbanScreen: React.FC = () => {
   const formatMontant = (v: number | null) =>
     v ? v.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND' : '';
 
+  // ── Bouton devis/facture selon statut ────────────────────
+
+  const buildDevisBtnKanban = (
+    colStatut: StatutOpportunite,
+    o: OpportuniteResponse,
+    devisActif: DevisResponse | undefined,
+    facture: FactureResponse | undefined,
+  ) => {
+    if (colStatut === 'PROSPECTION' || colStatut === 'QUALIFICATION' || colStatut === 'PERDUE') {
+      return null;
+    }
+    if (colStatut === 'NEGOCIATION') {
+      if (devisActif) {
+        return (
+          <TouchableOpacity style={styles.btnVoirDevis}
+            onPress={() => navigation.navigate('DevisDetail', { devisId: devisActif.id })}>
+            <Text style={styles.btnVoirDevisText}>Voir Devis</Text>
+          </TouchableOpacity>
+        );
+      }
+      return (
+        <TouchableOpacity style={styles.btnVoirDevis}
+          onPress={() => navigation.navigate('DevisForm', { opportuniteId: o.id })}>
+          <Text style={styles.btnVoirDevisText}>Creer Devis</Text>
+        </TouchableOpacity>
+      );
+    }
+    if (colStatut === 'GAGNEE') {
+      if (facture) {
+        return (
+          <TouchableOpacity style={styles.btnVoirFacture}
+            onPress={() => navigation.navigate('FactureDetail', { factureId: facture.id })}>
+            <Text style={styles.btnVoirFactureText}>Voir Facture</Text>
+          </TouchableOpacity>
+        );
+      }
+      if (devisActif) {
+        return (
+          <TouchableOpacity style={styles.btnVoirDevis}
+            onPress={() => navigation.navigate('DevisDetail', { devisId: devisActif.id })}>
+            <Text style={styles.btnVoirDevisText}>Voir Devis</Text>
+          </TouchableOpacity>
+        );
+      }
+    }
+    return null;
+  };
+
   // ── Contenu interne d'une card ────────────────────────────
 
   const renderCardContent = (
     o: OpportuniteResponse,
     colStatut: StatutOpportunite,
   ) => {
+    const devisActif = trouverDevisActif(devisList, o.id);
+    const facture    = trouverFactureLiee(factureList, devisActif?.numero);
+
     const diff = Math.floor(
       (Date.now() - new Date(o.dateCreation).getTime()) / 86400000,
     );
@@ -313,8 +396,8 @@ export const OpportunitesKanbanScreen: React.FC = () => {
       diff <= 7 ? '#D97706' :
                   '#DC2626';
 
-    const peutDevis  = colStatut === 'NEGOCIATION' || colStatut === 'GAGNEE';
     const peutPerdre = colStatut !== 'GAGNEE' && colStatut !== 'PERDUE';
+    const devisBtn   = buildDevisBtnKanban(colStatut, o, devisActif, facture);
 
     return (
       <>
@@ -327,24 +410,11 @@ export const OpportunitesKanbanScreen: React.FC = () => {
           <Text style={styles.cardDateRelative}>{o.dateRelative ?? ''}</Text>
           <View style={[styles.cardAgeDot, { backgroundColor: dotColor }]} />
         </View>
-
-        {(peutDevis || peutPerdre) && (
+        {(devisBtn !== null || peutPerdre) && (
           <View style={styles.cardActionsRow}>
-            {peutDevis && (
-              <TouchableOpacity
-                style={styles.cardDevisBtn}
-                onPress={() =>
-                  navigation.navigate('OpportuniteDetail', { opportuniteId: o.id })
-                }
-              >
-                <Text style={styles.cardDevisBtnText}>→ Devis</Text>
-              </TouchableOpacity>
-            )}
+            {devisBtn}
             {peutPerdre && (
-              <TouchableOpacity
-                style={styles.cardPerdreBtn}
-                onPress={() => handlePerdre(o)}
-              >
+              <TouchableOpacity style={styles.cardPerdreBtn} onPress={() => handlePerdre(o)}>
                 <Text style={styles.cardPerdreBtnText}>Perdre</Text>
               </TouchableOpacity>
             )}

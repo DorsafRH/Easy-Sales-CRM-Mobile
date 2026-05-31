@@ -27,6 +27,8 @@ import { useTimeline }                  from '../../hooks/useTimeline';
 import * as VenteApi from '../../api/vente.api';
 import {
   OpportuniteResponse,
+  DevisResponse,
+  FactureResponse,
   KANBAN_COLONNES,
 } from '../../types/vente.types';
 
@@ -36,6 +38,28 @@ import {
 
 type Nav   = NativeStackNavigationProp<VentesStackParamList, 'OpportuniteDetail'>;
 type Route = RouteProp<VentesStackParamList, 'OpportuniteDetail'>;
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+
+const trouverDevisActif = (
+  devisList: DevisResponse[],
+  opportuniteId: number,
+): DevisResponse | undefined =>
+  devisList.find(
+    d => d.opportuniteId === opportuniteId &&
+         d.statut !== 'REFUSE' &&
+         d.statut !== 'EXPIRE',
+  );
+
+const trouverFacture = (
+  factureList: FactureResponse[],
+  devisNumero: string | undefined,
+): FactureResponse | undefined => {
+  if (!devisNumero) return undefined;
+  return factureList.find(f => f.devisNumero === devisNumero);
+};
 
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT
@@ -54,6 +78,8 @@ export const OpportuniteDetailScreen: React.FC = () => {
 
   const [opportunite,  setOpportunite]  = useState<OpportuniteResponse | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
+  const [devisList,    setDevisList]    = useState<DevisResponse[]>([]);
+  const [factureList,  setFactureList]  = useState<FactureResponse[]>([]);
 
   // ── Timeline activités depuis le reporting ────────────────
   const { activites } = useTimeline('OPPORTUNITE', opportuniteId);
@@ -63,15 +89,25 @@ export const OpportuniteDetailScreen: React.FC = () => {
 
   const charger = useCallback(async () => {
     setIsLoading(true);
-    try {
-      const res = await VenteApi.obtenirOpportunite(opportuniteId);
-      if (res.success) setOpportunite(res.data);
-    } catch {
+    const [oppRes, devisRes, factureRes] = await Promise.allSettled([
+      VenteApi.obtenirOpportunite(opportuniteId),
+      VenteApi.listerDevis(),
+      VenteApi.listerFactures(),
+    ]);
+    if (oppRes.status === 'rejected' || !oppRes.value.success) {
       Alert.alert('Erreur', 'Impossible de charger l opportunite.');
       navigation.goBack();
-    } finally {
       setIsLoading(false);
+      return;
     }
+    setOpportunite(oppRes.value.data);
+    if (devisRes.status === 'fulfilled' && devisRes.value.success) {
+      setDevisList(devisRes.value.data);
+    }
+    if (factureRes.status === 'fulfilled' && factureRes.value.success) {
+      setFactureList(factureRes.value.data);
+    }
+    setIsLoading(false);
   }, [opportuniteId, navigation]);
 
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
@@ -132,6 +168,95 @@ export const OpportuniteDetailScreen: React.FC = () => {
     }
   };
 
+  // ── Helpers de rendu ──────────────────────────────────────
+
+  const renderBtnProspQual = (_devisActif: DevisResponse | undefined) => null;
+
+  const renderBtnNegociation = (devisActif: DevisResponse | undefined) => {
+    if (devisActif) {
+      return (
+        <TouchableOpacity
+          style={styles.btnVoirDevis}
+          onPress={() => navigation.navigate('DevisDetail', { devisId: devisActif.id })}
+        >
+          <Ionicons name="document-text-outline" size={18} color={theme.colors.primary} />
+          <Text style={styles.btnVoirDevisText}>Voir Devis</Text>
+        </TouchableOpacity>
+      );
+    }
+    return (
+      <TouchableOpacity
+        style={styles.primaryBtn}
+        onPress={() => navigation.navigate('DevisForm', {
+          opportuniteId: opportunite?.id,
+          clientId:      opportunite?.clientId,
+        })}
+      >
+        <Ionicons name="document-text-outline" size={20} color={theme.colors.white} />
+        <Text style={styles.primaryBtnText}>Creer un devis</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderBtnGagnee = (
+    facture: FactureResponse | undefined,
+    devisActif: DevisResponse | undefined,
+  ) => {
+    if (facture) {
+      return (
+        <TouchableOpacity
+          style={styles.btnVoirFacture}
+          onPress={() => navigation.navigate('FactureDetail', { factureId: facture.id })}
+        >
+          <Ionicons name="receipt-outline" size={18} color={theme.colors.success} />
+          <Text style={styles.btnVoirFactureText}>Voir Facture</Text>
+        </TouchableOpacity>
+      );
+    }
+    if (devisActif) {
+      return (
+        <TouchableOpacity
+          style={styles.btnVoirDevis}
+          onPress={() => navigation.navigate('DevisDetail', { devisId: devisActif.id })}
+        >
+          <Ionicons name="document-text-outline" size={18} color={theme.colors.primary} />
+          <Text style={styles.btnVoirDevisText}>Voir Devis</Text>
+        </TouchableOpacity>
+      );
+    }
+    return null;
+  };
+
+  const renderBtnPerdue = (devisActif: DevisResponse | undefined) => {
+    if (!devisActif) return null;
+    return (
+      <TouchableOpacity
+        style={styles.btnVoirDevis}
+        onPress={() => navigation.navigate('DevisDetail', { devisId: devisActif.id })}
+      >
+        <Ionicons name="document-text-outline" size={18} color={theme.colors.primary} />
+        <Text style={styles.btnVoirDevisText}>Voir Devis</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderDevisBtn = (
+    devisActif: DevisResponse | undefined,
+    facture: FactureResponse | undefined,
+  ) => {
+    if (!opportunite) return null;
+    const { statut } = opportunite;
+    if (statut === 'PROSPECTION' || statut === 'QUALIFICATION')
+      return renderBtnProspQual(devisActif);
+    if (statut === 'NEGOCIATION')
+      return renderBtnNegociation(devisActif);
+    if (statut === 'GAGNEE')
+      return renderBtnGagnee(facture, devisActif);
+    if (statut === 'PERDUE')
+      return renderBtnPerdue(devisActif);
+    return null;
+  };
+
   // ── Rendu ─────────────────────────────────────────────────
 
   if (isLoading || !opportunite) {
@@ -144,10 +269,13 @@ export const OpportuniteDetailScreen: React.FC = () => {
     );
   }
 
-  const col          = KANBAN_COLONNES.find(c => c.statut === opportunite.statut);
   const peutAvancer  = opportunite.statut !== 'GAGNEE' && opportunite.statut !== 'PERDUE';
   const peutPerdre   = opportunite.statut !== 'GAGNEE' && opportunite.statut !== 'PERDUE';
-  const estActive    = opportunite.statut !== 'PERDUE';
+
+  const devisActif   = trouverDevisActif(devisList, opportunite.id);
+  const facture      = trouverFacture(factureList, devisActif?.numero);
+  const devisBtn     = renderDevisBtn(devisActif, facture);
+  const showActions  = devisBtn !== null || peutAvancer || peutPerdre;
 
   const fmt = (v: number | null) =>
     v ? v.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND' : 'Non renseigne';
@@ -259,16 +387,9 @@ export const OpportuniteDetailScreen: React.FC = () => {
         </View>
 
         {/* ── Actions ── */}
-        {estActive && (
+        {showActions && (
           <View style={styles.actionsSection}>
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={() => navigation.navigate('DevisForm', { opportuniteId: opportunite.id, clientId: opportunite.clientId })}
-            >
-              <Ionicons name="document-text-outline" size={20} color={theme.colors.white} />
-              <Text style={styles.primaryBtnText}>Creer un devis</Text>
-            </TouchableOpacity>
-
+            {devisBtn}
             {(peutAvancer || peutPerdre) && (
               <View style={styles.actionRow}>
                 {peutAvancer && (

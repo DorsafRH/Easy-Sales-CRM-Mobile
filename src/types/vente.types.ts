@@ -39,6 +39,7 @@ export type StatutDevis =
 export type StatutFacture =
   | 'BROUILLON'
   | 'EMISE'
+  | 'LIVREE'
   | 'PAYEE'
   | 'ANNULEE'
   | 'EN_RETARD';
@@ -204,25 +205,28 @@ export interface LigneFactureResponse {
   montantHt:      number;
   montantTva:     number;
   montantTtc:     number;
+  typeProduit?:   string;
 }
 
 export interface FactureResponse {
-  id:           number;
-  numero:       string;
-  statut:       StatutFacture;
-  montantHt:    number;
-  montantTva:   number;
-  montantTtc:   number;
-  dateEcheance: string | null;
-  dateEmission: string | null;
-  datePaiement: string | null;
-  notes:        string | null;
-  clientId:     number;
-  clientNom:    string;
-  devisNumero:  string | null;
-  lignes:       LigneFactureResponse[];
-  dateCreation: string;
-  dateRelative: string;
+  id:               number;
+  numero:           string;
+  statut:           StatutFacture;
+  montantHt:        number;
+  montantTva:       number;
+  montantTtc:       number;
+  dateEcheance:     string | null;
+  dateEmission:     string | null;
+  datePaiement:     string | null;
+  notes:            string | null;
+  clientId:         number;
+  clientNom:        string;
+  devisNumero:      string | null;
+  lignes:           LigneFactureResponse[];
+  dateCreation:     string;
+  dateRelative:     string;
+  proprietaireNom?: string;
+  dateLivraison?:   string;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -309,6 +313,7 @@ export const STATUT_DEVIS_CONFIG: Record<StatutDevis, { label: string; color: st
 export const STATUT_FACTURE_CONFIG: Record<StatutFacture, { label: string; color: string; bg: string }> = {
   BROUILLON: { label: 'Brouillon', color: '#6B7280', bg: '#F3F4F6' },
   EMISE:     { label: 'Emise',     color: '#2563EB', bg: '#EFF6FF' },
+  LIVREE:    { label: 'Livre',     color: '#16A34A', bg: '#F0FDF4' },
   PAYEE:     { label: 'Payee',     color: '#16A34A', bg: '#F0FDF4' },
   ANNULEE:   { label: 'Annulee',   color: '#DC2626', bg: '#FEF2F2' },
   EN_RETARD: { label: 'En retard', color: '#D97706', bg: '#FFFBEB' },

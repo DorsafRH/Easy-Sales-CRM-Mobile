@@ -312,4 +312,27 @@ export const makeStyles = (theme: AppTheme) =>
     filtresWrapper: {
       paddingBottom: theme.spacing[2],
     },
+
+    // ── Boutons devis / facture (format card) ────────────────
+    btnDisabled: { opacity: 0.4 },
+    btnVoirDevis: {
+      flex: 1, paddingVertical: theme.spacing[2],
+      borderRadius: theme.radius.md, borderWidth: 1,
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primaryLight,
+      alignItems: 'center',
+    },
+    btnVoirDevisText: {
+      fontSize: 10, fontWeight: '700', color: theme.colors.primary,
+    },
+    btnVoirFacture: {
+      flex: 1, paddingVertical: theme.spacing[2],
+      borderRadius: theme.radius.md, borderWidth: 1,
+      borderColor: theme.colors.success,
+      backgroundColor: theme.colors.successLight,
+      alignItems: 'center',
+    },
+    btnVoirFactureText: {
+      fontSize: 10, fontWeight: '700', color: theme.colors.success,
+    },
   });

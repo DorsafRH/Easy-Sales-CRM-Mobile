@@ -96,6 +96,12 @@ export const makeStyles = (theme: AppTheme) =>
       fontWeight: '500',
     },
 
+    caSubtitle: {
+      fontSize:     theme.typography.size.xs,
+      color:        'rgba(255,255,255,0.65)',
+      marginBottom: theme.spacing[1],
+    },
+
     periodeSelector: {
       flexDirection:   'row',
       backgroundColor: 'rgba(255,255,255,0.15)',

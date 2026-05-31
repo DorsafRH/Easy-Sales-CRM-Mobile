@@ -172,4 +172,29 @@ export const makeStyles = (theme: AppTheme) =>
     emptyTimelineText: { fontSize: theme.typography.size.sm, color: theme.colors.textTertiary },
 
     loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+    // ── Boutons devis / facture ───────────────────────────────
+    btnDisabled: { opacity: 0.4 },
+    btnVoirDevis: {
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'center', columnGap: theme.spacing[2],
+      paddingVertical: theme.spacing[3], borderRadius: theme.radius.lg,
+      borderWidth: 1, borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primaryLight,
+    },
+    btnVoirDevisText: {
+      fontSize: theme.typography.size.sm, fontWeight: '700',
+      color: theme.colors.primary,
+    },
+    btnVoirFacture: {
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'center', columnGap: theme.spacing[2],
+      paddingVertical: theme.spacing[3], borderRadius: theme.radius.lg,
+      borderWidth: 1, borderColor: theme.colors.success,
+      backgroundColor: theme.colors.successLight,
+    },
+    btnVoirFactureText: {
+      fontSize: theme.typography.size.sm, fontWeight: '700',
+      color: theme.colors.success,
+    },
   });
