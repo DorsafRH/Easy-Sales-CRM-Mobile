@@ -54,7 +54,7 @@ export const makeStyles = (theme: AppTheme) =>
     // ── Conteneur du tab (pour FAB) ────────────────────────────
     tabContent: { flex: 1, position: 'relative' },
 
-    // ── KPIs gradient 2×2 ─────────────────────────────────────
+    // ── KPIs cards 2×2 ────────────────────────────────────────
     kpisGrid: {
       flexDirection:     'row',
       flexWrap:          'wrap',
@@ -64,28 +64,47 @@ export const makeStyles = (theme: AppTheme) =>
       paddingTop:        theme.spacing[4],
     },
     kpiCard: {
-      width:          '47%',
-      borderRadius:   theme.radius.lg,
-      padding:        theme.spacing[4],
-      rowGap:         theme.spacing[1],
-      minHeight:      92,
-      justifyContent: 'flex-end',
-      shadowColor:    '#000',
-      shadowOffset:   { width: 0, height: 3 },
-      shadowOpacity:  0.18,
-      shadowRadius:   6,
-      elevation:      5,
+      width:           '47%',
+      borderRadius:    theme.radius.lg,
+      backgroundColor: theme.colors.bgSurface,
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+      padding:         theme.spacing[4],
+      rowGap:          theme.spacing[1],
+      minHeight:       92,
+      shadowColor:     '#000',
+      shadowOffset:    { width: 0, height: 2 },
+      shadowOpacity:   0.06,
+      shadowRadius:    4,
+      elevation:       2,
     },
     kpiCardValue: {
-      fontSize:   theme.typography.size.xl,
-      fontWeight: '800',
-      color:      theme.colors.white,
-      marginTop:  theme.spacing[2],
+      fontSize:   20,
+      fontWeight: '700',
+      color:      theme.colors.textPrimary,
+      marginTop:  theme.spacing[1],
+    },
+    kpiCardUnit: {
+      fontSize:   13,
+      fontWeight: '500',
+      color:      theme.colors.textSecondary,
     },
     kpiCardLabel: {
       fontSize:   theme.typography.size.xs,
-      fontWeight: '600',
-      color:      'rgba(255,255,255,0.72)',
+      fontWeight: '500',
+      color:      theme.colors.textSecondary,
+      marginTop:  4,
+    },
+    kpiBarChart: {
+      flexDirection: 'row',
+      alignItems:    'flex-end',
+      height:        24,
+      columnGap:     3,
+      marginTop:     theme.spacing[2],
+    },
+    kpiBar: {
+      width:        6,
+      borderRadius: 2,
     },
 
     // ── Graphique CA ───────────────────────────────────────────

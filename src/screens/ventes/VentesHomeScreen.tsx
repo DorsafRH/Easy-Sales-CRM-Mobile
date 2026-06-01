@@ -53,6 +53,16 @@ import { calculerCA, formaterMontant } from '../../utils/vente.utils';
 /** Couleurs sémantiques des médailles de rang (or, argent, bronze) */
 const RANK_COLORS = ['#F59E0B', '#9CA3AF', '#CD7F32'] as const;
 
+// ── Design tokens KPI cards ──────────────────────────────────
+const KPI_BAR_INACTIVE = '#DBEAFE'; // barres inactives mini-chart CA
+// ── Couleurs d'accent par KPI card ───────────────────────────
+const KPI_COLOR_CA     = '#2563EB'; // CA payé      — bleu primaire
+const KPI_COLOR_LEADS  = '#7C3AED'; // Leads actifs — violet
+const KPI_COLOR_OPPORT = '#0891B2'; // Opport. act. — cyan
+const KPI_COLOR_DEVIS  = '#D97706'; // Devis envoyés — ambre
+// ── Largeur fixe d'un mois dans le graphe scrollable ─────────
+const CHART_MONTH_W    = 44;
+
 const CHART_H   = 148;
 const LABEL_H   = 22;
 const CHART_PAD = 14;
@@ -154,6 +164,8 @@ export const VentesHomeScreen: React.FC = () => {
   const [prog,    setProg]    = useState(0);
   const [clipW,   setClipW]   = useState(0);
   const [chartW,  setChartW]  = useState(0);
+  const [tooltipIdx, setTooltipIdx] = useState<number | null>(null);
+  const chartScrollRef = useRef<ScrollView>(null);
 
   // ── Config PIE (dépend de theme) ──────────────────────────
   const PIE_CONFIG = [
@@ -205,8 +217,15 @@ export const VentesHomeScreen: React.FC = () => {
         setStatsVentes(statsRes.value.data);
       if (caRes.status === 'fulfilled' && caRes.value.success)
         setCaMoisPrec(caRes.value.data ?? 0);
-      if (caMoisRes.status === 'fulfilled' && caMoisRes.value.success)
-        setCaParMois(caMoisRes.value.data ?? []);
+      if (caMoisRes.status === 'fulfilled' && caMoisRes.value.success) {
+        const raw = caMoisRes.value.data ?? [];
+        setCaParMois(raw.map(d => ({
+          ...d,
+          montant: typeof (d.montant as unknown) === 'string'
+            ? parseFloat(d.montant as unknown as string)
+            : Number(d.montant ?? 0),
+        })));
+      }
     } catch { /* silencieux */ }
     finally {
       setIsDashboardLoading(false);
@@ -243,14 +262,19 @@ export const VentesHomeScreen: React.FC = () => {
     return () => countProg.removeListener(id);
   }, [statsVentes, caParMois]); // eslint-disable-line
 
-  // ── Animation : courbe graphique ─────────────────────────
+  // ── Animation : courbe graphique + scroll auto ──────────────
 
   useEffect(() => {
     if (chartW <= 0 || caParMois.length === 0) return;
+    const svgW = Math.max(caParMois.length * CHART_MONTH_W + CHART_PAD * 2, chartW);
     setClipW(0);
     const anim = new Animated.Value(0);
     const id   = anim.addListener(({ value }) => setClipW(value));
-    Animated.timing(anim, { toValue: chartW, duration: 800, useNativeDriver: false }).start();
+    Animated.timing(anim, { toValue: svgW, duration: 800, useNativeDriver: false })
+      .start(() => {
+        const scrollX = Math.max(0, svgW - chartW);
+        chartScrollRef.current?.scrollTo({ x: scrollX, animated: true });
+      });
     return () => anim.removeListener(id);
   }, [chartW, caParMois]); // eslint-disable-line
 
@@ -278,153 +302,166 @@ export const VentesHomeScreen: React.FC = () => {
   // SOUS-RENDUS DASHBOARD
   // ─────────────────────────────────────────────────────────
 
-  const renderKpiCards = () => {
-    const kpis = [
-      { label: 'CA payé',       value: Math.round(ca * prog),                                      icon: 'cash-outline',          grad: ['#1E3A8A', '#2563EB'] as [string, string], sfx: ' TND' },
-      { label: 'Leads actifs',  value: Math.round((statsVentes?.nbLeadsActifs ?? 0) * prog),        icon: 'people-outline',        grad: ['#5B21B6', '#7C3AED'] as [string, string], sfx: '' },
-      { label: 'Opport. act.',  value: Math.round(nbOpportActives * prog),                          icon: 'trending-up-outline',   grad: ['#0C4A6E', '#0EA5E9'] as [string, string], sfx: '' },
-      { label: 'Devis envoyés', value: Math.round(nbDevis * prog),                                  icon: 'document-text-outline', grad: ['#78350F', '#D97706'] as [string, string], sfx: '' },
-    ];
+  const renderMiniBarChart = (last6: CaMensuelDto[]): React.ReactElement => {
+    const maxBar = Math.max(...last6.map(d => d.montant), 1);
     return (
-      <View style={styles.kpisGrid}>
-        {kpis.map(k => (
-          <LinearGradient
-            key={k.label}
-            colors={k.grad}
-            style={styles.kpiCard}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Ionicons name={k.icon as any} size={20} color="rgba(255,255,255,0.65)" />
-            <Text style={styles.kpiCardValue}>
-              {k.value.toLocaleString('fr-FR')}{k.sfx}
-            </Text>
-            <Text style={styles.kpiCardLabel}>{k.label}</Text>
-          </LinearGradient>
-        ))}
+      <View style={styles.kpiBarChart}>
+        {Array.from({ length: 6 }).map((_, i) => {
+          const h = last6[i] ? Math.max(4, Math.round((last6[i].montant / maxBar) * 24)) : 4;
+          return (
+            <View
+              key={i}
+              style={[styles.kpiBar, { height: h, backgroundColor: i === 5 ? KPI_COLOR_CA : KPI_BAR_INACTIVE }]}
+            />
+          );
+        })}
       </View>
     );
   };
 
-  const renderLineChart = () => {
-    const dataW = chartW > 0 ? chartW - CHART_PAD * 2 : 0;
-    const dataH = CHART_H - CHART_PAD * 2;
-    const n     = caParMois.length;
+  const renderCaCard = (value: number): React.ReactElement => {
+    const last6 = caParMois.slice(-6);
+    return (
+      <View style={[styles.kpiCard, { borderLeftWidth: 3, borderLeftColor: KPI_COLOR_CA }]}>
+        <Ionicons name="cash-outline" size={20} color={KPI_COLOR_CA} />
+        <Text style={[styles.kpiCardValue, { color: KPI_COLOR_CA }]} numberOfLines={1}>
+          {value.toLocaleString('fr-FR')}{' '}
+          <Text style={styles.kpiCardUnit}>TND</Text>
+        </Text>
+        <Text style={styles.kpiCardLabel}>CA payé</Text>
+        {renderMiniBarChart(last6)}
+      </View>
+    );
+  };
+
+  const renderSimpleKpiCard = (
+    icon: string, value: number, label: string, color: string,
+  ): React.ReactElement => (
+    <View style={[styles.kpiCard, { borderLeftWidth: 3, borderLeftColor: color }]}>
+      <Ionicons name={icon as any} size={20} color={color} />
+      <Text style={[styles.kpiCardValue, { color }]} numberOfLines={1}>{value.toLocaleString('fr-FR')}</Text>
+      <Text style={styles.kpiCardLabel}>{label}</Text>
+    </View>
+  );
+
+  const renderKpiCards = (): React.ReactElement => (
+    <View style={styles.kpisGrid}>
+      {renderCaCard(Math.round(ca * prog))}
+      {renderSimpleKpiCard('people-outline',        Math.round((statsVentes?.nbLeadsActifs ?? 0) * prog), 'Leads actifs',  KPI_COLOR_LEADS)}
+      {renderSimpleKpiCard('trending-up-outline',   Math.round(nbOpportActives * prog),                   'Opport. act.',  KPI_COLOR_OPPORT)}
+      {renderSimpleKpiCard('document-text-outline', Math.round(nbDevis * prog),                           'Devis envoyés', KPI_COLOR_DEVIS)}
+    </View>
+  );
+
+  // ── Helpers graphe CA 12 mois ────────────────────────────────
+
+  /** Calcule les coordonnées SVG des points CA mensuels */
+  const buildChartPts = (svgW: number): Array<{ x: number; y: number }> => {
+    if (svgW <= 0 || caParMois.length === 0) return [];
     const maxV  = Math.max(...caParMois.map(d => d.montant), 1);
+    const dataH = CHART_H - CHART_PAD * 2;
+    return caParMois.map((d, i) => ({
+      x: CHART_PAD + i * CHART_MONTH_W + CHART_MONTH_W / 2,
+      y: CHART_PAD + (1 - d.montant / maxV) * dataH,
+    }));
+  };
 
-    const pts = chartW > 0 && n > 0
-      ? caParMois.map((d, i) => ({
-          x: CHART_PAD + (n > 1 ? (i / (n - 1)) * dataW : dataW / 2),
-          y: CHART_PAD + (1 - d.montant / maxV) * dataH,
-        }))
-      : [];
+  /** Tooltip SVG au tap sur un point */
+  const renderChartTooltip = (
+    pts: Array<{ x: number; y: number }>,
+    idx: number | null,
+  ): React.ReactElement | null => {
+    if (idx === null || !pts[idx] || !caParMois[idx]) return null;
+    const pt  = pts[idx];
+    const d   = caParMois[idx];
+    const lbl = `${d.label} ${d.annee} — ${d.montant.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} TND`;
+    const bw  = Math.min(lbl.length * 5.8 + 14, 190);
+    const bx  = Math.max(2, pt.x - bw / 2);
+    const by  = Math.max(2, pt.y - 34);
+    return (
+      <G>
+        <Rect x={bx} y={by} width={bw} height={20} rx={4} fill={theme.colors.primary} />
+        <SvgText x={bx + bw / 2} y={by + 14} textAnchor="middle" fontSize={9} fill="white" fontWeight="bold">
+          {lbl}
+        </SvgText>
+      </G>
+    );
+  };
 
+  /** Points tappables sur la courbe */
+  const renderChartDots = (pts: Array<{ x: number; y: number }>): React.ReactElement[] =>
+    pts.map((pt, i) => (
+      <G key={i} onPress={() => setTooltipIdx(prev => prev === i ? null : i)}>
+        <Circle cx={pt.x} cy={pt.y} r={14} fill="transparent" />
+        <Circle
+          cx={pt.x} cy={pt.y}
+          r={tooltipIdx === i ? 5 : 3.5}
+          fill={theme.colors.primary}
+          stroke={theme.colors.bgSurface}
+          strokeWidth={1.5}
+        />
+      </G>
+    ));
+
+  /** SVG scrollable du graphe CA */
+  const renderChartSvg = (svgW: number, pts: Array<{ x: number; y: number }>): React.ReactElement => {
+    const dataH    = CHART_H - CHART_PAD * 2;
     const linePath = buildLinePath(pts);
     const fillPath = buildFillPath(pts, CHART_H);
-    const lastPt   = pts.length > 0 ? pts[pts.length - 1] : null;
-    const lastVal  = caParMois.length > 0 ? caParMois[caParMois.length - 1].montant : 0;
+    return (
+      <Svg width={svgW} height={CHART_H + LABEL_H}>
+        <Defs>
+          <SvgGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0%" stopColor={theme.colors.primary} stopOpacity={0.28} />
+            <Stop offset="100%" stopColor={theme.colors.primary} stopOpacity={0.02} />
+          </SvgGradient>
+          <ClipPath id="lineClip">
+            <Rect x={0} y={0} width={clipW} height={CHART_H + LABEL_H} />
+          </ClipPath>
+        </Defs>
+        {[0.25, 0.5, 0.75].map(f => (
+          <Path key={f} d={`M ${CHART_PAD} ${(CHART_PAD + (1 - f) * dataH).toFixed(1)} H ${(svgW - CHART_PAD).toFixed(1)}`} stroke={theme.colors.border} strokeWidth={1} />
+        ))}
+        <G clipPath="url(#lineClip)">
+          {fillPath ? <Path d={fillPath} fill="url(#fillGrad)" /> : null}
+          {linePath ? <Path d={linePath} stroke={theme.colors.primary} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" /> : null}
+          {renderChartDots(pts)}
+          {renderChartTooltip(pts, tooltipIdx)}
+        </G>
+        {pts.map((pt, i) => (
+          <SvgText key={i} x={pt.x} y={CHART_H + LABEL_H - 4} textAnchor="middle" fontSize={9} fill={theme.colors.textTertiary}>
+            {caParMois[i]?.label}
+          </SvgText>
+        ))}
+      </Svg>
+    );
+  };
 
+  const renderLineChart = (): React.ReactElement => {
+    const n    = caParMois.length;
+    const svgW = n > 0 ? Math.max(n * CHART_MONTH_W + CHART_PAD * 2, chartW) : chartW;
+    const pts  = buildChartPts(svgW);
     const evol = (() => {
-      if (caParMois.length < 2) return null;
+      if (n < 2) return null;
       const prev = caParMois.slice(0, 6).reduce((s, d) => s + d.montant, 0);
       const curr = caParMois.slice(6).reduce((s, d) => s + d.montant, 0);
       return prev > 0 ? Math.round(((curr - prev) / prev) * 100) : null;
     })();
-
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>CA sur 12 mois</Text>
           {evol !== null && (
-            <Text style={[
-              styles.sectionLink,
-              { color: evol >= 0 ? theme.colors.success : theme.colors.danger },
-            ]}>
+            <Text style={[styles.sectionLink, { color: evol >= 0 ? theme.colors.success : theme.colors.danger }]}>
               {evol >= 0 ? '+' : ''}{evol}% (S2 vs S1)
             </Text>
           )}
         </View>
-        <View
-          style={styles.chartCard}
-          onLayout={e => setChartW(e.nativeEvent.layout.width)}
-        >
+        <View style={styles.chartCard} onLayout={e => setChartW(e.nativeEvent.layout.width)}>
           {chartW > 0 && (
-            <Svg width={chartW} height={CHART_H + LABEL_H}>
-              <Defs>
-                <SvgGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0%" stopColor={theme.colors.primary} stopOpacity={0.32} />
-                  <Stop offset="100%" stopColor={theme.colors.primary} stopOpacity={0.02} />
-                </SvgGradient>
-                <ClipPath id="lineClip">
-                  <Rect x={0} y={0} width={clipW} height={CHART_H + LABEL_H} />
-                </ClipPath>
-              </Defs>
-
-              {/* Grilles horizontales */}
-              {[0.25, 0.5, 0.75].map(f => (
-                <Path
-                  key={f}
-                  d={`M ${CHART_PAD} ${(CHART_PAD + (1 - f) * dataH).toFixed(1)} H ${(chartW - CHART_PAD).toFixed(1)}`}
-                  stroke={theme.colors.border}
-                  strokeWidth={1}
-                />
-              ))}
-
-              {/* Courbe animée */}
-              <G clipPath="url(#lineClip)">
-                {fillPath ? <Path d={fillPath} fill="url(#fillGrad)" /> : null}
-                {linePath ? (
-                  <Path
-                    d={linePath}
-                    stroke={theme.colors.primary}
-                    strokeWidth={2.5}
-                    fill="none"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
-                ) : null}
-                {lastPt && (
-                  <>
-                    <Circle cx={lastPt.x} cy={lastPt.y} r={4} fill={theme.colors.primary} />
-                    <Rect
-                      x={lastPt.x - 34}
-                      y={lastPt.y - 30}
-                      width={68}
-                      height={20}
-                      rx={4}
-                      fill={theme.colors.primary}
-                    />
-                    <SvgText
-                      x={lastPt.x}
-                      y={lastPt.y - 15}
-                      textAnchor="middle"
-                      fontSize={9}
-                      fill="white"
-                      fontWeight="bold"
-                    >
-                      {lastVal.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}
-                    </SvgText>
-                  </>
-                )}
-              </G>
-
-              {/* Labels mois axe X */}
-              {pts.length > 0 && caParMois.map((d, i) => {
-                if (i % 3 !== 0 && i !== caParMois.length - 1) return null;
-                return (
-                  <SvgText
-                    key={i}
-                    x={pts[i]?.x ?? 0}
-                    y={CHART_H + LABEL_H - 4}
-                    textAnchor="middle"
-                    fontSize={9}
-                    fill={theme.colors.textTertiary}
-                  >
-                    {d.label}
-                  </SvgText>
-                );
-              })}
-            </Svg>
+            <ScrollView ref={chartScrollRef} horizontal showsHorizontalScrollIndicator={false} scrollEventThrottle={16}>
+              {renderChartSvg(svgW, pts)}
+            </ScrollView>
           )}
         </View>
       </View>
