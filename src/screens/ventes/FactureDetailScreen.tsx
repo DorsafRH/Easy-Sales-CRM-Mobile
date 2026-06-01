@@ -20,6 +20,7 @@ import * as Sharing from 'expo-sharing';
 
 import { useStyles, useTheme }       from '../../theme';
 import { makeStyles }                from './FactureDetailScreen.styles';
+import { SkeletonCard }             from '../../components/ui/Skeleton';
 import { Badge }                     from '../../components/ui/Badge';
 import { VentesStackParamList }      from '../../navigation/VentesStack';
 
@@ -307,9 +308,9 @@ export const FactureDetailScreen: React.FC = () => {
   if (isLoading || !facture) {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
+        <SkeletonCard style={{ margin: 16 }} />
+        <SkeletonCard style={{ margin: 16, marginTop: 0 }} />
+        <SkeletonCard style={{ margin: 16, marginTop: 0 }} />
       </SafeAreaView>
     );
   }

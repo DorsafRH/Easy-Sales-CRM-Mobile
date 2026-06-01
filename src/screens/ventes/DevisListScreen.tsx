@@ -7,7 +7,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -16,6 +16,7 @@ import { Ionicons }                      from '@expo/vector-icons';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles }          from './DevisListScreen.styles';
+import { SkeletonListItem }    from '../../components/ui/Skeleton';
 import { Badge }               from '../../components/ui/Badge';
 import { FAB }                 from '../../components/ui/FAB';
 import { EmptyState }          from '../../components/ui/EmptyState';
@@ -149,8 +150,11 @@ export const DevisListScreen: React.FC = () => {
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <SkeletonListItem />
+          <SkeletonListItem />
+          <SkeletonListItem />
+          <SkeletonListItem />
         </View>
       ) : (
         <FlatList

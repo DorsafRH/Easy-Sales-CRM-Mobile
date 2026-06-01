@@ -9,7 +9,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Alert,
+  RefreshControl, Alert,
   Animated, PanResponder, Vibration,
 } from 'react-native';
 import { SafeAreaView }                  from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ import { Ionicons }                      from '@expo/vector-icons';
 
 import { useStyles, useTheme }       from '../../theme';
 import { makeStyles }                from './OpportunitesKanbanScreen.styles';
+import { SkeletonKanbanCard }        from '../../components/ui/Skeleton';
 import { SmartActionSheet }          from '../../components/ui/SmartActionSheet';
 import { SearchBar }                 from '../../components/ui/SearchBar';
 import { FilterChips }               from '../../components/ui/FilterChips';
@@ -353,7 +354,10 @@ export const OpportunitesKanbanScreen: React.FC = () => {
       }
       return (
         <TouchableOpacity style={styles.btnVoirDevis}
-          onPress={() => navigation.navigate('DevisForm', { opportuniteId: o.id })}>
+          onPress={() => navigation.navigate('DevisForm', {
+            clientId:      o.clientId,
+            opportuniteId: o.id,
+          })}>
           <Text style={styles.btnVoirDevisText}>Creer Devis</Text>
         </TouchableOpacity>
       );
@@ -538,9 +542,11 @@ export const OpportunitesKanbanScreen: React.FC = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ flexDirection: 'row', columnGap: 12, padding: 16 }}>
+          <SkeletonKanbanCard style={{ width: 240 }} />
+          <SkeletonKanbanCard style={{ width: 240 }} />
+        </ScrollView>
       </SafeAreaView>
     );
   }

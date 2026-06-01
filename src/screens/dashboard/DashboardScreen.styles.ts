@@ -393,4 +393,182 @@ export const makeStyles = (theme: AppTheme) =>
       color:     theme.colors.textSecondary,
       marginTop: theme.spacing[3],
     },
+
+    // ── Stats grid 2×2 ────────────────────────────────────────
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap:      'wrap',
+      columnGap:     theme.spacing[3],
+      rowGap:        theme.spacing[3],
+    },
+
+    statCard: {
+      width:           '47%',
+      backgroundColor: theme.colors.bgSurface,
+      borderRadius:    theme.radius.lg,
+      padding:         theme.spacing[4],
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+      shadowColor:     '#000',
+      shadowOffset:    { width: 0, height: 1 },
+      shadowOpacity:   0.05,
+      shadowRadius:    3,
+      elevation:       1,
+    },
+
+    statIconRow: {
+      flexDirection:  'row',
+      alignItems:     'center',
+      columnGap:      theme.spacing[2],
+      marginBottom:   theme.spacing[2],
+    },
+
+    statIconBadge: {
+      width:          32,
+      height:         32,
+      borderRadius:   16,
+      alignItems:     'center',
+      justifyContent: 'center',
+    },
+
+    statValue: {
+      fontSize:     theme.typography.size.xl,
+      fontWeight:   '700',
+      color:        theme.colors.textPrimary,
+      marginBottom: 2,
+    },
+
+    statLabel: {
+      fontSize: theme.typography.size.xs,
+      color:    theme.colors.textSecondary,
+    },
+
+    // ── Métriques financières (2 colonnes) ────────────────────
+    finRow: {
+      flexDirection: 'row',
+      columnGap:     theme.spacing[3],
+    },
+
+    finCard: {
+      flex:            1,
+      backgroundColor: theme.colors.bgSurface,
+      borderRadius:    theme.radius.lg,
+      padding:         theme.spacing[4],
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+      shadowColor:     '#000',
+      shadowOffset:    { width: 0, height: 1 },
+      shadowOpacity:   0.05,
+      shadowRadius:    3,
+      elevation:       1,
+    },
+
+    finLabel: {
+      fontSize:     theme.typography.size.xs,
+      color:        theme.colors.textSecondary,
+      marginBottom: theme.spacing[1],
+    },
+
+    finValue: {
+      fontSize:   theme.typography.size.md,
+      fontWeight: '700',
+      color:      theme.colors.textPrimary,
+    },
+
+    finUnit: {
+      fontSize:   theme.typography.size.xs,
+      fontWeight: '500',
+      color:      theme.colors.textSecondary,
+    },
+
+    // ── Répartition pipeline ──────────────────────────────────
+    repartRow: {
+      flexDirection:  'row',
+      alignItems:     'center',
+      columnGap:      theme.spacing[2],
+      marginBottom:   theme.spacing[2],
+    },
+
+    repartLabel: {
+      width:      90,
+      fontSize:   theme.typography.size.xs,
+      color:      theme.colors.textSecondary,
+      fontWeight: '500',
+    },
+
+    repartBarTrack: {
+      flex:            1,
+      height:          8,
+      backgroundColor: theme.colors.bgApp,
+      borderRadius:    theme.radius.full,
+      overflow:        'hidden',
+    },
+
+    repartBarFill: {
+      height:       8,
+      borderRadius: theme.radius.full,
+    },
+
+    repartCount: {
+      width:      28,
+      fontSize:   theme.typography.size.xs,
+      fontWeight: '700',
+      color:      theme.colors.textPrimary,
+      textAlign:  'right',
+    },
+
+    // ── Top 3 opportunités ────────────────────────────────────
+    top3Item: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      columnGap:         theme.spacing[3],
+      paddingVertical:   theme.spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.bgApp,
+    },
+
+    top3Rank: {
+      width:           28,
+      height:          28,
+      borderRadius:    14,
+      alignItems:      'center',
+      justifyContent:  'center',
+      backgroundColor: theme.colors.primaryLight,
+    },
+
+    top3RankText: {
+      fontSize:   theme.typography.size.xs,
+      fontWeight: '700',
+      color:      theme.colors.primary,
+    },
+
+    top3Info: { flex: 1 },
+
+    top3Titre: {
+      fontSize:     theme.typography.size.sm,
+      fontWeight:   '600',
+      color:        theme.colors.textPrimary,
+      marginBottom: 2,
+    },
+
+    top3Client: {
+      fontSize: theme.typography.size.xs,
+      color:    theme.colors.textSecondary,
+    },
+
+    top3Montant: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '700',
+      color:      theme.colors.primary,
+    },
+
+    top3Empty: {
+      paddingVertical: theme.spacing[4],
+      alignItems:      'center',
+    },
+
+    top3EmptyText: {
+      fontSize: theme.typography.size.sm,
+      color:    theme.colors.textTertiary,
+    },
   });

@@ -8,7 +8,9 @@ import apiClient from './axios.config';
 import { ApiResponse } from '../types/auth.types';
 import {
   ReportingKpisResponse,
+  StatsVentesResponse,
   ActiviteResponse,
+  CaMensuelDto,
   PageResponse,
   PeriodeDashboard,
 } from '../types/reporting.types';
@@ -27,6 +29,24 @@ export const getKpis = async (
   );
   return response.data;
 };
+
+/**
+ * Récupère le chiffre d'affaires (factures PAYÉE) du mois calendaire précédent.
+ */
+export const getCAMoisPrecedent = async (): Promise<ApiResponse<number>> =>
+  (await apiClient.get<ApiResponse<number>>('/reporting/ca-mois-precedent')).data;
+
+/**
+ * Récupère les statistiques de vente avancées pour le dashboard.
+ */
+export const getStatsVentes = async (): Promise<ApiResponse<StatsVentesResponse>> =>
+  (await apiClient.get<ApiResponse<StatsVentesResponse>>('/reporting/stats-ventes')).data;
+
+/**
+ * Récupère le CA mensuel sur les 12 derniers mois glissants.
+ */
+export const getCaParMois = async (): Promise<ApiResponse<CaMensuelDto[]>> =>
+  (await apiClient.get<ApiResponse<CaMensuelDto[]>>('/reporting/ca-par-mois')).data;
 
 /**
  * Récupère la liste paginée de toutes les activités.

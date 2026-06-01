@@ -293,6 +293,15 @@ export const DevisFormScreen: React.FC = () => {
           </Text>
         </View>
 
+        {/* ── Client pré-sélectionné (depuis opportunité) ── */}
+        {clientId && !estEdition && (
+          <View style={styles.clientFixeBanner}>
+            <Ionicons name="person-circle-outline" size={18} color={theme.colors.primary} />
+            <Text style={styles.clientFixeText}>Client associe a l'opportunite</Text>
+            <Ionicons name="lock-closed-outline" size={14} color={theme.colors.primary} />
+          </View>
+        )}
+
         {/* ── Parametres generaux ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Parametres</Text>

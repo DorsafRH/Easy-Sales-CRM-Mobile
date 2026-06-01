@@ -289,4 +289,25 @@ export const makeStyles = (theme: AppTheme) =>
       fontSize: theme.typography.size.sm,
       color:    theme.colors.textSecondary,
     },
+
+    // ── Client pré-sélectionné ────────────────────────────────
+    clientFixeBanner: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      columnGap:         theme.spacing[2],
+      backgroundColor:   theme.colors.primaryLight,
+      borderRadius:      theme.radius.md,
+      paddingHorizontal: theme.spacing[4],
+      paddingVertical:   theme.spacing[3],
+      marginHorizontal:  layout.screenPadding,
+      marginBottom:      theme.spacing[2],
+      borderWidth:       1,
+      borderColor:       theme.colors.primary,
+    },
+    clientFixeText: {
+      flex:       1,
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '600',
+      color:      theme.colors.primary,
+    },
   });

@@ -13,7 +13,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  Alert, ActivityIndicator, Linking,
+  Alert, Linking,
 } from 'react-native';
 import { SafeAreaView }              from 'react-native-safe-area-context';
 import { useNavigation, useRoute,
@@ -23,6 +23,7 @@ import { Ionicons, Feather }         from '@expo/vector-icons';
 
 import { useStyles, useTheme }     from '../../theme';
 import { makeStyles }              from './ClientDetailScreen.styles';
+import { SkeletonCard }            from '../../components/ui/Skeleton';
 import { Avatar }                  from '../../components/ui/Avatar';
 import { Badge, variantFromValue } from '../../components/ui/Badge';
 import { ClientsStackParamList }   from '../../navigation/ClientsStack';
@@ -180,9 +181,8 @@ export const ClientDetailScreen: React.FC = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
+        <SkeletonCard style={{ margin: 16 }} />
+        <SkeletonCard style={{ margin: 16, marginTop: 0 }} />
       </SafeAreaView>
     );
   }

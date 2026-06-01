@@ -19,7 +19,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation }                 from '@react-navigation/native';
@@ -27,6 +26,7 @@ import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
 
 import { useStyles, useTheme }   from '../../theme';
 import { makeStyles }            from './ClientsListScreen.styles';
+import { SkeletonListItem }      from '../../components/ui/Skeleton';
 import { Avatar }                from '../../components/ui/Avatar';
 import { FAB }                   from '../../components/ui/FAB';
 import { SearchBar }             from '../../components/ui/SearchBar';
@@ -164,8 +164,11 @@ export const ClientsListScreen: React.FC = () => {
 
       {/* ── Contenu ── */}
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <SkeletonListItem />
+          <SkeletonListItem />
+          <SkeletonListItem />
+          <SkeletonListItem />
         </View>
       ) : (
         <FlatList

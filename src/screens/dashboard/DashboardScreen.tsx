@@ -21,10 +21,11 @@ import { useNavigation,
          useFocusEffect }       from '@react-navigation/native';
 import { Ionicons }             from '@expo/vector-icons';
 
-import { useStyles, useTheme } from '../../theme';
-import { makeStyles }          from './DashboardScreen.styles';
-import { useAuth }             from '../../context/AuthContext';
-import { Avatar }              from '../../components/ui/Avatar';
+import { useStyles, useTheme }                         from '../../theme';
+import { makeStyles }                                   from './DashboardScreen.styles';
+import { useAuth }                                      from '../../context/AuthContext';
+import { Avatar }                                       from '../../components/ui/Avatar';
+import { SkeletonKpiGrid, SkeletonListItem }            from '../../components/ui/Skeleton';
 
 import * as ReportingApi  from '../../api/reporting.api';
 import * as ReunionApi    from '../../api/reunion.api';
@@ -67,6 +68,11 @@ const fmtDuree = (m: number) => {
 
 const PERIODES: PeriodeDashboard[] = ['AUJOURD_HUI', 'CE_MOIS', 'CETTE_ANNEE'];
 
+const calculerPctEvolution = (current: number, previous: number): number | null => {
+  if (previous <= 0) return null;
+  return Math.round(((current - previous) / previous) * 100);
+};
+
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT PRINCIPAL
 // ─────────────────────────────────────────────────────────────
@@ -88,6 +94,7 @@ export const DashboardScreen: React.FC = () => {
   const [isRefreshing,   setIsRefreshing]   = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [periode,        setPeriode]        = useState<PeriodeDashboard>('CE_MOIS');
+  const [caMoisPrecedent, setCaMoisPrecedent] = useState<number>(0);
 
   const isInitialLoad = useRef(true);
 
@@ -105,7 +112,7 @@ export const DashboardScreen: React.FC = () => {
     } catch { /* silencieux */ }
   }, []);
 
-  useEffect(() => { chargerAlertes(); }, [chargerAlertes]);
+  useFocusEffect(useCallback(() => { chargerAlertes(); }, [chargerAlertes]));
 
   // ── Chargement KPIs + réunions du jour ───────────────────────
   const chargerKpis = useCallback(async (options?: {
@@ -122,16 +129,20 @@ export const DashboardScreen: React.FC = () => {
     try {
       const todayISO = toLocalISO(new Date());
 
-      const [kpisRes, reunionsRes] = await Promise.all([
+      const [kpisResult, reunionsResult, caResult] = await Promise.allSettled([
         ReportingApi.getKpis(p),
-        // Réunions du jour : on passe la date locale pour éviter le bug timezone
         isInitialLoad.current || refresh
           ? ReunionApi.listerSemaine(todayISO, todayISO)
           : Promise.resolve(null),
+        ReportingApi.getCAMoisPrecedent(),
       ]);
 
-      if (kpisRes.success)       setKpis(kpisRes.data);
-      if (reunionsRes?.success)  setReunionsDuJour(reunionsRes.data ?? []);
+      if (kpisResult.status === 'fulfilled' && kpisResult.value.success)
+        setKpis(kpisResult.value.data);
+      if (reunionsResult.status === 'fulfilled' && reunionsResult.value?.success)
+        setReunionsDuJour(reunionsResult.value.data ?? []);
+      if (caResult.status === 'fulfilled' && caResult.value.success)
+        setCaMoisPrecedent(caResult.value.data ?? 0);
     } catch { /* silencieux */ }
     finally {
       setIsLoading(false);
@@ -191,10 +202,30 @@ export const DashboardScreen: React.FC = () => {
         break;
 
       case 'REUNION':
-        // Fiche réunion → onglet Plus > ReunionDetail
         navigation.navigate('Plus', {
           screen: 'ReunionDetail',
           params: { reunionId: item.id },
+        });
+        break;
+
+      case 'OPPORTUNITE':
+        navigation.navigate('Ventes', {
+          screen: 'OpportuniteDetail',
+          params: { opportuniteId: item.id },
+        });
+        break;
+
+      case 'DEVIS':
+        navigation.navigate('Ventes', {
+          screen: 'DevisDetail',
+          params: { devisId: item.id },
+        });
+        break;
+
+      case 'FACTURE':
+        navigation.navigate('Ventes', {
+          screen: 'FactureDetail',
+          params: { factureId: item.id },
         });
         break;
 
@@ -213,33 +244,21 @@ export const DashboardScreen: React.FC = () => {
       icon:      'person-add-outline',
       iconColor: '#2563EB',
       iconBg:    '#EFF6FF',
-      /**
-       * Ajouter client → onglet Clients > ClientForm
-       */
-      onPress: () => navigation.navigate('Clients', {
-        screen: 'ClientForm',
-        params: {},
-      }),
+      onPress: () => navigation.getParent()?.navigate('Clients'),
     },
     {
       label:     'Planifier\nune réunion',
       icon:      'calendar-outline',
       iconColor: '#16A34A',
       iconBg:    '#F0FDF4',
-      /**
-       * Planifier réunion → onglet Plus > PlanifierReunion
-       */
-      onPress: () => navigation.navigate('Plus', {
-        screen: 'PlanifierReunion',
-        params: {},
-      }),
+      onPress: () => navigation.getParent()?.navigate('Plus'),
     },
     {
-      label:     'Créer\ndevis',
-      icon:      'document-text-outline',
-      iconColor: '#16A34A',
-      iconBg:    '#F0FDF4',
-      onPress: () => Alert.alert('Sprint 3', 'Disponible en Sprint 3.'),
+      label:     'Ajouter\nun lead',
+      icon:      'person-add-outline',
+      iconColor: '#7C3AED',
+      iconBg:    '#F5F3FF',
+      onPress: () => navigation.getParent()?.navigate('Ventes'),
     },
     {
       label:     'Publier',
@@ -254,10 +273,9 @@ export const DashboardScreen: React.FC = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Chargement…</Text>
-        </View>
+        <SkeletonKpiGrid />
+        <SkeletonListItem style={{ marginHorizontal: 16, marginTop: 16 }} />
+        <SkeletonListItem style={{ marginHorizontal: 16 }} />
       </SafeAreaView>
     );
   }
@@ -319,8 +337,25 @@ export const DashboardScreen: React.FC = () => {
                 <Text style={styles.caUnit}> TND</Text>
               </Text>
               <View style={styles.caEvolution}>
-                <Ionicons name="trending-up-outline" size={16} color="rgba(255,255,255,0.85)" />
-                <Text style={styles.caEvolutionText}>+0% vs période précédente</Text>
+                {(() => {
+                  const pct       = calculerPctEvolution(kpis?.chiffreAffaires ?? 0, caMoisPrecedent);
+                  const evolColor = pct == null ? 'rgba(255,255,255,0.6)'
+                                  : pct >= 0   ? '#4ADE80' : '#FCA5A5';
+                  const evolTexte = pct == null ? '— N/A'
+                                  : `${pct >= 0 ? '+' : ''}${pct}% vs mois précédent`;
+                  return (
+                    <>
+                      {pct !== null && (
+                        <Ionicons
+                          name={pct >= 0 ? 'trending-up-outline' : 'trending-down-outline'}
+                          size={16}
+                          color={evolColor}
+                        />
+                      )}
+                      <Text style={[styles.caEvolutionText, { color: evolColor }]}>{evolTexte}</Text>
+                    </>
+                  );
+                })()}
               </View>
             </>
           )}
@@ -348,15 +383,15 @@ export const DashboardScreen: React.FC = () => {
         {/* ══════════════════ KPIs ══════════════════ */}
         <View style={styles.kpisRow}>
           {[
-            { value: kpis?.nbClients      ?? 0, label: 'Clients' },
-            { value: kpis?.nbOpportunites ?? 0, label: 'Opport.' },
-            { value: kpis?.nbDevis        ?? 0, label: 'Devis'   },
+            { value: kpis?.nbClients      ?? 0, label: 'Clients', color: '#2563EB' },
+            { value: kpis?.nbOpportunites ?? 0, label: 'Opport.', color: '#7C3AED' },
+            { value: kpis?.nbDevis        ?? 0, label: 'Devis',   color: '#D97706' },
           ].map(k => (
             <View key={k.label} style={styles.kpiCard}>
               {isLoadingStats ? (
                 <ActivityIndicator size="small" color={theme.colors.primary} />
               ) : (
-                <Text style={styles.kpiValue}>{k.value}</Text>
+                <Text style={[styles.kpiValue, { color: k.color }]}>{k.value}</Text>
               )}
               <Text style={styles.kpiLabel}>{k.label}</Text>
             </View>
@@ -514,7 +549,7 @@ export const DashboardScreen: React.FC = () => {
             {(kpis?.activiteRecente ?? []).length === 0 ? (
               <Text style={styles.activiteDate}>Aucune activité récente</Text>
             ) : (
-              kpis!.activiteRecente.map((item, i) => {
+              kpis!.activiteRecente.slice(0, 3).map((item, i) => {
                 const icone     = ACTIVITE_ICONE[item.typeActivite]      ?? 'ellipse-outline';
                 const bg        = ACTIVITE_BG[item.typeActivite]          ?? '#EFF6FF';
                 const iconColor = ACTIVITE_ICON_COLOR[item.typeActivite]  ?? '#2563EB';

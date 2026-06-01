@@ -47,6 +47,41 @@ export interface ReportingKpisResponse {
   activiteRecente: ActiviteRecenteItem[];
 }
 
+// ─────────────────────────────────────────────────────────────
+// Stats ventes avancées
+// ─────────────────────────────────────────────────────────────
+
+export interface StatutOpportuniteCount {
+  statut: string;
+  count:  number;
+}
+
+export interface OpportuniteResume {
+  id:            number;
+  titre:         string;
+  clientNom:     string;
+  montantEstime: number | null;
+  statut:        string;
+}
+
+export interface StatsVentesResponse {
+  nbLeadsActifs:                number;
+  tauxConversionLeads:          number;
+  valeurPipeline:               number;
+  tauxConversionOpportunites:   number;
+  tauxAcceptationDevis:         number;
+  panierMoyen:                  number;
+  repartitionOpportunites:      StatutOpportuniteCount[];
+  top3Opportunites:             OpportuniteResume[];
+}
+
+export interface CaMensuelDto {
+  mois:    number;
+  annee:   number;
+  montant: number;
+  label:   string;
+}
+
 export interface PageResponse<T> {
   content:       T[];
   page:          number;

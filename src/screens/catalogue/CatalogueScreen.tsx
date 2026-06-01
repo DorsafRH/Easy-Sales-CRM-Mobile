@@ -17,7 +17,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView }              from 'react-native-safe-area-context';
@@ -27,6 +26,7 @@ import { Ionicons }                  from '@expo/vector-icons';
 
 import { useStyles, useTheme }     from '../../theme';
 import { makeStyles }              from './CatalogueScreen.styles';
+import { SkeletonListItem }        from '../../components/ui/Skeleton';
 import { FAB }                     from '../../components/ui/FAB';
 import { SearchBar }               from '../../components/ui/SearchBar';
 import { FilterChips, FilterChip } from '../../components/ui/FilterChips';
@@ -164,8 +164,11 @@ export const CatalogueScreen: React.FC = () => {
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <SkeletonListItem />
+          <SkeletonListItem />
+          <SkeletonListItem />
+          <SkeletonListItem />
         </View>
       ) : (
         <ScrollView
