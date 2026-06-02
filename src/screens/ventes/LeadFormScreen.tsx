@@ -66,6 +66,7 @@ export const LeadFormScreen: React.FC = () => {
   const [source,           setSource]           = useState<SourceLead>('AUTRE');
   const [descriptionBesoin, setDescBesoin]      = useState('');
   const [nomError,         setNomError]         = useState('');
+  const [telephoneError,   setTelephoneError]   = useState('');
   const [isLoading,        setIsLoading]        = useState(estEdition);
   const [isSaving,         setIsSaving]         = useState(false);
 
@@ -105,6 +106,13 @@ export const LeadFormScreen: React.FC = () => {
       valide = false;
     } else {
       setNomError('');
+    }
+    // Telephone obligatoire ; email optionnel (aucune validation requise).
+    if (!telephone.trim()) {
+      setTelephoneError('Le téléphone est obligatoire');
+      valide = false;
+    } else {
+      setTelephoneError('');
     }
     return valide;
   };
@@ -186,11 +194,12 @@ export const LeadFormScreen: React.FC = () => {
               autoCapitalize="none"
             />
             <Input
-              label="Telephone"
+              label="Telephone *"
               value={telephone}
-              onChangeText={setTelephone}
+              onChangeText={v => { setTelephone(v); if (v.trim()) setTelephoneError(''); }}
               placeholder="+216 XX XXX XXX"
               keyboardType="phone-pad"
+              error={telephoneError}
             />
           </View>
         </View>

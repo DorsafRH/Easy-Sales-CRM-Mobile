@@ -21,9 +21,11 @@ import { useStyles, useTheme }          from '../../theme';
 import { makeStyles }                   from './DevisDetailScreen.styles';
 import { Badge }                        from '../../components/ui/Badge';
 import { SmartActionSheet }             from '../../components/ui/SmartActionSheet';
+import { ExportContactModal }           from '../../components/ui/ExportContactModal';
 import { VentesStackParamList }         from '../../navigation/VentesStack';
 
-import * as VenteApi from '../../api/vente.api';
+import * as VenteApi  from '../../api/vente.api';
+import * as ClientApi from '../../api/client.api';
 import {
   DevisResponse,
   STATUT_DEVIS_CONFIG,
@@ -55,21 +57,41 @@ export const DevisDetailScreen: React.FC = () => {
   const [isLoading,    setIsLoading]    = useState(true);
   // smartVisible controle la visibilite du SmartActionSheet
   const [smartVisible, setSmartVisible] = useState(false);
+  // exportVisible controle la feuille d'export (mail / WhatsApp)
+  const [exportVisible,    setExportVisible]    = useState(false);
+  const [clientEmail,      setClientEmail]      = useState<string | null>(null);
+  const [clientTelephone,  setClientTelephone]  = useState<string | null>(null);
 
   // ── Chargement ────────────────────────────────────────────
+
+  // Recupere les coordonnees du client pour preremplir l'export.
+  const chargerContactClient = useCallback(async (clientId: number) => {
+    try {
+      const res = await ClientApi.obtenirClient(clientId);
+      if (res.success) {
+        setClientEmail(res.data.email);
+        setClientTelephone(res.data.telephone);
+      }
+    } catch {
+      // non bloquant : l'utilisateur pourra saisir manuellement
+    }
+  }, []);
 
   const charger = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await VenteApi.obtenirDevis(devisId);
-      if (res.success) setDevis(res.data);
+      if (res.success) {
+        setDevis(res.data);
+        chargerContactClient(res.data.clientId);
+      }
     } catch {
       Alert.alert('Erreur', 'Impossible de charger le devis.');
       navigation.goBack();
     } finally {
       setIsLoading(false);
     }
-  }, [devisId, navigation]);
+  }, [devisId, navigation, chargerContactClient]);
 
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
 
@@ -247,6 +269,12 @@ export const DevisDetailScreen: React.FC = () => {
         {/* ── Actions ── */}
         <View style={styles.actionsSection}>
 
+          {/* Exporter — toujours visible, quel que soit le statut/contact */}
+          <TouchableOpacity style={styles.btnExport} onPress={() => setExportVisible(true)}>
+            <Ionicons name="share-outline" size={18} color={theme.colors.textSecondary} />
+            <Text style={styles.btnExportText}>Exporter</Text>
+          </TouchableOpacity>
+
           {/* Brouillon → Envoyer */}
           {estBrouillon && (
             <TouchableOpacity style={styles.btnPrimary} onPress={handleEnvoyer}>
@@ -278,8 +306,8 @@ export const DevisDetailScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Accepte → Convertir en facture */}
-          {estAccepte && (
+          {/* Accepte → Convertir en facture (masque si deja converti) */}
+          {estAccepte && !devis.dejaConverti && (
             <TouchableOpacity style={styles.btnPrimary} onPress={() => setSmartVisible(true)}>
               <Ionicons name="receipt-outline" size={18} color={theme.colors.white} />
               <Text style={styles.btnPrimaryText}>Convertir en facture</Text>
@@ -311,6 +339,17 @@ export const DevisDetailScreen: React.FC = () => {
         dismissLabel="Plus tard"
         onConfirm={handleConvertirEnFacture}
         onDismiss={() => setSmartVisible(false)}
+      />
+
+      {/* ── Export mail / WhatsApp ── */}
+      <ExportContactModal
+        visible={exportVisible}
+        onClose={() => setExportVisible(false)}
+        clientEmail={clientEmail}
+        clientTelephone={clientTelephone}
+        subject={`Devis ${devis.numero}`}
+        mailBody={`Bonjour,\n\nVeuillez trouver les details de votre devis ${devis.numero} d'un montant de ${fmt(devis.montantTtc)}.\n\nCordialement.`}
+        whatsappText={`Bonjour, voici votre devis ${devis.numero} d'un montant de ${fmt(devis.montantTtc)}.`}
       />
     </SafeAreaView>
   );

@@ -198,6 +198,22 @@ export const makeStyles = (theme: AppTheme) =>
       fontWeight: '700',
       color:      theme.colors.white,
     },
+    btnExport: {
+      flexDirection:   'row',
+      alignItems:      'center',
+      justifyContent:  'center',
+      columnGap:       theme.spacing[2],
+      paddingVertical: theme.spacing[3],
+      borderRadius:    theme.radius.xl,
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+      backgroundColor: theme.colors.bgSurface,
+    },
+    btnExportText: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '600',
+      color:      theme.colors.textSecondary,
+    },
     btnDanger: {
       borderRadius:    theme.radius.xl,
       paddingVertical: theme.spacing[3],

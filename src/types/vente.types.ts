@@ -185,6 +185,8 @@ export interface DevisResponse {
   clientNom:        string;
   opportuniteId:    number | null;
   opportuniteTitre: string | null;
+  /** true si une facture a deja ete generee depuis ce devis — masque le bouton de conversion. */
+  dejaConverti:     boolean;
   lignes:           LigneDevisResponse[];
   dateCreation:     string;
   dateModification: string | null;

@@ -22,9 +22,11 @@ import { useStyles, useTheme }       from '../../theme';
 import { makeStyles }                from './FactureDetailScreen.styles';
 import { SkeletonCard }             from '../../components/ui/Skeleton';
 import { Badge }                     from '../../components/ui/Badge';
+import { ExportContactModal }        from '../../components/ui/ExportContactModal';
 import { VentesStackParamList }      from '../../navigation/VentesStack';
 
-import * as VenteApi from '../../api/vente.api';
+import * as VenteApi  from '../../api/vente.api';
+import * as ClientApi from '../../api/client.api';
 import {
   FactureResponse,
   STATUT_FACTURE_CONFIG,
@@ -185,21 +187,40 @@ export const FactureDetailScreen: React.FC = () => {
   const [facture,      setFacture]      = useState<FactureResponse | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
   const [isExporting,  setIsExporting]  = useState(false);
+  const [exportVisible,   setExportVisible]   = useState(false);
+  const [clientEmail,     setClientEmail]     = useState<string | null>(null);
+  const [clientTelephone, setClientTelephone] = useState<string | null>(null);
 
   // ── Chargement ────────────────────────────────────────────
+
+  // Recupere les coordonnees du client pour preremplir l'export.
+  const chargerContactClient = useCallback(async (clientId: number) => {
+    try {
+      const res = await ClientApi.obtenirClient(clientId);
+      if (res.success) {
+        setClientEmail(res.data.email);
+        setClientTelephone(res.data.telephone);
+      }
+    } catch {
+      // non bloquant : saisie manuelle possible
+    }
+  }, []);
 
   const charger = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await VenteApi.obtenirFacture(factureId);
-      if (res.success) setFacture(res.data);
+      if (res.success) {
+        setFacture(res.data);
+        chargerContactClient(res.data.clientId);
+      }
     } catch {
       Alert.alert('Erreur', 'Impossible de charger la facture.');
       navigation.goBack();
     } finally {
       setIsLoading(false);
     }
-  }, [factureId, navigation]);
+  }, [factureId, navigation, chargerContactClient]);
 
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
 
@@ -460,6 +481,12 @@ export const FactureDetailScreen: React.FC = () => {
 
         {/* ── Actions ── */}
         <View style={styles.actionsSection}>
+          {/* Exporter (mail / WhatsApp) — toujours visible, quel que soit le contact */}
+          <TouchableOpacity style={styles.pdfBtn} onPress={() => setExportVisible(true)}>
+            <Ionicons name="share-outline" size={18} color={theme.colors.textSecondary} />
+            <Text style={styles.pdfBtnText}>Exporter</Text>
+          </TouchableOpacity>
+
           {/* Export PDF — disponible pour toutes les factures */}
           <TouchableOpacity style={styles.pdfBtn} onPress={handleExportPdf} disabled={isExporting}>
             {isExporting ? (
@@ -534,6 +561,17 @@ export const FactureDetailScreen: React.FC = () => {
         </View>
 
       </ScrollView>
+
+      {/* ── Export mail / WhatsApp ── */}
+      <ExportContactModal
+        visible={exportVisible}
+        onClose={() => setExportVisible(false)}
+        clientEmail={clientEmail}
+        clientTelephone={clientTelephone}
+        subject={`Facture ${facture.numero}`}
+        mailBody={`Bonjour,\n\nVeuillez trouver les details de votre facture ${facture.numero} d'un montant de ${fmt(facture.montantTtc)}.\n\nCordialement.`}
+        whatsappText={`Bonjour, voici votre facture ${facture.numero} d'un montant de ${fmt(facture.montantTtc)}.`}
+      />
     </SafeAreaView>
   );
 };

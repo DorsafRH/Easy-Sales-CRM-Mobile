@@ -101,6 +101,8 @@ export const ClientFormScreen: React.FC = () => {
       if (!form.raisonSociale.trim())
         e.raisonSociale = 'La raison sociale est obligatoire.';
     }
+    // Telephone obligatoire ; email optionnel (aucune validation requise).
+    if (!form.telephone.trim()) e.telephone = 'Le téléphone est obligatoire';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -258,6 +260,8 @@ export const ClientFormScreen: React.FC = () => {
               value={form.telephone}
               onChangeText={setField('telephone')}
               keyboardType="phone-pad"
+              error={errors.telephone}
+              required
             />
             <Input
               label="Adresse"
