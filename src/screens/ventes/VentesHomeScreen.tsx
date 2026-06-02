@@ -62,6 +62,14 @@ const KPI_COLOR_OPPORT = '#0891B2'; // Opport. act. — cyan
 const KPI_COLOR_DEVIS  = '#D97706'; // Devis envoyés — ambre
 // ── Largeur fixe d'un mois dans le graphe scrollable ─────────
 const CHART_MONTH_W    = 44;
+// ── Couleurs segments donut pipeline ─────────────────────────
+const PIE_COLOR_PROSPECTION  = '#E0E7FF';
+const PIE_COLOR_QUALIFICATION = '#DDD6FE';
+const PIE_COLOR_PROPOSITION  = '#FDE8D8';
+const PIE_COLOR_NEGOCIATION  = '#C4B5FD';
+const PIE_COLOR_GAGNEE       = '#BFDBFE';
+const PIE_COLOR_PERDUE       = '#FED7AA';
+const PIE_COLOR_EMPTY        = '#F3F4F6';
 
 const CHART_H   = 148;
 const LABEL_H   = 22;
@@ -123,6 +131,38 @@ const buildArc = (
   return `M ${cx},${cy} L ${sx.toFixed(1)},${sy.toFixed(1)} A ${r},${r} 0 ${large} 1 ${ex.toFixed(1)},${ey.toFixed(1)} Z`;
 };
 
+/** Chemin SVG d'un segment de donut (arc extérieur + arc intérieur) */
+const buildDonutArc = (
+  cx: number, cy: number, rOut: number, rIn: number,
+  startDeg: number, endDeg: number,
+): string => {
+  if (Math.abs(endDeg - startDeg) < 0.01) return '';
+  if (endDeg - startDeg >= 360) endDeg = startDeg + 359.9;
+  const rad = (d: number) => (d - 90) * Math.PI / 180;
+  const f   = (v: number) => v.toFixed(2);
+  const osx = cx + rOut * Math.cos(rad(startDeg));
+  const osy = cy + rOut * Math.sin(rad(startDeg));
+  const oex = cx + rOut * Math.cos(rad(endDeg));
+  const oey = cy + rOut * Math.sin(rad(endDeg));
+  const iex = cx + rIn  * Math.cos(rad(endDeg));
+  const iey = cy + rIn  * Math.sin(rad(endDeg));
+  const isx = cx + rIn  * Math.cos(rad(startDeg));
+  const isy = cy + rIn  * Math.sin(rad(startDeg));
+  const lg  = endDeg - startDeg > 180 ? 1 : 0;
+  return `M ${f(osx)},${f(osy)} A ${rOut},${rOut} 0 ${lg} 1 ${f(oex)},${f(oey)} L ${f(iex)},${f(iey)} A ${rIn},${rIn} 0 ${lg} 0 ${f(isx)},${f(isy)} Z`;
+};
+
+// ── Config statique des segments donut ───────────────────────
+type DonutSegment = { statut: string; label: string; color: string; count: number; start: number; end: number };
+const DONUT_CONFIG: Array<{ statut: string; label: string; color: string }> = [
+  { statut: 'PROSPECTION',   label: 'Prospect.', color: PIE_COLOR_PROSPECTION  },
+  { statut: 'QUALIFICATION', label: 'Qualif.',   color: PIE_COLOR_QUALIFICATION },
+  { statut: 'PROPOSITION',   label: 'Propos.',   color: PIE_COLOR_PROPOSITION  },
+  { statut: 'NEGOCIATION',   label: 'Négoc.', color: PIE_COLOR_NEGOCIATION  },
+  { statut: 'GAGNEE',        label: 'Gagnée', color: PIE_COLOR_GAGNEE       },
+  { statut: 'PERDUE',        label: 'Perdue',    color: PIE_COLOR_PERDUE       },
+];
+
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT PRINCIPAL
 // ─────────────────────────────────────────────────────────────
@@ -166,16 +206,6 @@ export const VentesHomeScreen: React.FC = () => {
   const [chartW,  setChartW]  = useState(0);
   const [tooltipIdx, setTooltipIdx] = useState<number | null>(null);
   const chartScrollRef = useRef<ScrollView>(null);
-
-  // ── Config PIE (dépend de theme) ──────────────────────────
-  const PIE_CONFIG = [
-    { statut: 'PROSPECTION',   label: 'Prospect.', color: theme.colors.info },
-    { statut: 'QUALIFICATION', label: 'Qualif.',   color: theme.colors.primary },
-    { statut: 'PROPOSITION',   label: 'Propos.',   color: theme.colors.warning },
-    { statut: 'NEGOCIATION',   label: 'Négoc.',    color: theme.colors.statutSuspendu },
-    { statut: 'GAGNEE',        label: 'Gagnée',    color: theme.colors.success },
-    { statut: 'PERDUE',        label: 'Perdue',    color: theme.colors.danger },
-  ];
 
   // ── Chargement données ventes ─────────────────────────────
 
@@ -468,34 +498,34 @@ export const VentesHomeScreen: React.FC = () => {
     );
   };
 
-  const renderPerformanceGrid = () => {
-    const s = statsVentes;
+  /** Carte performance individuelle — fond blanc épuré */
+  const renderPerfCard = (
+    icon: string, value: string, label: string,
+  ): React.ReactElement => (
+    <View style={styles.statCard}>
+      <Ionicons name={icon as any} size={18} color={theme.colors.primary} />
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+
+  const renderPerformanceGrid = (): React.ReactElement => {
+    const s   = statsVentes;
     const fmt = (v: number) => v.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
-    const items = [
-      { label: 'Conv. leads',   value: s ? `${s.tauxConversionLeads}%`        : '—', icon: 'trending-up-outline',     color: theme.colors.primary,        bg: theme.colors.primaryLight },
-      { label: 'Conv. opport.', value: s ? `${s.tauxConversionOpportunites}%` : '—', icon: 'trophy-outline',           color: theme.colors.success,        bg: theme.colors.successLight },
-      { label: 'Acc. devis',    value: s ? `${s.tauxAcceptationDevis}%`       : '—', icon: 'checkmark-circle-outline', color: theme.colors.warning,        bg: theme.colors.warningLight },
-      { label: 'Panier moyen',  value: s ? `${fmt(s.panierMoyen)} TND`  : '—', icon: 'cart-outline',             color: theme.colors.info,           bg: theme.colors.infoLight },
-    ];
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitleOnly}>Performance commerciale</Text>
         <View style={styles.statsGrid}>
-          {items.map(item => (
-            <View key={item.label} style={styles.statCard}>
-              <View style={[styles.statIconBadge, { backgroundColor: item.bg }]}>
-                <Ionicons name={item.icon as any} size={16} color={item.color} />
-              </View>
-              <Text style={[styles.statValue, { color: item.color }]}>{item.value}</Text>
-              <Text style={styles.statLabel}>{item.label}</Text>
-            </View>
-          ))}
+          {renderPerfCard('trending-up-outline',      s ? `${s.tauxConversionLeads}%`        : '—', 'Leads convertis')}
+          {renderPerfCard('trophy-outline',           s ? `${s.tauxConversionOpportunites}%` : '—', 'Opportunités gagnées')}
+          {renderPerfCard('checkmark-circle-outline', s ? `${s.tauxAcceptationDevis}%`       : '—', 'Devis acceptés')}
+          {renderPerfCard('cart-outline',             s ? `${fmt(s.panierMoyen)} TND`         : '—', 'Panier moyen')}
         </View>
       </View>
     );
   };
 
-  const renderFinancialCards = () => {
+  const renderFinancialCards = (): React.ReactElement => {
     const s = statsVentes;
     const fmt = (v: number) => v.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
     return (
@@ -507,66 +537,122 @@ export const VentesHomeScreen: React.FC = () => {
             <Text style={styles.finLabel}>Valeur pipeline</Text>
             <Text style={styles.finValue}>{s ? fmt(s.valeurPipeline) : '—'}</Text>
             <Text style={styles.finUnit}>TND</Text>
+            <Text style={styles.finDesc}>Opportunités en cours</Text>
           </View>
           <View style={styles.finCard}>
             <Ionicons name="calendar-outline" size={18} color={theme.colors.textSecondary} />
             <Text style={styles.finLabel}>CA mois précédent</Text>
             <Text style={styles.finValue}>{fmt(caMoisPrec)}</Text>
             <Text style={styles.finUnit}>TND</Text>
+            <Text style={styles.finDesc}>Mois dernier</Text>
           </View>
         </View>
       </View>
     );
   };
 
-  const renderPieChart = () => {
+  const buildDonutSegments = (): { segments: DonutSegment[]; total: number } => {
     const repart = statsVentes?.repartitionOpportunites ?? [];
     const total  = repart.reduce((s, r) => s + r.count, 0);
-    const CX = 55, CY = 55, R = 46;
-    let cumAngle = 0;
-    const segments = PIE_CONFIG.map(cfg => {
+    let cum = 0;
+    const segments = DONUT_CONFIG.reduce<DonutSegment[]>((acc, cfg) => {
       const count = repart.find(r => r.statut === cfg.statut)?.count ?? 0;
-      const angle = total > 0 ? (count / total) * 360 * prog : 0;
-      const seg   = { ...cfg, count, start: cumAngle, end: cumAngle + angle };
-      cumAngle   += angle;
-      return seg;
-    });
+      if (count === 0 || total === 0) return acc;
+      const angle = (count / total) * 360 * prog;
+      acc.push({ ...cfg, count, start: cum, end: cum + angle });
+      cum += angle;
+      return acc;
+    }, []);
+    return { segments, total };
+  };
 
+  const renderDonutSvg = (segments: DonutSegment[], total: number): React.ReactElement => (
+    <Svg width={160} height={160}>
+      {total === 0 ? (
+        <>
+          <Circle cx={80} cy={80} r={68} fill={PIE_COLOR_EMPTY} />
+          <Circle cx={80} cy={80} r={42} fill={theme.colors.bgSurface} />
+          <SvgText x={80} y={84} textAnchor="middle" fontSize={10} fill={theme.colors.textTertiary}>
+            Aucune opportunité
+          </SvgText>
+        </>
+      ) : (
+        <>
+          {segments.map(s => (
+            <Path key={s.statut} d={buildDonutArc(80, 80, 68, 42, s.start, s.end)} fill={s.color} />
+          ))}
+          <Circle cx={80} cy={80} r={42} fill={theme.colors.bgSurface} />
+          <SvgText x={80} y={75} textAnchor="middle" fontSize={22} fontWeight="700" fill={theme.colors.textPrimary}>
+            {total}
+          </SvgText>
+          <SvgText x={80} y={91} textAnchor="middle" fontSize={10} fill={theme.colors.textSecondary}>
+            opport.
+          </SvgText>
+        </>
+      )}
+    </Svg>
+  );
+
+  const renderPieLegend = (total: number): React.ReactElement => (
+    <View style={styles.pieLegend}>
+      {DONUT_CONFIG.map(cfg => {
+        const count = statsVentes?.repartitionOpportunites?.find(r => r.statut === cfg.statut)?.count ?? 0;
+        if (total > 0 && count === 0) return null;
+        return (
+          <View key={cfg.statut} style={styles.pieLegendItem}>
+            <View style={[styles.pieLegendDot, { backgroundColor: cfg.color }]} />
+            <Text style={styles.pieLegendLabel}>{cfg.label}</Text>
+            <Text style={styles.pieLegendCount}>{count}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+
+  const renderPieChart = (): React.ReactElement => {
+    const { segments, total } = buildDonutSegments();
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitleOnly}>Répartition pipeline</Text>
         <View style={styles.pieCard}>
-          <Svg width={110} height={110}>
-            {total === 0 ? (
-              <Path d={buildArc(CX, CY, R, 0, 359.9)} fill={theme.colors.border} />
-            ) : (
-              segments.map(seg => (
-                <Path
-                  key={seg.statut}
-                  d={buildArc(CX, CY, R, seg.start, seg.end)}
-                  fill={seg.color}
-                />
-              ))
-            )}
-          </Svg>
-          <View style={styles.pieLegend}>
-            {PIE_CONFIG.map(cfg => {
-              const count = repart.find(r => r.statut === cfg.statut)?.count ?? 0;
-              return (
-                <View key={cfg.statut} style={styles.pieLegendItem}>
-                  <View style={[styles.pieLegendDot, { backgroundColor: cfg.color }]} />
-                  <Text style={styles.pieLegendLabel}>{cfg.label}</Text>
-                  <Text style={styles.pieLegendCount}>{count}</Text>
-                </View>
-              );
-            })}
-          </View>
+          {renderDonutSvg(segments, total)}
+          {renderPieLegend(total)}
         </View>
       </View>
     );
   };
 
-  const renderTop3 = () => {
+  const renderTop3Item = (
+    o: { id: number; titre: string; clientNom: string; montantEstime: number | null },
+    idx: number,
+  ): React.ReactElement => (
+    <TouchableOpacity
+      key={o.id}
+      style={styles.top3Item}
+      onPress={() => navigation.navigate('OpportuniteDetail', { opportuniteId: o.id })}
+      activeOpacity={0.75}
+    >
+      <LinearGradient
+        colors={[RANK_COLORS[idx] + '40', RANK_COLORS[idx] + '15']}
+        style={styles.top3RankBadge}
+      >
+        <Text style={[styles.top3RankText, { color: RANK_COLORS[idx] }]}>
+          #{idx + 1}
+        </Text>
+      </LinearGradient>
+      <View style={styles.top3Info}>
+        <Text style={styles.top3Titre} numberOfLines={1}>{o.titre}</Text>
+        <Text style={styles.top3Client} numberOfLines={1}>{o.clientNom}</Text>
+      </View>
+      <Text style={[styles.top3Montant, { color: RANK_COLORS[idx] }]}>
+        {o.montantEstime != null
+          ? o.montantEstime.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND'
+          : '—'}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderTop3 = (): React.ReactElement => {
     const top3 = statsVentes?.top3Opportunites ?? [];
     return (
       <View style={[styles.section, { paddingBottom: 16 }]}>
@@ -584,34 +670,7 @@ export const VentesHomeScreen: React.FC = () => {
               soustitre="Ajoutez des opportunités au pipeline"
             />
           ) : (
-            top3.map((o, idx) => (
-              <TouchableOpacity
-                key={o.id}
-                style={styles.top3Item}
-                onPress={() =>
-                  navigation.navigate('OpportuniteDetail', { opportuniteId: o.id })
-                }
-                activeOpacity={0.75}
-              >
-                <LinearGradient
-                  colors={[RANK_COLORS[idx] + '40', RANK_COLORS[idx] + '15']}
-                  style={styles.top3RankBadge}
-                >
-                  <Text style={[styles.top3RankText, { color: RANK_COLORS[idx] }]}>
-                    #{idx + 1}
-                  </Text>
-                </LinearGradient>
-                <View style={styles.top3Info}>
-                  <Text style={styles.top3Titre} numberOfLines={1}>{o.titre}</Text>
-                  <Text style={styles.top3Client} numberOfLines={1}>{o.clientNom}</Text>
-                </View>
-                <Text style={[styles.top3Montant, { color: RANK_COLORS[idx] }]}>
-                  {o.montantEstime != null
-                    ? o.montantEstime.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND'
-                    : '—'}
-                </Text>
-              </TouchableOpacity>
-            ))
+            top3.map((o, i) => renderTop3Item(o, i))
           )}
         </View>
       </View>
