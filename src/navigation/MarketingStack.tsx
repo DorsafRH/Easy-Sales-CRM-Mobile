@@ -1,29 +1,29 @@
 /**
  * @file MarketingStack.tsx
- * @description Stack Navigator pour le module Marketing.
- *
- *              Sprint 2 : affiche MarketingPlaceholderScreen (placeholder).
- *              Sprint 4 : remplacer le contenu par les vrais écrans
- *                         Publications, Réseaux sociaux, etc.
- *
+ * @description Stack Navigator du module Marketing (Sprint 4).
+ *              Écran principal à 4 onglets + formulaire et détail de publication.
  * @author Riahi Dorsaf
  */
 
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { MarketingPlaceholderScreen } from '../screens/plus/placeholders/MarketingPlaceholderScreen';
+import { MarketingHomeScreen }     from '../screens/marketing/MarketingHomeScreen';
+import { PublicationFormScreen }   from '../screens/marketing/PublicationFormScreen';
+import { PublicationDetailScreen } from '../screens/marketing/PublicationDetailScreen';
+
+import { PublicationMarketing } from '../types/marketing.types';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Sprint 4 : ajouter ici les routes réelles.
- * Ex : PublicationsList, PublicationForm, ReseauxSociaux…
- */
 export type MarketingStackParamList = {
-  MarketingHome: undefined;
+  MarketingHome:     undefined;
+  /** Formulaire de création / édition — publication fournie en mode édition */
+  PublicationForm:   { publication?: PublicationMarketing };
+  /** Détail d'une publication et statut de diffusion par réseau */
+  PublicationDetail: { publicationId: number };
 };
 
 const Stack = createNativeStackNavigator<MarketingStackParamList>();
@@ -34,9 +34,6 @@ const Stack = createNativeStackNavigator<MarketingStackParamList>();
 
 /**
  * Stack Navigator pour l'onglet Marketing.
- *
- * Sprint 2 : placeholder — remplacer par les vrais écrans en Sprint 4.
- *
  * @author Riahi Dorsaf
  */
 export const MarketingStack: React.FC = () => (
@@ -47,9 +44,8 @@ export const MarketingStack: React.FC = () => (
       animation:      'slide_from_right',
     }}
   >
-    <Stack.Screen
-      name="MarketingHome"
-      component={MarketingPlaceholderScreen}
-    />
+    <Stack.Screen name="MarketingHome"     component={MarketingHomeScreen} />
+    <Stack.Screen name="PublicationForm"   component={PublicationFormScreen} />
+    <Stack.Screen name="PublicationDetail" component={PublicationDetailScreen} />
   </Stack.Navigator>
 );
