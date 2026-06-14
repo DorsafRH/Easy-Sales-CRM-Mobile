@@ -11,12 +11,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './PublicationFormScreen.styles';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { MarketingStackParamList } from '../../navigation/MarketingStack';
+import { toLocalDateTimeString, parseLocalDateTime } from '../../utils/dateUtils';
 
 import * as MarketingApi from '../../api/marketing.api';
 import { CompteSocialConnecte, TYPE_RESEAU_CONFIG } from '../../types/marketing.types';
@@ -44,10 +46,15 @@ export const PublicationFormScreen: React.FC = () => {
   const [sujetIa, setSujetIa] = useState('');
   const [tonalite, setTonalite] = useState('professionnel');
   const [comptes, setComptes] = useState<CompteSocialConnecte[]>([]);
-  const [selection, setSelection] = useState<number[]>([]);
+  const [selection, setSelection] = useState<number[]>(
+    publication?.diffusions?.map(d => d.compteSocial.id) ?? []);
   const [programmer, setProgrammer] = useState(!!publication?.dateProgrammation);
-  const [dateProgrammation, setDateProgrammation] = useState(
-    publication?.dateProgrammation ?? '');
+  const [dateProgrammation, setDateProgrammation] = useState<Date>(
+    publication?.dateProgrammation
+      ? parseLocalDateTime(publication.dateProgrammation)
+      : new Date());
+  const [showDate, setShowDate] = useState(false);
+  const [showHeure, setShowHeure] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [generation, setGeneration] = useState(false);
   const [enregistrement, setEnregistrement] = useState(false);
@@ -115,10 +122,14 @@ export const PublicationFormScreen: React.FC = () => {
     titre: titre.trim(),
     texte: texte.trim(),
     mediaUrl: mediaUrl.trim() || undefined,
-    dateProgrammation: programmer && dateProgrammation.trim()
-      ? dateProgrammation.trim() : undefined,
+    dateProgrammation: programmer ? toLocalDateTimeString(dateProgrammation) : undefined,
     comptesSociauxIds: selection.length > 0 ? selection : undefined,
   });
+
+  const fmtDate = (d: Date) =>
+    d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const fmtHeure = (d: Date) =>
+    d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -212,13 +223,32 @@ export const PublicationFormScreen: React.FC = () => {
           />
         </View>
         {programmer && (
-          <Input
-            label="Date (AAAA-MM-JJTHH:mm:ss)"
-            value={dateProgrammation}
-            onChangeText={setDateProgrammation}
-            placeholder="2026-06-10T09:00:00"
-            autoCapitalize="none"
-          />
+          <>
+            <View style={styles.rowDateHeure}>
+              <View style={[styles.fieldGroup, styles.fieldDate]}>
+                <Text style={styles.label}>Date</Text>
+                <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowDate(true)}>
+                  <Text style={styles.pickerBtnTxt}>{fmtDate(dateProgrammation)}</Text>
+                  <Ionicons name="calendar-outline" size={16} color={theme.colors.textTertiary} />
+                </TouchableOpacity>
+              </View>
+              <View style={[styles.fieldGroup, styles.fieldHeure]}>
+                <Text style={styles.label}>Heure</Text>
+                <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowHeure(true)}>
+                  <Text style={styles.pickerBtnTxt}>{fmtHeure(dateProgrammation)}</Text>
+                  <Ionicons name="time-outline" size={16} color={theme.colors.textTertiary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            {showDate && (
+              <DateTimePicker value={dateProgrammation} mode="date" minimumDate={new Date()}
+                onChange={(_, s) => { setShowDate(false); if (s) setDateProgrammation(s); }} />
+            )}
+            {showHeure && (
+              <DateTimePicker value={dateProgrammation} mode="time" is24Hour
+                onChange={(_, s) => { setShowHeure(false); if (s) setDateProgrammation(s); }} />
+            )}
+          </>
         )}
 
         <View style={styles.submitWrapper}>

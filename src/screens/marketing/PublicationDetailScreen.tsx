@@ -123,7 +123,9 @@ export const PublicationDetailScreen: React.FC = () => {
 
   const confStatut = STATUT_PUBLICATION_CONFIG[publication.statut];
   const modifiable = publication.statut === 'BROUILLON';
-  const publiable = publication.statut === 'BROUILLON' || publication.statut === 'PROGRAMMEE';
+  const enEchec = publication.statut === 'ECHEC';
+  const publiable = publication.statut === 'BROUILLON'
+    || publication.statut === 'PROGRAMMEE' || enEchec;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -163,7 +165,8 @@ export const PublicationDetailScreen: React.FC = () => {
 
         <View style={styles.actions}>
           {publiable && (
-            <Button label="Publier maintenant" onPress={publier} loading={action} fullWidth />
+            <Button label={enEchec ? 'Réessayer la publication' : 'Publier maintenant'}
+              onPress={publier} loading={action} fullWidth />
           )}
           {publiable && (
             <Button label="Annuler la publication" onPress={annuler}

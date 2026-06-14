@@ -30,9 +30,22 @@ export const USER_KEY  = 'crm_current_user';
 // URL DE BASE
 // ─────────────────────────────────────────────────────────────
 
-const BASE_URL = __DEV__
-  ? 'http://10.233.231.88:8080/api'
+/**
+ * URL du backend, configurable sans toucher au code.
+ *
+ * Définir EXPO_PUBLIC_API_URL dans .env.local (prioritaire, gitignoré) :
+ *   - LAN direct    : http://192.168.1.246:8080/api
+ *   - Tunnel HTTPS  : https://api.mon-domaine.com/api
+ *
+ * Les variables EXPO_PUBLIC_* sont inlinées au bundling → après
+ * modification, relancer Expo avec le cache vidé : `npx expo start -c`.
+ * Le fallback ci-dessous évite tout crash si la variable est absente.
+ */
+const FALLBACK_URL = __DEV__
+  ? 'http://10.179.94.88:8080/api'
   : 'https://api.votre-domaine.com/api';
+
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? FALLBACK_URL;
 
 // ─────────────────────────────────────────────────────────────
 // FONCTIONS UTILITAIRES SECURE STORE
