@@ -241,13 +241,45 @@ export const FactureDetailScreen: React.FC = () => {
         onPress: async () => {
           try {
             const res = await VenteApi.changerStatutFacture(factureId, statut);
-            if (res.success) setFacture(res.data);
+            if (res.success) {
+              setFacture(res.data);
+              if (statut === 'ANNULEE' && res.data.opportuniteId != null) {
+                proposerSuiteOpportunite(res.data.opportuniteId);
+              }
+            }
           } catch (e: any) {
             Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de changer le statut.');
           }
         },
       },
     ]);
+  };
+
+  // Apres annulation d'une facture liee a une opportunite : on demande quoi faire de
+  // l'opportunite (rouvrir pour re-facturer, marquer perdue, ou laisser tel quel).
+  const proposerSuiteOpportunite = (opportuniteId: number) => {
+    const majOpportunite = async (statut: 'NEGOCIATION' | 'PERDUE') => {
+      try {
+        await VenteApi.changerStatutOpportunite(opportuniteId, statut);
+        Alert.alert(
+          'Opportunité mise à jour',
+          statut === 'NEGOCIATION'
+            ? "L'opportunité est rouverte en négociation : le devis redevient modifiable."
+            : "L'opportunité a été marquée comme perdue.",
+        );
+      } catch (e: any) {
+        Alert.alert('Erreur', e?.response?.data?.message ?? "Impossible de mettre à jour l'opportunité.");
+      }
+    };
+    Alert.alert(
+      'Et l\'opportunité ?',
+      'La facture est annulée. Que faire de l\'opportunité associée ?',
+      [
+        { text: 'Plus tard', style: 'cancel' },
+        { text: 'Marquer perdue', style: 'destructive', onPress: () => majOpportunite('PERDUE') },
+        { text: 'Rouvrir pour re-facturer', onPress: () => majOpportunite('NEGOCIATION') },
+      ],
+    );
   };
 
   const handleMarquerLivre = () => {

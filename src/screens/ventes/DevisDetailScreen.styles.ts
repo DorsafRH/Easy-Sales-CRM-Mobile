@@ -226,6 +226,19 @@ export const makeStyles = (theme: AppTheme) =>
       fontWeight: '600',
       color:      theme.colors.danger,
     },
+    infoOppRow: {
+      flexDirection:   'row',
+      alignItems:      'center',
+      columnGap:       theme.spacing[2],
+      paddingVertical: theme.spacing[1],
+      paddingHorizontal: theme.spacing[1],
+    },
+    infoOppText: {
+      flex:       1,
+      fontSize:   theme.typography.size.xs,
+      color:      theme.colors.textTertiary,
+      lineHeight: 16,
+    },
     loadingContainer: {
       flex: 1, alignItems: 'center', justifyContent: 'center',
     },

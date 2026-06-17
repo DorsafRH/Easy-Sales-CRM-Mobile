@@ -20,7 +20,6 @@ import { Ionicons }                      from '@expo/vector-icons';
 import { useStyles, useTheme }       from '../../theme';
 import { makeStyles }                from './OpportunitesKanbanScreen.styles';
 import { SkeletonKanbanCard }        from '../../components/ui/Skeleton';
-import { SmartActionSheet }          from '../../components/ui/SmartActionSheet';
 import { SearchBar }                 from '../../components/ui/SearchBar';
 import { FilterChips }               from '../../components/ui/FilterChips';
 import { VentesStackParamList }      from '../../navigation/VentesStack';
@@ -83,10 +82,6 @@ export const OpportunitesKanbanScreen: React.FC = () => {
   const [viewMode,     setViewMode]     = useState<ViewMode>('kanban');
   const [isLoading,    setIsLoading]    = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [smartSheet,   setSmartSheet]   = useState<{
-    visible: boolean;
-    opportuniteId: number | null;
-  }>({ visible: false, opportuniteId: null });
 
   // ── États drag & drop ─────────────────────────────────────
   const [isDragging,       setIsDragging]       = useState(false);
@@ -185,11 +180,10 @@ export const OpportunitesKanbanScreen: React.FC = () => {
     const doMove = async () => {
       try {
         await VenteApi.changerStatutOpportunite(opportunite.id, nouveauStatut);
-        if (nouveauStatut === 'GAGNEE') {
-          setSmartSheet({ visible: true, opportuniteId: opportunite.id });
-        } else {
-          charger(true);
-        }
+        // La facture est générée côté backend (copie du devis accepté) lors du passage
+        // à GAGNÉE. On rafraîchit simplement. Sans devis, le backend renvoie une erreur
+        // affichée ci-dessous (cohérent avec la fiche détail).
+        charger(true);
       } catch (e: any) {
         Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de déplacer.');
       }
@@ -306,27 +300,6 @@ export const OpportunitesKanbanScreen: React.FC = () => {
       await VenteApi.changerStatutOpportunite(o.id, 'PERDUE');
       charger(true);
     });
-  };
-
-  // ── Smart Automation ──────────────────────────────────────
-
-  const handleSmartConfirm = async () => {
-    if (!smartSheet.opportuniteId) return;
-    setSmartSheet({ visible: false, opportuniteId: null });
-    try {
-      const res = await VenteApi.genererDevisDepuisOpportunite(smartSheet.opportuniteId);
-      if (res.success) {
-        charger(true);
-        navigation.navigate('DevisDetail', { devisId: res.data.id });
-      }
-    } catch {
-      charger(true);
-    }
-  };
-
-  const handleSmartDismiss = () => {
-    setSmartSheet({ visible: false, opportuniteId: null });
-    charger(true);
   };
 
   const formatMontant = (v: number | null) =>
@@ -686,20 +659,6 @@ export const OpportunitesKanbanScreen: React.FC = () => {
           )}
         </View>
       )}
-
-      {/* ── Smart Automation ── */}
-      <SmartActionSheet
-        visible={smartSheet.visible}
-        iconName="trophy-outline"
-        iconColor="#16A34A"
-        iconBg="#F0FDF4"
-        title="Opportunite gagnee !"
-        subtitle="Voulez-vous creer un devis maintenant ?"
-        confirmLabel="Creer le devis"
-        dismissLabel="Plus tard"
-        onConfirm={handleSmartConfirm}
-        onDismiss={handleSmartDismiss}
-      />
 
     </SafeAreaView>
   );

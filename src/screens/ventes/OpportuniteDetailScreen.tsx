@@ -20,7 +20,6 @@ import { Ionicons }                             from '@expo/vector-icons';
 import { useStyles, useTheme }          from '../../theme';
 import { makeStyles }                   from './OpportuniteDetailScreen.styles';
 import { TimelineItem }                 from '../../components/ui/TimelineItem';
-import { SmartActionSheet }             from '../../components/ui/SmartActionSheet';
 import { VentesStackParamList }         from '../../navigation/VentesStack';
 import { useTimeline }                  from '../../hooks/useTimeline';
 
@@ -83,7 +82,6 @@ export const OpportuniteDetailScreen: React.FC = () => {
 
   // ── Timeline activités depuis le reporting ────────────────
   const { activites } = useTimeline('OPPORTUNITE', opportuniteId);
-  const [smartVisible, setSmartVisible] = useState(false);
 
   // ── Chargement ────────────────────────────────────────────
 
@@ -121,6 +119,37 @@ export const OpportuniteDetailScreen: React.FC = () => {
     if (idx < 0 || idx >= colonnes.length - 2) return;
 
     const next = colonnes[idx + 1];
+
+    // Passage à GAGNÉE : on exige un devis (la facture en sera la copie fidèle)
+    // et on demande confirmation que le client a bien accepté ce devis.
+    if (next === 'GAGNEE') {
+      const devis = trouverDevisActif(devisList, opportunite.id);
+      if (!devis) {
+        Alert.alert(
+          'Devis requis',
+          "Créez d'abord un devis pour cette opportunité avant de la marquer gagnée.",
+        );
+        return;
+      }
+      const montant = devis.montantTtc
+        ? devis.montantTtc.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND'
+        : 'montant à compléter';
+      Alert.alert(
+        "Gagner l'opportunité",
+        `Devis ${devis.numero} — ${montant}.\n` +
+          'Le client a-t-il accepté ce devis ? La facture en sera générée.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Modifier le devis',
+            onPress: () => navigation.navigate('DevisDetail', { devisId: devis.id }),
+          },
+          { text: 'Accepter + facturer', onPress: confirmerGagne },
+        ],
+      );
+      return;
+    }
+
     Alert.alert('Avancer', `Passer a ${next} ?`, [
       { text: 'Annuler', style: 'cancel' },
       {
@@ -128,16 +157,28 @@ export const OpportuniteDetailScreen: React.FC = () => {
         onPress: async () => {
           try {
             const res = await VenteApi.changerStatutOpportunite(opportunite.id, next);
-            if (res.success) {
-              setOpportunite(res.data);
-              if (next === 'GAGNEE') setSmartVisible(true);
-            }
+            if (res.success) setOpportunite(res.data);
           } catch {
             Alert.alert('Erreur', 'Impossible de changer le statut.');
           }
         },
       },
     ]);
+  };
+
+  // Confirme le passage à GAGNÉE : le backend accepte le devis et génère la facture
+  // (copie fidèle). On rafraîchit pour afficher le bouton « Voir Facture ».
+  const confirmerGagne = async () => {
+    if (!opportunite) return;
+    try {
+      const res = await VenteApi.changerStatutOpportunite(opportunite.id, 'GAGNEE');
+      if (res.success) {
+        setOpportunite(res.data);
+        charger();
+      }
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de changer le statut.');
+    }
   };
 
   const handlePerdre = () => {
@@ -153,19 +194,6 @@ export const OpportuniteDetailScreen: React.FC = () => {
         },
       },
     ]);
-  };
-
-  const handleGenererDevis = async () => {
-    if (!opportunite) return;
-    setSmartVisible(false);
-    try {
-      const res = await VenteApi.genererDevisDepuisOpportunite(opportunite.id);
-      if (res.success) {
-        navigation.navigate('DevisDetail', { devisId: res.data.id });
-      }
-    } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de generer le devis.');
-    }
   };
 
   // ── Helpers de rendu ──────────────────────────────────────
@@ -418,19 +446,6 @@ export const OpportuniteDetailScreen: React.FC = () => {
         )}
 
       </ScrollView>
-
-      {/* ── Smart Automation ── */}
-      <SmartActionSheet
-        visible={smartVisible}
-        iconName="trophy-outline"
-        iconColor="#16A34A"
-        iconBg="#F0FDF4"
-        title="Opportunite gagnee !"
-        subtitle="Voulez-vous generer un devis maintenant pour cette opportunite ?"
-        confirmLabel="Generer le devis"
-        onConfirm={handleGenererDevis}
-        onDismiss={() => setSmartVisible(false)}
-      />
     </SafeAreaView>
   );
 };

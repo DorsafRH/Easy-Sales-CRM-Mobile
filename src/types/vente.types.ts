@@ -224,6 +224,8 @@ export interface FactureResponse {
   clientId:         number;
   clientNom:        string;
   devisNumero:      string | null;
+  devisOrigineId:   number | null;
+  opportuniteId:    number | null;
   lignes:           LigneFactureResponse[];
   dateCreation:     string;
   dateRelative:     string;

@@ -98,9 +98,18 @@ export const DevisDetailScreen: React.FC = () => {
   // ── Actions statut ────────────────────────────────────────
 
   const handleEnvoyer = async () => {
+    const etaitEnvoye = devis?.statut === 'ENVOYE';
     try {
       const res = await VenteApi.changerStatutDevis(devisId, 'ENVOYE');
-      if (res.success) setDevis(res.data);
+      if (res.success) {
+        setDevis(res.data);
+        Alert.alert(
+          etaitEnvoye ? 'Devis renvoyé' : 'Devis envoyé',
+          etaitEnvoye
+            ? 'Le devis a de nouveau été envoyé au client.'
+            : 'Le devis a bien été envoyé au client.',
+        );
+      }
     } catch (e: any) {
       Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible d envoyer le devis.');
     }
@@ -165,6 +174,9 @@ export const DevisDetailScreen: React.FC = () => {
   const estBrouillon = devis.statut === 'BROUILLON';
   const estEnvoye    = devis.statut === 'ENVOYE';
   const estAccepte   = devis.statut === 'ACCEPTE';
+  // Devis rattaché à une opportunité : la décision « accepter / facturer » se prend
+  // UNIQUEMENT depuis la fiche opportunité (« Gagner »). Ici on ne gère que le document.
+  const estLieOpp    = devis.opportuniteId != null;
 
   const fmt = (v: number) =>
     v.toLocaleString('fr-TN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' TND';
@@ -283,8 +295,26 @@ export const DevisDetailScreen: React.FC = () => {
             </TouchableOpacity>
           )}
 
-          {/* Envoye → Accepter / Refuser */}
+          {/* Envoye → Renvoyer (version revisee) */}
           {estEnvoye && (
+            <TouchableOpacity style={styles.btnPrimary} onPress={handleEnvoyer}>
+              <Ionicons name="send-outline" size={18} color={theme.colors.white} />
+              <Text style={styles.btnPrimaryText}>Renvoyer le devis</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Devis lié à une opportunité : on facture depuis la fiche opportunité */}
+          {estLieOpp && !estBrouillon && (
+            <View style={styles.infoOppRow}>
+              <Ionicons name="information-circle-outline" size={16} color={theme.colors.textTertiary} />
+              <Text style={styles.infoOppText}>
+                Pour facturer, marquez l'opportunité comme gagnée depuis sa fiche.
+              </Text>
+            </View>
+          )}
+
+          {/* Envoye → Accepter / Refuser (devis AUTONOME uniquement) */}
+          {estEnvoye && !estLieOpp && (
             <View style={styles.actionRow}>
               <TouchableOpacity
                 style={[
@@ -306,16 +336,16 @@ export const DevisDetailScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Accepte → Convertir en facture (masque si deja converti) */}
-          {estAccepte && !devis.dejaConverti && (
+          {/* Accepte → Convertir en facture (devis AUTONOME, masque si deja converti) */}
+          {estAccepte && !estLieOpp && !devis.dejaConverti && (
             <TouchableOpacity style={styles.btnPrimary} onPress={() => setSmartVisible(true)}>
               <Ionicons name="receipt-outline" size={18} color={theme.colors.white} />
               <Text style={styles.btnPrimaryText}>Convertir en facture</Text>
             </TouchableOpacity>
           )}
 
-          {/* Modifier — seulement si brouillon */}
-          {estBrouillon && (
+          {/* Modifier — tant que le devis n'est pas verrouillé (brouillon ou envoyé) */}
+          {(estBrouillon || estEnvoye) && (
             <TouchableOpacity
               style={styles.btnDanger}
               onPress={() => navigation.navigate('DevisForm', { devisId })}
