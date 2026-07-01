@@ -92,15 +92,6 @@ export const MarketingDashboard: React.FC = () => {
     </View>
   );
 
-  // ── Mini-stat publication ───────────────────────────────────────────
-  const pubStat = (icon: string, value: number, label: string, color: string) => (
-    <View style={styles.pubStat}>
-      <Ionicons name={icon as any} size={18} color={color} />
-      <Text style={styles.pubStatValue}>{value}</Text>
-      <Text style={styles.pubStatLabel}>{label}</Text>
-    </View>
-  );
-
   return (
     <ScrollView
       contentContainerStyle={styles.content}
@@ -117,16 +108,6 @@ export const MarketingDashboard: React.FC = () => {
         {kpi('ribbon-outline',       overview.leadsQualifies,           'Qualifiés',       KPI_QUALIFIES)}
         {kpi('speedometer-outline',  `${overview.scoreMoyen}`,          'Score moyen',     KPI_SCORE)}
         {kpi('trending-up-outline',  `${overview.tauxConversion}%`,     'Conversion',      KPI_CONVERSION)}
-      </View>
-
-      {/* ── Publications ───────────────────────────────────────────── */}
-      <Text style={styles.sectionTitle}>Publications</Text>
-      <View style={styles.pubCard}>
-        {pubStat('checkmark-done-outline', overview.publicationsPubliees,    'Publiées',    theme.colors.success)}
-        <View style={styles.pubDivider} />
-        {pubStat('time-outline',           overview.publicationsProgrammees, 'Programmées', theme.colors.primary)}
-        <View style={styles.pubDivider} />
-        {pubStat('create-outline',         overview.publicationsBrouillons,  'Brouillons',  theme.colors.textSecondary)}
       </View>
 
       {/* ── Réactions par publication ──────────────────────────────── */}

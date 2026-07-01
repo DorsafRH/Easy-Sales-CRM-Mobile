@@ -8,9 +8,11 @@
 import apiClient from './axios.config';
 import { ApiResponse } from '../types/auth.types';
 import {
+  AmeliorerContenuRequest,
   CompteSocialConnecte,
   GenererContenuRequest,
   GenererContenuResponse,
+  GenererPublicationRequest,
   PublicationMarketing,
   PublicationRequest,
 } from '../types/marketing.types';
@@ -24,6 +26,33 @@ export const genererContenu = async (
 ): Promise<ApiResponse<GenererContenuResponse>> => {
   const res = await apiClient.post<ApiResponse<GenererContenuResponse>>(
     '/marketing/generer', request,
+  );
+  return res.data;
+};
+
+/**
+ * Génère une publication pilotée par le catalogue : le backend récupère les produits/
+ * catégorie selon la portée, calcule les prix promo et fait rédiger le post par l'IA.
+ * @author Riahi Dorsaf
+ */
+export const genererPublication = async (
+  request: GenererPublicationRequest,
+): Promise<ApiResponse<GenererContenuResponse>> => {
+  const res = await apiClient.post<ApiResponse<GenererContenuResponse>>(
+    '/marketing/generer-publication', request,
+  );
+  return res.data;
+};
+
+/**
+ * Améliore un texte déjà rédigé avec l'IA (raffinage itératif, relançable à volonté).
+ * @author Riahi Dorsaf
+ */
+export const ameliorerContenu = async (
+  request: AmeliorerContenuRequest,
+): Promise<ApiResponse<GenererContenuResponse>> => {
+  const res = await apiClient.post<ApiResponse<GenererContenuResponse>>(
+    '/marketing/ameliorer', request,
   );
   return res.data;
 };

@@ -45,7 +45,20 @@ export const makeStyles = (theme: AppTheme) =>
     },
     statutRow: {
       flexDirection: 'row',
+      alignItems:    'center',
+      flexWrap:      'wrap',
+      columnGap:     theme.spacing[2],
+      rowGap:        theme.spacing[1],
       marginBottom:  theme.spacing[3],
+    },
+    dateInfo: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      columnGap:     theme.spacing[1],
+    },
+    dateInfoText: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '600',
     },
     card: {
       backgroundColor: theme.colors.bgSurface,

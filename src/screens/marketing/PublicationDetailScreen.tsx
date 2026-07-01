@@ -16,6 +16,8 @@ import { makeStyles } from './PublicationDetailScreen.styles';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { FacebookPostPreview } from '../../components/marketing/FacebookPostPreview';
+import { parseLocalDateTime } from '../../utils/dateUtils';
 import { MarketingStackParamList } from '../../navigation/MarketingStack';
 
 import * as MarketingApi from '../../api/marketing.api';
@@ -122,7 +124,21 @@ export const PublicationDetailScreen: React.FC = () => {
   }
 
   const confStatut = STATUT_PUBLICATION_CONFIG[publication.statut];
-  const modifiable = publication.statut === 'BROUILLON';
+  const pageNom = publication.diffusions
+    .find(d => d.compteSocial.typeReseau === 'FACEBOOK')?.compteSocial.nomCompte ?? 'Votre page';
+
+  const fmtDateHeure = (s: string) => {
+    const d = parseLocalDateTime(s);
+    return `${d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`
+      + ` à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+  };
+  const infoDate = publication.statut === 'PROGRAMMEE' && publication.dateProgrammation
+    ? { icon: 'time-outline', texte: `Programmée le ${fmtDateHeure(publication.dateProgrammation)}` }
+    : publication.datePublication
+      ? { icon: 'checkmark-circle-outline', texte: `Publiée le ${fmtDateHeure(publication.datePublication)}` }
+      : null;
+  const modifiable = publication.statut === 'BROUILLON'
+    || publication.statut === 'PROGRAMMEE';
   const enEchec = publication.statut === 'ECHEC';
   const publiable = publication.statut === 'BROUILLON'
     || publication.statut === 'PROGRAMMEE' || enEchec;
@@ -147,14 +163,25 @@ export const PublicationDetailScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.statutRow}>
           <Badge label={confStatut.label} variant="neutral" />
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.texte}>{publication.texte ?? 'Aucun texte'}</Text>
-          {publication.mediaUrl && (
-            <Text style={styles.media} numberOfLines={1}>📎 {publication.mediaUrl}</Text>
+          {infoDate && (
+            <View style={styles.dateInfo}>
+              <Ionicons name={infoDate.icon as any} size={14} color={confStatut.color} />
+              <Text style={[styles.dateInfoText, { color: confStatut.color }]}>{infoDate.texte}</Text>
+            </View>
           )}
         </View>
+
+        {publication.texte?.trim() ? (
+          <FacebookPostPreview
+            pageNom={pageNom}
+            texte={publication.texte}
+            mediaUrl={publication.mediaUrl}
+          />
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.texte}>Aucun texte</Text>
+          </View>
+        )}
 
         <Text style={styles.sectionTitre}>Diffusion par réseau</Text>
         {publication.diffusions.length === 0 ? (

@@ -96,6 +96,64 @@ export const makeStyles = (theme: AppTheme) =>
     chipLabelActif: {
       color: theme.colors.primary,
     },
+    // ── Modal de sélection (catégorie / produit) ────────────────
+    modalOverlay: {
+      flex:            1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent:  'center',
+      paddingHorizontal: layout.screenPadding,
+    },
+    modalCard: {
+      backgroundColor: theme.colors.bgSurface,
+      borderRadius:    theme.radius.lg,
+      padding:         theme.spacing[4],
+      rowGap:          theme.spacing[3],
+      maxHeight:       '75%',
+    },
+    modalTitre: {
+      fontSize:   theme.typography.size.base,
+      fontWeight: '700',
+      color:      theme.colors.textPrimary,
+    },
+    modalListe: {
+      maxHeight: 320,
+    },
+    modalItem: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      justifyContent:    'space-between',
+      paddingVertical:   theme.spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.bgApp,
+    },
+    modalItemText: {
+      fontSize: theme.typography.size.base,
+      color:    theme.colors.textPrimary,
+    },
+    modalItemTextActif: {
+      color:      theme.colors.primary,
+      fontWeight: '700',
+    },
+    ameliorerRow: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      columnGap:     theme.spacing[1],
+      alignSelf:     'flex-end',
+      marginTop:     -theme.spacing[1],
+    },
+    ameliorerLien: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '700',
+      color:      theme.colors.primary,
+    },
+    ameliorerBox: {
+      backgroundColor: theme.colors.primaryLight,
+      borderRadius:    theme.radius.lg,
+      padding:         theme.spacing[3],
+      rowGap:          theme.spacing[3],
+      borderWidth:     1,
+      borderColor:     theme.colors.border,
+    },
     textarea: {
       minHeight:         120,
       textAlignVertical: 'top',

@@ -6,7 +6,9 @@
  */
 
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
+import {
+  View, Text, TouchableOpacity, FlatList, RefreshControl, TextInput,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -30,6 +32,15 @@ import {
 
 type Nav = NativeStackNavigationProp<MarketingStackParamList, 'MarketingHome'>;
 type Onglet = 'dashboard' | 'publications' | 'calendrier' | 'reseaux';
+type FiltreStatut = 'TOUS' | 'PUBLIEE' | 'PROGRAMMEE' | 'BROUILLON';
+
+const PAGE_SIZE = 8;
+const FILTRES: Array<{ key: FiltreStatut; label: string }> = [
+  { key: 'TOUS',       label: 'Toutes' },
+  { key: 'PUBLIEE',    label: 'Publiées' },
+  { key: 'PROGRAMMEE', label: 'Programmées' },
+  { key: 'BROUILLON',  label: 'Brouillons' },
+];
 
 const ONGLETS: Array<{ key: Onglet; label: string; icon: string }> = [
   { key: 'dashboard',    label: 'Dashboard',    icon: 'stats-chart-outline' },
@@ -50,6 +61,12 @@ export const MarketingHomeScreen: React.FC = () => {
   const [publications, setPublications] = useState<PublicationMarketing[]>([]);
   const [onglet, setOnglet] = useState<Onglet>('dashboard');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filtreStatut, setFiltreStatut] = useState<FiltreStatut>('TOUS');
+  const [recherche, setRecherche] = useState('');
+  const [page, setPage] = useState(1);
+
+  const majFiltre = (f: FiltreStatut) => { setFiltreStatut(f); setPage(1); };
+  const majRecherche = (t: string) => { setRecherche(t); setPage(1); };
 
   const charger = useCallback(async () => {
     try {
@@ -105,19 +122,107 @@ export const MarketingHomeScreen: React.FC = () => {
     );
   };
 
+  const compter = (statut: string) =>
+    publications.filter(p => p.statut === statut).length;
+
+  const statCol = (icon: string, value: number, label: string, color: string) => (
+    <View style={styles.statCol}>
+      <Ionicons name={icon as any} size={18} color={color} />
+      <Text style={styles.statVal}>{value}</Text>
+      <Text style={styles.statLbl}>{label}</Text>
+    </View>
+  );
+
+  const renderStatsPublications = () => (
+    <View style={styles.statsCard}>
+      {statCol('checkmark-done-outline', compter('PUBLIEE'), 'Publiées',
+        STATUT_PUBLICATION_CONFIG.PUBLIEE.color)}
+      <View style={styles.statDivider} />
+      {statCol('time-outline', compter('PROGRAMMEE'), 'Programmées',
+        STATUT_PUBLICATION_CONFIG.PROGRAMMEE.color)}
+      <View style={styles.statDivider} />
+      {statCol('create-outline', compter('BROUILLON'), 'Brouillons',
+        STATUT_PUBLICATION_CONFIG.BROUILLON.color)}
+    </View>
+  );
+
+  const term = recherche.trim().toLowerCase();
+  const publicationsFiltrees = publications.filter(p => {
+    if (filtreStatut !== 'TOUS' && p.statut !== filtreStatut) return false;
+    if (!term) return true;
+    return `${p.titre ?? ''} ${p.texte ?? ''}`.toLowerCase().includes(term);
+  });
+  const publicationsAffichees = publicationsFiltrees.slice(0, page * PAGE_SIZE);
+  const filtreActif = filtreStatut !== 'TOUS' || term.length > 0;
+
+  const chargerPlus = () => {
+    if (publicationsAffichees.length < publicationsFiltrees.length) {
+      setPage(p => p + 1);
+    }
+  };
+
+  const renderRecherche = () => (
+    <>
+      <View style={styles.filterRow}>
+        {FILTRES.map(f => {
+          const actif = filtreStatut === f.key;
+          return (
+            <TouchableOpacity
+              key={f.key}
+              style={[styles.filterChip, actif && styles.filterChipActif]}
+              onPress={() => majFiltre(f.key)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.filterChipText, actif && styles.filterChipTextActif]}>
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      <View style={styles.searchBar}>
+        <Ionicons name="search" size={16} color={theme.colors.textTertiary} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Rechercher par titre, mot ou #hashtag"
+          placeholderTextColor={theme.colors.textTertiary}
+          value={recherche}
+          onChangeText={majRecherche}
+          autoCapitalize="none"
+        />
+        {recherche.length > 0 && (
+          <TouchableOpacity onPress={() => majRecherche('')} hitSlop={8}>
+            <Ionicons name="close-circle" size={16} color={theme.colors.textTertiary} />
+          </TouchableOpacity>
+        )}
+      </View>
+    </>
+  );
+
   const renderPublications = () => (
-    <FlatList
-      data={publications}
-      keyExtractor={item => String(item.id)}
-      renderItem={renderItem}
-      contentContainerStyle={styles.listContent}
-      showsVerticalScrollIndicator={false}
-      refreshControl={refreshControl()}
-      ListEmptyComponent={
-        <EmptyState icon="newspaper-outline" titre="Aucune publication"
-          soustitre="Appuyez sur + pour en créer une" />
-      }
-    />
+    <View style={styles.tabBody}>
+      {renderRecherche()}
+      <FlatList
+        data={publicationsAffichees}
+        keyExtractor={item => String(item.id)}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={refreshControl()}
+        ListHeaderComponent={renderStatsPublications()}
+        onEndReached={chargerPlus}
+        onEndReachedThreshold={0.4}
+        ListEmptyComponent={
+          <EmptyState
+            icon="newspaper-outline"
+            titre={filtreActif ? 'Aucun résultat' : 'Aucune publication'}
+            soustitre={filtreActif
+              ? 'Modifiez la recherche ou le filtre'
+              : 'Appuyez sur + pour en créer une'}
+          />
+        }
+      />
+    </View>
   );
 
   const refreshControl = () => (
@@ -131,7 +236,8 @@ export const MarketingHomeScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Marketing Hub</Text>
+        <Text style={styles.headerTitle}>Marketing</Text>
+        <Text style={styles.headerSub}>Publications, calendrier & réseaux</Text>
       </View>
       {renderTabs()}
       <View style={styles.body}>

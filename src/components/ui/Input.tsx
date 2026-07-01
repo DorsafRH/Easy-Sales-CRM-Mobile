@@ -36,7 +36,7 @@ interface InputProps extends TextInputProps {
  */
 export const Input: React.FC<InputProps> = ({
   label, error, required = false, isPassword = false,
-  containerStyle, ...rest
+  containerStyle, style, ...rest
 }) => {
   const styles = useStyles(makeStyles);
   const theme  = useTheme();
@@ -52,7 +52,7 @@ export const Input: React.FC<InputProps> = ({
       )}
       <View style={[styles.inputWrapper, error ? styles.inputError : null]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, style]}
           placeholderTextColor={theme.colors.textPlaceholder}
           secureTextEntry={isPassword ? !showPassword : rest.secureTextEntry}
           autoCapitalize="none"

@@ -1,12 +1,17 @@
 /**
  * @file PublicationFormScreen.tsx
- * @description Création / édition d'une publication marketing,
- *              avec génération de contenu par IA et sélection des réseaux.
+ * @description Création / édition d'une publication marketing. L'assistant IA est piloté
+ *              par le catalogue : l'utilisateur choisit une cible (toute la boutique ou une
+ *              catégorie), puis éventuellement des produits de cette catégorie. Le backend
+ *              récupère les données + calcule les prix promo. L'utilisateur ne ressaisit
+ *              jamais les données produit ; il peut toujours ajouter une consigne libre.
  * @author Riahi Dorsaf
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import {
+  View, Text, ScrollView, TouchableOpacity, Switch, Modal, Pressable,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,19 +22,25 @@ import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './PublicationFormScreen.styles';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { FacebookPostPreview } from '../../components/marketing/FacebookPostPreview';
 import { MarketingStackParamList } from '../../navigation/MarketingStack';
 import { toLocalDateTimeString, parseLocalDateTime } from '../../utils/dateUtils';
 
 import * as MarketingApi from '../../api/marketing.api';
-import { CompteSocialConnecte, TYPE_RESEAU_CONFIG } from '../../types/marketing.types';
+import * as CatalogueApi from '../../api/catalogue.api';
+import {
+  CompteSocialConnecte, GenererPublicationRequest, TYPE_RESEAU_CONFIG,
+} from '../../types/marketing.types';
+import { ProduitResponse, CategorieResponse } from '../../types/catalogue.types';
 
 type Nav = NativeStackNavigationProp<MarketingStackParamList, 'PublicationForm'>;
 type Rt = RouteProp<MarketingStackParamList, 'PublicationForm'>;
 
-const TONALITES = ['professionnel', 'humoristique', 'urgent'];
+const TONALITES = ['professionnel', 'humoristique', 'promotionnel'];
+const NB_CHIPS = 3; // nombre de raccourcis affichés avant le bouton « Autre… »
 
 /**
- * Formulaire de publication avec assistant IA.
+ * Formulaire de publication avec assistant IA piloté par le catalogue.
  * @author Riahi Dorsaf
  */
 export const PublicationFormScreen: React.FC = () => {
@@ -43,8 +54,19 @@ export const PublicationFormScreen: React.FC = () => {
   const [titre, setTitre] = useState(publication?.titre ?? '');
   const [texte, setTexte] = useState(publication?.texte ?? '');
   const [mediaUrl, setMediaUrl] = useState(publication?.mediaUrl ?? '');
-  const [sujetIa, setSujetIa] = useState('');
+
+  // ── Assistant IA (piloté catalogue) ────────────────────────────
+  const [produits, setProduits] = useState<ProduitResponse[]>([]);
+  const [categories, setCategories] = useState<CategorieResponse[]>([]);
+  const [boutique, setBoutique] = useState(false);          // « Toute la boutique »
+  const [categorieSel, setCategorieSel] = useState<number | null>(null);
+  const [produitsSel, setProduitsSel] = useState<number[]>([]);
+  const [remise, setRemise] = useState('');
+  const [consigne, setConsigne] = useState('');
   const [tonalite, setTonalite] = useState('professionnel');
+  const [picker, setPicker] = useState<'categorie' | 'produit' | null>(null);
+  const [recherche, setRecherche] = useState('');
+
   const [comptes, setComptes] = useState<CompteSocialConnecte[]>([]);
   const [selection, setSelection] = useState<number[]>(
     publication?.diffusions?.map(d => d.compteSocial.id) ?? []);
@@ -57,37 +79,96 @@ export const PublicationFormScreen: React.FC = () => {
   const [showHeure, setShowHeure] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [generation, setGeneration] = useState(false);
+  const [amelioration, setAmelioration] = useState(false);
+  const [ameliorerOuvert, setAmeliorerOuvert] = useState(false);
+  const [ameliorerConsigne, setAmeliorerConsigne] = useState('');
   const [enregistrement, setEnregistrement] = useState(false);
 
-  const chargerComptes = useCallback(async () => {
+  const chargerDonnees = useCallback(async () => {
     try {
-      const res = await MarketingApi.listerReseaux();
-      if (res.success) setComptes(res.data);
+      const [reseaux, prods, cats] = await Promise.all([
+        MarketingApi.listerReseaux(),
+        CatalogueApi.listerProduits(undefined, 'ACTIF'),
+        CatalogueApi.listerCategories(),
+      ]);
+      if (reseaux.success) setComptes(reseaux.data);
+      if (prods.success) setProduits(prods.data);
+      if (cats.success) setCategories(cats.data);
     } catch {
       // silencieux
     }
   }, []);
 
-  useEffect(() => { chargerComptes(); }, [chargerComptes]);
+  useEffect(() => { chargerDonnees(); }, [chargerDonnees]);
 
+  // ── Sélection cible / produits ─────────────────────────────────
+  const produitsCategorie = categorieSel == null
+    ? []
+    : produits.filter(p => p.categorieId === categorieSel);
+
+  const choisirBoutique = () => {
+    setBoutique(true); setCategorieSel(null); setProduitsSel([]);
+  };
+  const choisirCategorie = (id: number) => {
+    setBoutique(false); setCategorieSel(id); setProduitsSel([]);
+  };
+  const basculerProduit = (id: number) =>
+    setProduitsSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const basculerCompte = (id: number) =>
     setSelection(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
-  const genererIa = async () => {
-    if (!sujetIa.trim() && !titre.trim()) {
-      setErreur('Renseignez un sujet pour générer le contenu.');
-      return;
+  const ouvrirPicker = (type: 'categorie' | 'produit') => { setRecherche(''); setPicker(type); };
+
+  /** Raccourcis à afficher : les N premiers + la sélection éventuellement au-delà. */
+  const raccourcisCategories = (): CategorieResponse[] => {
+    const base = categories.slice(0, NB_CHIPS);
+    if (categorieSel != null && !base.some(c => c.id === categorieSel)) {
+      const sel = categories.find(c => c.id === categorieSel);
+      if (sel) base.push(sel);
     }
+    return base;
+  };
+  const raccourcisProduits = (): ProduitResponse[] => {
+    const base = produitsCategorie.slice(0, NB_CHIPS);
+    produitsSel.forEach(id => {
+      if (!base.some(p => p.id === id)) {
+        const sel = produitsCategorie.find(p => p.id === id);
+        if (sel) base.push(sel);
+      }
+    });
+    return base;
+  };
+
+  /** Déduit un titre à partir du texte généré (1re ligne, sans hashtags, tronquée). */
+  const titreDepuisTexte = (t: string): string => {
+    const premiere = t.split('\n').map(l => l.trim()).find(l => l.length > 0) ?? '';
+    let s = premiere.replace(/#\S+/g, '').replace(/\s+/g, ' ').trim();
+    if (s.length > 70) s = `${s.slice(0, 67).trim()}…`;
+    return s || 'Publication';
+  };
+
+  const construireRequete = (): GenererPublicationRequest => {
+    const commun = {
+      remise: remise.trim() ? Number(remise) : undefined,
+      consigne: consigne.trim() || undefined,
+      tonalite,
+      langue: 'fr',
+    };
+    if (produitsSel.length > 0) return { portee: 'PRODUITS', produitIds: produitsSel, ...commun };
+    if (categorieSel != null)   return { portee: 'CATEGORIE', categorieId: categorieSel, ...commun };
+    if (boutique)               return { portee: 'BOUTIQUE', ...commun };
+    return { portee: 'LIBRE', ...commun };
+  };
+
+  const genererIa = async () => {
     setGeneration(true);
     setErreur(null);
     try {
-      const res = await MarketingApi.genererContenu({
-        sujet: sujetIa.trim() || titre.trim(),
-        typeContenu: 'post_facebook',
-        tonalite,
-        langue: 'fr',
-      });
-      if (res.success) setTexte(res.data.contenuAmeliore);
+      const res = await MarketingApi.genererPublication(construireRequete());
+      if (res.success) {
+        setTexte(res.data.contenuAmeliore);
+        setTitre(titreDepuisTexte(res.data.contenuAmeliore)); // titre auto, éditable
+      }
     } catch {
       setErreur('La génération IA a échoué. Réessayez.');
     } finally {
@@ -95,8 +176,26 @@ export const PublicationFormScreen: React.FC = () => {
     }
   };
 
+  /** Raffine le texte courant selon la consigne d'amélioration (relançable à volonté). */
+  const ameliorerIa = async () => {
+    if (!texte.trim()) return;
+    setAmelioration(true);
+    setErreur(null);
+    try {
+      const res = await MarketingApi.ameliorerContenu({
+        texte: texte.trim(),
+        consigne: ameliorerConsigne.trim() || undefined,
+        tonalite,
+      });
+      if (res.success) setTexte(res.data.contenuAmeliore);
+    } catch {
+      setErreur('L\'amélioration IA a échoué. Réessayez.');
+    } finally {
+      setAmelioration(false);
+    }
+  };
+
   const valider = (): boolean => {
-    if (!titre.trim()) { setErreur('Le titre est obligatoire.'); return false; }
     if (!texte.trim()) { setErreur('Le texte est obligatoire.'); return false; }
     return true;
   };
@@ -119,7 +218,7 @@ export const PublicationFormScreen: React.FC = () => {
   };
 
   const construirePayload = () => ({
-    titre: titre.trim(),
+    titre: titre.trim() || titreDepuisTexte(texte),
     texte: texte.trim(),
     mediaUrl: mediaUrl.trim() || undefined,
     dateProgrammation: programmer ? toLocalDateTimeString(dateProgrammation) : undefined,
@@ -130,6 +229,41 @@ export const PublicationFormScreen: React.FC = () => {
     d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
   const fmtHeure = (d: Date) =>
     d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+  // ── Aperçu Facebook ────────────────────────────────────────────
+  const pageNom = comptes.find(c => c.typeReseau === 'FACEBOOK')?.nomCompte ?? 'Votre page';
+
+  const renderChip = (
+    key: string | number, label: string, actif: boolean, onPress: () => void,
+  ) => (
+    <TouchableOpacity
+      key={key}
+      style={[styles.chip, actif && styles.chipActif]}
+      onPress={onPress}
+    >
+      <Text style={[styles.chipLabel, actif && styles.chipLabelActif]}>{label}</Text>
+    </TouchableOpacity>
+  );
+
+  const renderAutreChip = (onPress: () => void) => (
+    <TouchableOpacity style={styles.chip} onPress={onPress}>
+      <Ionicons name="ellipsis-horizontal" size={13} color={theme.colors.textTertiary} />
+      <Text style={styles.chipLabel}>Autre…</Text>
+    </TouchableOpacity>
+  );
+
+  // ── Modal de sélection (catégorie ou produit) ──────────────────
+  const listeModal = picker === 'categorie'
+    ? categories.filter(c => c.nom.toLowerCase().includes(recherche.toLowerCase()))
+    : produitsCategorie.filter(p => p.nom.toLowerCase().includes(recherche.toLowerCase()));
+
+  const estActifModal = (id: number) =>
+    picker === 'categorie' ? categorieSel === id : produitsSel.includes(id);
+
+  const onTapModal = (id: number) => {
+    if (picker === 'categorie') { choisirCategorie(id); setPicker(null); }
+    else basculerProduit(id);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -154,24 +288,53 @@ export const PublicationFormScreen: React.FC = () => {
             <Ionicons name="sparkles-outline" size={18} color={theme.colors.primary} />
             <Text style={styles.iaTitre}>Assistant IA</Text>
           </View>
+
+          {/* Cible : toute la boutique OU une catégorie */}
+          <Text style={styles.label}>Ce post concerne</Text>
+          <View style={styles.chipsRow}>
+            {renderChip('boutique', 'Tout', boutique, choisirBoutique)}
+            {raccourcisCategories().map(cat =>
+              renderChip(cat.id, cat.nom, categorieSel === cat.id, () => choisirCategorie(cat.id)))}
+            {categories.length > NB_CHIPS && renderAutreChip(() => ouvrirPicker('categorie'))}
+          </View>
+
+          {/* Produits de la catégorie (optionnel) */}
+          {categorieSel != null && (
+            <>
+              <Text style={styles.label}>Produits ciblés (optionnel)</Text>
+              {produitsCategorie.length === 0 ? (
+                <Text style={styles.aucunReseau}>Aucun produit dans cette catégorie.</Text>
+              ) : (
+                <View style={styles.chipsRow}>
+                  {raccourcisProduits().map(pr =>
+                    renderChip(pr.id, pr.nom, produitsSel.includes(pr.id), () => basculerProduit(pr.id)))}
+                  {produitsCategorie.length > NB_CHIPS && renderAutreChip(() => ouvrirPicker('produit'))}
+                </View>
+              )}
+            </>
+          )}
+
+          {/* Remise + consigne libre : toujours visibles */}
           <Input
-            label="Sujet"
-            value={sujetIa}
-            onChangeText={setSujetIa}
-            placeholder="Ex : Promotion Ramadan 50%"
+            label="Remise (%) — optionnel"
+            value={remise}
+            onChangeText={setRemise}
+            placeholder="Ex : 20"
+            keyboardType="numeric"
           />
+          <Input
+            label="Décrivez ce que vous voulez"
+            value={consigne}
+            onChangeText={setConsigne}
+            placeholder="Ex : nouvel arrivage, livraison gratuite, fête…"
+          />
+
+          {/* Tonalité */}
           <Text style={styles.label}>Tonalité</Text>
           <View style={styles.chipsRow}>
-            {TONALITES.map(t => (
-              <TouchableOpacity
-                key={t}
-                style={[styles.chip, tonalite === t && styles.chipActif]}
-                onPress={() => setTonalite(t)}
-              >
-                <Text style={[styles.chipLabel, tonalite === t && styles.chipLabelActif]}>{t}</Text>
-              </TouchableOpacity>
-            ))}
+            {TONALITES.map(t => renderChip(t, t, tonalite === t, () => setTonalite(t)))}
           </View>
+
           <Button
             label="Générer avec IA"
             onPress={genererIa}
@@ -181,13 +344,41 @@ export const PublicationFormScreen: React.FC = () => {
           />
         </View>
 
-        <Input label="Titre" value={titre} onChangeText={setTitre} required
-          placeholder="Titre de la publication" />
+        <Input label="Titre (généré par l'IA, modifiable)" value={titre} onChangeText={setTitre}
+          placeholder="Rempli automatiquement à la génération" />
         <Input label="Texte" value={texte} onChangeText={setTexte} required
-          placeholder="Contenu de la publication" multiline
+          placeholder="Contenu de la publication (modifiable après génération)" multiline
           numberOfLines={6} style={styles.textarea} />
-        <Input label="URL média (optionnel)" value={mediaUrl} onChangeText={setMediaUrl}
-          placeholder="https://..." autoCapitalize="none" />
+        {texte.trim().length > 0 && (
+          <>
+            <View style={styles.ameliorerRow}>
+              <Ionicons name="sparkles-outline" size={15} color={theme.colors.primary} />
+              <TouchableOpacity onPress={() => setAmeliorerOuvert(v => !v)}>
+                <Text style={styles.ameliorerLien}>Améliorer avec l'IA</Text>
+              </TouchableOpacity>
+            </View>
+            {ameliorerOuvert && (
+              <View style={styles.ameliorerBox}>
+                <Input
+                  label="Qu'améliorer ?"
+                  value={ameliorerConsigne}
+                  onChangeText={setAmeliorerConsigne}
+                  placeholder="Ex : plus court, ajoute la livraison gratuite, ton plus chaleureux…"
+                  multiline
+                />
+                <Button
+                  label="Appliquer l'amélioration"
+                  onPress={ameliorerIa}
+                  variant="secondary"
+                  loading={amelioration}
+                  fullWidth
+                />
+              </View>
+            )}
+          </>
+        )}
+        {/* ── Aperçu façon post Facebook ─────────────────────────── */}
+        <FacebookPostPreview pageNom={pageNom} texte={texte} mediaUrl={mediaUrl} />
 
         <Text style={styles.label}>Réseaux ciblés</Text>
         {comptes.length === 0 ? (
@@ -253,13 +444,54 @@ export const PublicationFormScreen: React.FC = () => {
 
         <View style={styles.submitWrapper}>
           <Button
-            label={estEdition ? 'Enregistrer' : 'Créer la publication'}
+            label={estEdition
+              ? 'Enregistrer'
+              : (programmer ? 'Programmer la publication' : 'Créer un brouillon')}
             onPress={enregistrer}
             loading={enregistrement}
             fullWidth
           />
         </View>
       </ScrollView>
+
+      {/* Modal de sélection (catégorie / produit) */}
+      <Modal visible={picker !== null} transparent animationType="fade"
+        onRequestClose={() => setPicker(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setPicker(null)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitre}>
+              {picker === 'categorie' ? 'Choisir une catégorie' : 'Choisir des produits'}
+            </Text>
+            <Input
+              value={recherche}
+              onChangeText={setRecherche}
+              placeholder="Rechercher…"
+              autoCapitalize="none"
+            />
+            <ScrollView style={styles.modalListe} keyboardShouldPersistTaps="handled">
+              {listeModal.length === 0 ? (
+                <Text style={styles.aucunReseau}>Aucun résultat.</Text>
+              ) : (
+                listeModal.map(item => {
+                  const actif = estActifModal(item.id);
+                  return (
+                    <TouchableOpacity key={item.id} style={styles.modalItem}
+                      onPress={() => onTapModal(item.id)}>
+                      <Text style={[styles.modalItemText, actif && styles.modalItemTextActif]}>
+                        {item.nom}
+                      </Text>
+                      {actif && (
+                        <Ionicons name="checkmark" size={18} color={theme.colors.primary} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+            <Button label="Terminé" onPress={() => setPicker(null)} fullWidth />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };

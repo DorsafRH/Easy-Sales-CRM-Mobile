@@ -98,39 +98,6 @@ export const makeStyles = (theme: AppTheme) =>
       color: theme.colors.textSecondary,
     },
 
-    // ── Publications (une carte, 3 colonnes) ─────────────────────
-    pubCard: {
-      flexDirection: 'row',
-      backgroundColor: theme.colors.bgSurface,
-      borderRadius: theme.radius.lg,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      paddingVertical: theme.spacing[4],
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 3,
-      elevation: 1,
-    },
-    pubStat: {
-      flex: 1,
-      alignItems: 'center',
-      rowGap: 2,
-    },
-    pubStatValue: {
-      fontSize: theme.typography.size.xl,
-      fontWeight: '700',
-      color: theme.colors.textPrimary,
-    },
-    pubStatLabel: {
-      fontSize: theme.typography.size.xs,
-      color: theme.colors.textSecondary,
-    },
-    pubDivider: {
-      width: 1,
-      backgroundColor: theme.colors.border,
-      marginVertical: theme.spacing[1],
-    },
 
     // ── Réactions par publication (cartes individuelles) ─────────
     reactionsList: {

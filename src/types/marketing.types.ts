@@ -68,6 +68,24 @@ export interface GenererContenuRequest {
   motsCles?:   string[];
 }
 
+export type PorteePublication = 'PRODUITS' | 'CATEGORIE' | 'BOUTIQUE' | 'LIBRE';
+
+export interface GenererPublicationRequest {
+  portee:      PorteePublication;
+  produitIds?: number[];
+  categorieId?: number;
+  remise?:     number;
+  consigne?:   string;
+  tonalite?:   string;
+  langue?:     string;
+}
+
+export interface AmeliorerContenuRequest {
+  texte:      string;
+  consigne?:  string;
+  tonalite?:  string;
+}
+
 export interface PublicationRequest {
   titre:              string;
   texte:              string;
@@ -83,7 +101,7 @@ export interface PublicationRequest {
 export const STATUT_PUBLICATION_CONFIG:
   Record<StatutPublication, { label: string; color: string; bg: string }> = {
   BROUILLON:  { label: 'Brouillon',  color: '#6B7280', bg: '#F3F4F6' },
-  PROGRAMMEE: { label: 'Programmée', color: '#2563EB', bg: '#EFF6FF' },
+  PROGRAMMEE: { label: 'Programmée', color: '#DB2777', bg: '#FDF2F8' },
   EN_COURS:   { label: 'En cours',   color: '#D97706', bg: '#FFFBEB' },
   PUBLIEE:    { label: 'Publiée',    color: '#16A34A', bg: '#F0FDF4' },
   ECHEC:      { label: 'Échec',      color: '#DC2626', bg: '#FEF2F2' },
