@@ -21,11 +21,15 @@ import { useStyles, useTheme }          from '../../theme';
 import { makeStyles }                   from './DevisDetailScreen.styles';
 import { Badge }                        from '../../components/ui/Badge';
 import { SmartActionSheet }             from '../../components/ui/SmartActionSheet';
-import { ExportContactModal }           from '../../components/ui/ExportContactModal';
+import { EnvoiDocumentSheet }           from '../../components/ui/EnvoiDocumentSheet';
 import { VentesStackParamList }         from '../../navigation/VentesStack';
 
 import * as VenteApi  from '../../api/vente.api';
 import * as ClientApi from '../../api/client.api';
+import {
+  genererPdfUri, partagerPdf, telechargerPdf, envoyerParMail, corpsMailTexte, sujetMail, fmtTnd,
+} from '../../utils/envoiDocument';
+import { genererHtmlDocument } from '../../utils/documentPdf';
 import {
   DevisResponse,
   STATUT_DEVIS_CONFIG,
@@ -37,6 +41,26 @@ import {
 
 type Nav   = NativeStackNavigationProp<VentesStackParamList, 'DevisDetail'>;
 type Route = RouteProp<VentesStackParamList, 'DevisDetail'>;
+
+// ─────────────────────────────────────────────────────────────
+// GENERATEUR HTML PDF (devis) — delegue au template partage
+// ─────────────────────────────────────────────────────────────
+
+const genererHtmlDevis = (d: DevisResponse): string =>
+  genererHtmlDocument({
+    marque:     'Easy Sales CRM',
+    numero:     d.numero,
+    dateLigne:  [
+      d.dateCreation ? 'Etabli le ' + d.dateCreation.split('T')[0] : '',
+      d.validiteJours ? 'Validite : ' + d.validiteJours + ' jours' : '',
+    ].filter(Boolean).join(' | '),
+    clientNom:  d.clientNom,
+    lignes:     d.lignes,
+    montantHt:  d.montantHt,
+    montantTva: d.montantTva,
+    montantTtc: d.montantTtc,
+    notes:      d.notes,
+  });
 
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT
@@ -57,8 +81,10 @@ export const DevisDetailScreen: React.FC = () => {
   const [isLoading,    setIsLoading]    = useState(true);
   // smartVisible controle la visibilite du SmartActionSheet
   const [smartVisible, setSmartVisible] = useState(false);
-  // exportVisible controle la feuille d'export (mail / WhatsApp)
-  const [exportVisible,    setExportVisible]    = useState(false);
+  // isEnvoi : generation du PDF en cours avant l'ouverture de la feuille d'envoi
+  const [isEnvoi,          setIsEnvoi]          = useState(false);
+  const [envoiVisible,     setEnvoiVisible]     = useState(false);
+  const [pdfUri,           setPdfUri]           = useState<string | null>(null);
   const [clientEmail,      setClientEmail]      = useState<string | null>(null);
   const [clientTelephone,  setClientTelephone]  = useState<string | null>(null);
 
@@ -97,21 +123,72 @@ export const DevisDetailScreen: React.FC = () => {
 
   // ── Actions statut ────────────────────────────────────────
 
-  const handleEnvoyer = async () => {
-    const etaitEnvoye = devis?.statut === 'ENVOYE';
+  // Passe le devis a ENVOYE apres un envoi mail/WhatsApp (uniquement si encore
+  // modifiable : brouillon ou deja envoye). On ne regresse pas un devis accepte/refuse.
+  const marquerEnvoye = async () => {
+    if (!devis || (devis.statut !== 'BROUILLON' && devis.statut !== 'ENVOYE')) return;
     try {
       const res = await VenteApi.changerStatutDevis(devisId, 'ENVOYE');
-      if (res.success) {
-        setDevis(res.data);
-        Alert.alert(
-          etaitEnvoye ? 'Devis renvoyé' : 'Devis envoyé',
-          etaitEnvoye
-            ? 'Le devis a de nouveau été envoyé au client.'
-            : 'Le devis a bien été envoyé au client.',
-        );
+      if (res.success) setDevis(res.data);
+    } catch {
+      // l'envoi a deja eu lieu : on n'interrompt pas l'utilisateur
+    }
+  };
+
+  const envoyerMail = async (pdfUri: string) => {
+    if (!devis || !clientEmail?.trim()) return;
+    const res = await envoyerParMail({
+      pdfUri,
+      email:     clientEmail.trim(),
+      sujet:     sujetMail('devis'),
+      corps:     corpsMailTexte({
+        typeDoc: 'devis',
+        montantTtc: fmtTnd(devis.montantTtc), clientNom: devis.clientNom,
+      }),
+    });
+    if (res !== 'cancelled') {
+      await marquerEnvoye();
+      Alert.alert('Devis envoyé');
+    }
+  };
+
+  const envoyerWhatsapp = async (pdfUri: string) => {
+    if (!devis) return;
+    await partagerPdf(pdfUri, `Devis ${devis.numero}`);
+    await marquerEnvoye();
+  };
+
+  // Bouton unique « Envoyer » : genere le PDF puis ouvre la feuille de partage
+  // (Mail si email, WhatsApp si telephone, Exporter toujours dispo).
+  const handleEnvoyer = async () => {
+    if (!devis) return;
+    setIsEnvoi(true);
+    try {
+      const uri = await genererPdfUri(genererHtmlDevis(devis));
+      setPdfUri(uri);
+      setEnvoiVisible(true);
+    } catch {
+      Alert.alert('Erreur', 'Impossible de générer le PDF du devis.');
+    } finally {
+      setIsEnvoi(false);
+    }
+  };
+
+  // Telecharger / enregistrer le PDF sur le telephone (Android : dossier choisi ;
+  // iOS : Fichiers). Sans envoi ni changement de statut.
+  const handleTelechargerPdf = async () => {
+    if (!devis) return;
+    setIsEnvoi(true);
+    try {
+      const uri = await genererPdfUri(genererHtmlDevis(devis));
+      const res = await telechargerPdf(uri, `Devis ${devis.numero}`);
+      if (res === 'enregistre') {
+        Alert.alert('PDF enregistré', 'Le devis a été enregistré dans vos Téléchargements.');
       }
-    } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible d envoyer le devis.');
+    } catch {
+      Alert.alert('Erreur', 'Impossible de générer le PDF du devis.');
+    } finally {
+      setIsEnvoi(false);
     }
   };
 
@@ -178,8 +255,7 @@ export const DevisDetailScreen: React.FC = () => {
   // UNIQUEMENT depuis la fiche opportunité (« Gagner »). Ici on ne gère que le document.
   const estLieOpp    = devis.opportuniteId != null;
 
-  const fmt = (v: number) =>
-    v.toLocaleString('fr-TN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' TND';
+  const fmt = fmtTnd;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -281,27 +357,25 @@ export const DevisDetailScreen: React.FC = () => {
         {/* ── Actions ── */}
         <View style={styles.actionsSection}>
 
-          {/* Exporter — toujours visible, quel que soit le statut/contact */}
-          <TouchableOpacity style={styles.btnExport} onPress={() => setExportVisible(true)}>
-            <Ionicons name="share-outline" size={18} color={theme.colors.textSecondary} />
-            <Text style={styles.btnExportText}>Exporter</Text>
+          {/* Bouton unique « Envoyer » : ouvre Mail / WhatsApp / Exporter (PDF joint) */}
+          <TouchableOpacity style={styles.btnPrimary} onPress={handleEnvoyer} disabled={isEnvoi}>
+            {isEnvoi ? (
+              <ActivityIndicator size="small" color={theme.colors.white} />
+            ) : (
+              <>
+                <Ionicons name="send-outline" size={18} color={theme.colors.white} />
+                <Text style={styles.btnPrimaryText}>
+                  {estEnvoye ? 'Renvoyer le devis' : 'Envoyer le devis'}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
 
-          {/* Brouillon → Envoyer */}
-          {estBrouillon && (
-            <TouchableOpacity style={styles.btnPrimary} onPress={handleEnvoyer}>
-              <Ionicons name="send-outline" size={18} color={theme.colors.white} />
-              <Text style={styles.btnPrimaryText}>Envoyer le devis</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Envoye → Renvoyer (version revisee) */}
-          {estEnvoye && (
-            <TouchableOpacity style={styles.btnPrimary} onPress={handleEnvoyer}>
-              <Ionicons name="send-outline" size={18} color={theme.colors.white} />
-              <Text style={styles.btnPrimaryText}>Renvoyer le devis</Text>
-            </TouchableOpacity>
-          )}
+          {/* Telecharger le PDF sur le telephone */}
+          <TouchableOpacity style={styles.btnSecondary} onPress={handleTelechargerPdf} disabled={isEnvoi}>
+            <Ionicons name="download-outline" size={18} color={theme.colors.textSecondary} />
+            <Text style={styles.btnSecondaryText}>Télécharger le PDF</Text>
+          </TouchableOpacity>
 
           {/* Devis lié à une opportunité : on facture depuis la fiche opportunité */}
           {estLieOpp && !estBrouillon && (
@@ -371,15 +445,16 @@ export const DevisDetailScreen: React.FC = () => {
         onDismiss={() => setSmartVisible(false)}
       />
 
-      {/* ── Export mail / WhatsApp ── */}
-      <ExportContactModal
-        visible={exportVisible}
-        onClose={() => setExportVisible(false)}
-        clientEmail={clientEmail}
-        clientTelephone={clientTelephone}
-        subject={`Devis ${devis.numero}`}
-        mailBody={`Bonjour,\n\nVeuillez trouver les details de votre devis ${devis.numero} d'un montant de ${fmt(devis.montantTtc)}.\n\nCordialement.`}
-        whatsappText={`Bonjour, voici votre devis ${devis.numero} d'un montant de ${fmt(devis.montantTtc)}.`}
+      {/* ── Feuille d'envoi (Mail / WhatsApp / Exporter) ── */}
+      <EnvoiDocumentSheet
+        visible={envoiVisible}
+        onClose={() => setEnvoiVisible(false)}
+        titre={`Envoyer le devis ${devis.numero}`}
+        hasEmail={!!clientEmail?.trim()}
+        hasPhone={!!clientTelephone?.trim()}
+        onMail={() => pdfUri && envoyerMail(pdfUri)}
+        onWhatsapp={() => pdfUri && envoyerWhatsapp(pdfUri)}
+        onExport={() => pdfUri && partagerPdf(pdfUri, `Devis ${devis.numero}`)}
       />
     </SafeAreaView>
   );

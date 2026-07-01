@@ -15,18 +15,19 @@ import { useNavigation, useRoute,
          RouteProp, useFocusEffect }            from '@react-navigation/native';
 import { NativeStackNavigationProp }            from '@react-navigation/native-stack';
 import { Ionicons }                             from '@expo/vector-icons';
-import * as Print   from 'expo-print';
-import * as Sharing from 'expo-sharing';
-
 import { useStyles, useTheme }       from '../../theme';
 import { makeStyles }                from './FactureDetailScreen.styles';
 import { SkeletonCard }             from '../../components/ui/Skeleton';
 import { Badge }                     from '../../components/ui/Badge';
-import { ExportContactModal }        from '../../components/ui/ExportContactModal';
+import { EnvoiDocumentSheet }        from '../../components/ui/EnvoiDocumentSheet';
 import { VentesStackParamList }      from '../../navigation/VentesStack';
 
 import * as VenteApi  from '../../api/vente.api';
 import * as ClientApi from '../../api/client.api';
+import {
+  genererPdfUri, partagerPdf, telechargerPdf, envoyerParMail, corpsMailTexte, sujetMail, fmtTnd,
+} from '../../utils/envoiDocument';
+import { genererHtmlDocument } from '../../utils/documentPdf';
 import {
   FactureResponse,
   STATUT_FACTURE_CONFIG,
@@ -40,122 +41,25 @@ type Nav   = NativeStackNavigationProp<VentesStackParamList, 'FactureDetail'>;
 type Route = RouteProp<VentesStackParamList, 'FactureDetail'>;
 
 // ─────────────────────────────────────────────────────────────
-// GENERATEUR HTML PDF
+// GENERATEUR HTML PDF (facture) — delegue au template partage
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Genere le HTML d'impression pour la facture.
- * Compatible expo-print.
- */
-const genererHtmlFacture = (f: FactureResponse): string => `
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; font-size: 12px; color: #1F2937; padding: 32px; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
-    .brand { font-size: 24px; font-weight: 800; color: #2563EB; }
-    .brand-sub { font-size: 11px; color: #6B7280; margin-top: 2px; }
-    .facture-info { text-align: right; }
-    .facture-num { font-size: 18px; font-weight: 700; color: #1F2937; }
-    .facture-date { font-size: 11px; color: #6B7280; margin-top: 4px; }
-    .statut-badge { display: inline-block; padding: 4px 12px; border-radius: 20px;
-                    font-size: 11px; font-weight: 700; background: #F0FDF4; color: #16A34A; margin-top: 8px; }
-    .divider { border: none; border-top: 1px solid #E5E7EB; margin: 24px 0; }
-    .client-section { margin-bottom: 24px; }
-    .section-label { font-size: 10px; font-weight: 700; color: #6B7280;
-                     text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
-    .client-nom { font-size: 14px; font-weight: 600; color: #1F2937; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-    th { background: #F9FAFB; padding: 10px 12px; text-align: left;
-         font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase;
-         border-bottom: 2px solid #E5E7EB; }
-    td { padding: 10px 12px; border-bottom: 1px solid #F3F4F6; vertical-align: top; }
-    td.num { text-align: right; font-weight: 500; }
-    .totaux { margin-left: auto; width: 280px; }
-    .total-row { display: flex; justify-content: space-between; padding: 8px 0;
-                 border-bottom: 1px solid #F3F4F6; font-size: 12px; }
-    .total-row.ttc { background: #2563EB; color: white; padding: 12px 16px;
-                     border-radius: 8px; font-weight: 700; font-size: 14px;
-                     margin-top: 4px; }
-    .footer { margin-top: 48px; text-align: center; font-size: 10px; color: #9CA3AF; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div>
-      <div class="brand">${f.proprietaireNom ?? 'Easy Sales CRM'}</div>
-      <div class="brand-sub">Votre solution CRM mobile</div>
-    </div>
-    <div class="facture-info">
-      <div class="facture-num">${f.numero}</div>
-      <div class="facture-date">
-        ${f.dateEmission ? 'Emise le ' + f.dateEmission.split('T')[0] : 'Brouillon'}
-        ${f.dateEcheance ? ' | Echeance : ' + f.dateEcheance : ''}
-      </div>
-      <div class="statut-badge">${STATUT_FACTURE_CONFIG[f.statut].label}</div>
-    </div>
-  </div>
-
-  <hr class="divider"/>
-
-  <div class="client-section">
-    <div class="section-label">Facturee a</div>
-    <div class="client-nom">${f.clientNom}</div>
-    ${f.devisNumero ? `<div style="font-size:11px;color:#6B7280;margin-top:4px;">Ref devis : ${f.devisNumero}</div>` : ''}
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Designation</th>
-        <th style="text-align:right">Qte</th>
-        <th style="text-align:right">PU HT</th>
-        <th style="text-align:right">Remise</th>
-        <th style="text-align:right">TVA</th>
-        <th style="text-align:right">Total TTC</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${f.lignes.map(l => `
-        <tr>
-          <td>${l.designation}</td>
-          <td class="num">${l.quantite}</td>
-          <td class="num">${l.prixUnitaireHt.toFixed(3)}</td>
-          <td class="num">${l.remise > 0 ? l.remise + '%' : '-'}</td>
-          <td class="num">${l.tauxTva > 0 ? l.tauxTva + '%' : '-'}</td>
-          <td class="num"><strong>${l.montantTtc.toFixed(3)} TND</strong></td>
-        </tr>
-      `).join('')}
-    </tbody>
-  </table>
-
-  <div class="totaux">
-    <div class="total-row">
-      <span>Sous-total HT</span>
-      <span>${f.montantHt.toFixed(3)} TND</span>
-    </div>
-    <div class="total-row">
-      <span>TVA</span>
-      <span>${f.montantTva.toFixed(3)} TND</span>
-    </div>
-    <div class="total-row ttc">
-      <span>TOTAL TTC</span>
-      <span>${f.montantTtc.toFixed(3)} TND</span>
-    </div>
-  </div>
-
-  ${f.notes ? `<div style="margin-top:32px;"><div class="section-label">Notes</div><p style="color:#4B5563;font-size:12px;margin-top:4px;">${f.notes}</p></div>` : ''}
-
-  <div class="footer">
-    Facture generee par ${f.proprietaireNom ?? 'Easy Sales CRM'} &mdash; Merci de votre confiance
-  </div>
-</body>
-</html>
-`;
+const genererHtmlFacture = (f: FactureResponse): string =>
+  genererHtmlDocument({
+    marque:     f.proprietaireNom ?? 'Easy Sales CRM',
+    numero:     f.numero,
+    dateLigne:  [
+      f.dateEmission ? 'Emise le ' + f.dateEmission.split('T')[0] : '',
+      f.dateEcheance ? 'Echeance : ' + f.dateEcheance : '',
+    ].filter(Boolean).join(' | '),
+    clientNom:  f.clientNom,
+    refLigne:   f.devisNumero ? 'Ref devis : ' + f.devisNumero : undefined,
+    lignes:     f.lignes,
+    montantHt:  f.montantHt,
+    montantTva: f.montantTva,
+    montantTtc: f.montantTtc,
+    notes:      f.notes,
+  });
 
 // ─────────────────────────────────────────────────────────────
 // HELPERS PURS
@@ -187,7 +91,8 @@ export const FactureDetailScreen: React.FC = () => {
   const [facture,      setFacture]      = useState<FactureResponse | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
   const [isExporting,  setIsExporting]  = useState(false);
-  const [exportVisible,   setExportVisible]   = useState(false);
+  const [envoiVisible, setEnvoiVisible] = useState(false);
+  const [pdfUri,       setPdfUri]       = useState<string | null>(null);
   const [clientEmail,     setClientEmail]     = useState<string | null>(null);
   const [clientTelephone, setClientTelephone] = useState<string | null>(null);
 
@@ -312,26 +217,50 @@ export const FactureDetailScreen: React.FC = () => {
     }
   };
 
-  const handleExportPdf = async () => {
+  const envoyerMail = async (pdfUri: string) => {
+    if (!facture || !clientEmail?.trim()) return;
+    await envoyerParMail({
+      pdfUri,
+      email:     clientEmail.trim(),
+      sujet:     sujetMail('facture', facture.proprietaireNom),
+      corps:     corpsMailTexte({
+        typeDoc: 'facture',
+        montantTtc: fmtTnd(facture.montantTtc), clientNom: facture.clientNom,
+        marque: facture.proprietaireNom,
+      }),
+    });
+  };
+
+  // Bouton unique « Envoyer » : genere le PDF puis ouvre la feuille de partage
+  // (Mail si email, WhatsApp si telephone, Exporter toujours dispo). Pas de
+  // changement de statut : la facture suit son propre cycle (emise/payee...).
+  const handleEnvoyer = async () => {
     if (!facture) return;
     setIsExporting(true);
     try {
-      const { uri } = await Print.printToFileAsync({
-        html: genererHtmlFacture(facture),
-        base64: false,
-      });
-      const peutPartager = await Sharing.isAvailableAsync();
-      if (peutPartager) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: `Facture ${facture.numero}`,
-          UTI: 'com.adobe.pdf',
-        });
-      } else {
-        Alert.alert('PDF genere', 'Le partage n est pas disponible sur cet appareil.');
+      const uri = await genererPdfUri(genererHtmlFacture(facture));
+      setPdfUri(uri);
+      setEnvoiVisible(true);
+    } catch {
+      Alert.alert('Erreur', 'Impossible de générer le PDF.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Telecharger / enregistrer le PDF sur le telephone (Android : dossier choisi ;
+  // iOS : Fichiers).
+  const handleTelechargerPdf = async () => {
+    if (!facture) return;
+    setIsExporting(true);
+    try {
+      const uri = await genererPdfUri(genererHtmlFacture(facture));
+      const res = await telechargerPdf(uri, `Facture ${facture.numero}`);
+      if (res === 'enregistre') {
+        Alert.alert('PDF enregistré', 'La facture a été enregistrée dans vos Téléchargements.');
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de generer le PDF.');
+      Alert.alert('Erreur', 'Impossible de générer le PDF.');
     } finally {
       setIsExporting(false);
     }
@@ -376,8 +305,7 @@ export const FactureDetailScreen: React.FC = () => {
   const estLivree     = facture.statut === 'LIVREE';
   const peutAnnuler   = estEmise || estEnRetard || estLivree;
 
-  const fmt = (v: number) =>
-    v.toLocaleString('fr-TN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' TND';
+  const fmt = fmtTnd;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -513,22 +441,22 @@ export const FactureDetailScreen: React.FC = () => {
 
         {/* ── Actions ── */}
         <View style={styles.actionsSection}>
-          {/* Exporter (mail / WhatsApp) — toujours visible, quel que soit le contact */}
-          <TouchableOpacity style={styles.pdfBtn} onPress={() => setExportVisible(true)}>
-            <Ionicons name="share-outline" size={18} color={theme.colors.textSecondary} />
-            <Text style={styles.pdfBtnText}>Exporter</Text>
-          </TouchableOpacity>
-
-          {/* Export PDF — disponible pour toutes les factures */}
-          <TouchableOpacity style={styles.pdfBtn} onPress={handleExportPdf} disabled={isExporting}>
+          {/* Bouton unique « Envoyer » : Mail / WhatsApp / Exporter (PDF joint) */}
+          <TouchableOpacity style={styles.pdfBtn} onPress={handleEnvoyer} disabled={isExporting}>
             {isExporting ? (
               <ActivityIndicator size="small" color={theme.colors.textSecondary} />
             ) : (
               <>
-                <Ionicons name="download-outline" size={18} color={theme.colors.textSecondary} />
-                <Text style={styles.pdfBtnText}>Exporter en PDF</Text>
+                <Ionicons name="send-outline" size={18} color={theme.colors.textSecondary} />
+                <Text style={styles.pdfBtnText}>Envoyer la facture</Text>
               </>
             )}
+          </TouchableOpacity>
+
+          {/* Telecharger le PDF sur le telephone */}
+          <TouchableOpacity style={styles.pdfBtn} onPress={handleTelechargerPdf} disabled={isExporting}>
+            <Ionicons name="download-outline" size={18} color={theme.colors.textSecondary} />
+            <Text style={styles.pdfBtnText}>Télécharger le PDF</Text>
           </TouchableOpacity>
 
           {/* Emettre la facture */}
@@ -594,15 +522,16 @@ export const FactureDetailScreen: React.FC = () => {
 
       </ScrollView>
 
-      {/* ── Export mail / WhatsApp ── */}
-      <ExportContactModal
-        visible={exportVisible}
-        onClose={() => setExportVisible(false)}
-        clientEmail={clientEmail}
-        clientTelephone={clientTelephone}
-        subject={`Facture ${facture.numero}`}
-        mailBody={`Bonjour,\n\nVeuillez trouver les details de votre facture ${facture.numero} d'un montant de ${fmt(facture.montantTtc)}.\n\nCordialement.`}
-        whatsappText={`Bonjour, voici votre facture ${facture.numero} d'un montant de ${fmt(facture.montantTtc)}.`}
+      {/* ── Feuille d'envoi (Mail / WhatsApp / Exporter) ── */}
+      <EnvoiDocumentSheet
+        visible={envoiVisible}
+        onClose={() => setEnvoiVisible(false)}
+        titre={`Envoyer la facture ${facture.numero}`}
+        hasEmail={!!clientEmail?.trim()}
+        hasPhone={!!clientTelephone?.trim()}
+        onMail={() => pdfUri && envoyerMail(pdfUri)}
+        onWhatsapp={() => pdfUri && partagerPdf(pdfUri, `Facture ${facture.numero}`)}
+        onExport={() => pdfUri && partagerPdf(pdfUri, `Facture ${facture.numero}`)}
       />
     </SafeAreaView>
   );

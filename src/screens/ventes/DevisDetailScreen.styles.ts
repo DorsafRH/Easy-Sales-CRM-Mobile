@@ -198,7 +198,7 @@ export const makeStyles = (theme: AppTheme) =>
       fontWeight: '700',
       color:      theme.colors.white,
     },
-    btnExport: {
+    btnSecondary: {
       flexDirection:   'row',
       alignItems:      'center',
       justifyContent:  'center',
@@ -209,7 +209,7 @@ export const makeStyles = (theme: AppTheme) =>
       borderColor:     theme.colors.border,
       backgroundColor: theme.colors.bgSurface,
     },
-    btnExportText: {
+    btnSecondaryText: {
       fontSize:   theme.typography.size.sm,
       fontWeight: '600',
       color:      theme.colors.textSecondary,
