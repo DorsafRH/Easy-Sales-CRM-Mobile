@@ -105,3 +105,54 @@ export const TYPE_RESEAU_CONFIG:
   INSTAGRAM: { label: 'Instagram', color: '#E1306C', bg: '#FEF2F2', icon: 'logo-instagram' },
   TIKTOK:    { label: 'TikTok',    color: '#111827', bg: '#F3F4F6', icon: 'logo-tiktok'    },
 };
+
+// ─────────────────────────────────────────────────────────────
+// STATISTIQUES MARKETING (dashboard)
+// ─────────────────────────────────────────────────────────────
+
+export interface RepartitionSource {
+  source: string;
+  count: number;
+}
+
+export interface LeadParMois {
+  mois: string; // AAAA-MM
+  count: number;
+}
+
+export interface BesoinRecent {
+  nom: string;
+  besoin: string;
+  score: number | null;
+  dateRelative: string;
+}
+
+export interface ReactionsAggregat {
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  breakdown: Record<string, number>; // like, love, wow, sad, angry, haha
+}
+
+export interface MarketingOverview {
+  leadsMarketing: number;
+  leadsQualifies: number;
+  scoreMoyen: number;
+  tauxConversion: number;
+  repartitionSource: RepartitionSource[];
+  leadsParMois: LeadParMois[];
+  derniersBesoins: BesoinRecent[];
+  publicationsPubliees: number;
+  publicationsProgrammees: number;
+  publicationsBrouillons: number;
+  reactions: ReactionsAggregat;
+}
+
+export interface TopPostReactions {
+  postId: string;
+  titre: string | null;
+  likes: number;
+  comments: number;
+  shares: number;
+  reactionsBreakdown: Record<string, number>;
+}

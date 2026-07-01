@@ -14,18 +14,17 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './MarketingHomeScreen.styles';
-import { StatCard } from '../../components/ui/StatCard';
 import { Badge } from '../../components/ui/Badge';
 import { FAB } from '../../components/ui/FAB';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { CalendrierScreen } from './CalendrierScreen';
 import { ReseauxScreen } from './ReseauxScreen';
+import { MarketingDashboard } from './MarketingDashboard';
 import { MarketingStackParamList } from '../../navigation/MarketingStack';
 
 import * as MarketingApi from '../../api/marketing.api';
 import {
   PublicationMarketing,
-  StatutPublication,
   STATUT_PUBLICATION_CONFIG,
 } from '../../types/marketing.types';
 
@@ -64,9 +63,6 @@ export const MarketingHomeScreen: React.FC = () => {
   }, []);
 
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
-
-  const compter = (statut: StatutPublication) =>
-    publications.filter(p => p.statut === statut).length;
 
   const ouvrir = (id: number) =>
     navigation.navigate('PublicationDetail', { publicationId: id });
@@ -109,31 +105,6 @@ export const MarketingHomeScreen: React.FC = () => {
     );
   };
 
-  const renderDashboard = () => (
-    <FlatList
-      data={publications}
-      keyExtractor={item => String(item.id)}
-      renderItem={renderItem}
-      contentContainerStyle={styles.listContent}
-      showsVerticalScrollIndicator={false}
-      refreshControl={refreshControl()}
-      ListHeaderComponent={
-        <View style={styles.statsRow}>
-          <StatCard iconName="time-outline" iconColor={theme.colors.primary}
-            iconBg={theme.colors.primaryLight} value={compter('PROGRAMMEE')} label="Programmées" />
-          <StatCard iconName="checkmark-done-outline" iconColor={theme.colors.success}
-            iconBg={theme.colors.successLight} value={compter('PUBLIEE')} label="Publiées" />
-          <StatCard iconName="create-outline" iconColor={theme.colors.textSecondary}
-            iconBg={theme.colors.bgApp} value={compter('BROUILLON')} label="Brouillons" />
-        </View>
-      }
-      ListEmptyComponent={
-        <EmptyState icon="megaphone-outline" titre="Aucune publication"
-          soustitre="Créez votre première publication" />
-      }
-    />
-  );
-
   const renderPublications = () => (
     <FlatList
       data={publications}
@@ -164,7 +135,7 @@ export const MarketingHomeScreen: React.FC = () => {
       </View>
       {renderTabs()}
       <View style={styles.body}>
-        {onglet === 'dashboard' && renderDashboard()}
+        {onglet === 'dashboard' && <MarketingDashboard />}
         {onglet === 'publications' && renderPublications()}
         {onglet === 'calendrier' && (
           <CalendrierScreen publications={publications} onOpen={ouvrir} />

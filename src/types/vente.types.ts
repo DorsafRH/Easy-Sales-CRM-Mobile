@@ -51,6 +51,9 @@ export type SourceLead =
   | 'EMAIL'
   | 'SALON'
   | 'APPEL_ENTRANT'
+  | 'FACEBOOK'
+  | 'MESSENGER'
+  | 'COMMENTAIRE'
   | 'AUTRE';
 
 export type TypeActiviteCommerciale =
@@ -340,6 +343,9 @@ export const SOURCE_LEAD_LABELS: Record<SourceLead, string> = {
   EMAIL:        'Email',
   SALON:        'Salon',
   APPEL_ENTRANT: 'Appel entrant',
+  FACEBOOK:     'Facebook',
+  MESSENGER:    'Facebook',
+  COMMENTAIRE:  'Facebook',
   AUTRE:        'Autre',
 };
 
