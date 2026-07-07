@@ -15,7 +15,9 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
+import * as Contacts from 'expo-contacts';
 import { SafeAreaView }              from 'react-native-safe-area-context';
 import { useNavigation, useRoute,
          RouteProp }                 from '@react-navigation/native';
@@ -91,6 +93,71 @@ export const ClientFormScreen: React.FC = () => {
       setApiError(null);
     };
 
+  // ── Import depuis le répertoire du téléphone ──────────────
+  /**
+   * Ouvre le sélecteur de contacts du téléphone (le même répertoire
+   * que celui utilisé par WhatsApp) et pré-remplit le formulaire avec
+   * le contact choisi. N'importe QUE les données du répertoire : il
+   * n'existe aucune API pour lire spécifiquement les contacts WhatsApp.
+   *
+   * Note : on ne force pas le type ENTREPRISE — un contact du répertoire
+   * est par nature une personne, donc on bascule sur INDIVIDUEL.
+   * @author Riahi Dorsaf
+   */
+  const handleImportFromContacts = async () => {
+    try {
+      // 1. Demande de permission (READ_CONTACTS)
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Accès aux contacts refusé',
+          "Autorisez l'accès aux contacts dans les réglages pour importer un client depuis votre répertoire.",
+        );
+        return;
+      }
+
+      // 2. Ouverture du sélecteur natif — l'utilisateur choisit UN contact
+      const contact = await Contacts.presentContactPickerAsync();
+      if (!contact) return; // annulé par l'utilisateur
+
+      // 3. Extraction des champs utiles
+      const prenom = contact.firstName?.trim() ?? '';
+      const nom    = contact.lastName?.trim() ?? '';
+      // Repli : si ni prénom ni nom, on range le nom complet dans "nom"
+      const nomComplet = contact.name?.trim() ?? '';
+
+      const telephone =
+        contact.phoneNumbers?.[0]?.number?.replace(/\s+/g, ' ').trim() ?? '';
+      const email = contact.emails?.[0]?.email?.trim() ?? '';
+
+      // 4. Pré-remplissage (mode INDIVIDUEL, champs restent éditables).
+      //    Si le contact n'a ni prénom ni nom séparés, on met le nom
+      //    complet dans "nom" pour ne rien perdre.
+      setForm(f => ({
+        ...f,
+        typeClient: 'INDIVIDUEL',
+        prenom,
+        nom:        nom || (prenom ? '' : nomComplet),
+        telephone:  telephone || f.telephone,
+        email:      email || f.email,
+      }));
+      setErrors({});
+      setApiError(null);
+
+      if (!telephone) {
+        Alert.alert(
+          'Téléphone manquant',
+          "Ce contact n'a pas de numéro. Renseignez-le manuellement avant d'enregistrer.",
+        );
+      }
+    } catch (err) {
+      Alert.alert(
+        'Import impossible',
+        "Une erreur est survenue lors de la lecture du répertoire.",
+      );
+    }
+  };
+
   // ── Validation ────────────────────────────────────────────
   const validate = (): boolean => {
     const e: Errors = {};
@@ -163,6 +230,24 @@ export const ClientFormScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* ── Import depuis le répertoire (création uniquement) ── */}
+          {!isEditing && (
+            <TouchableOpacity
+              style={styles.importBtn}
+              onPress={handleImportFromContacts}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="people-outline"
+                size={18}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.importBtnText}>
+                Importer depuis mes contacts
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {/* ── Sélecteur type ── */}
           {!isEditing && (
             <View style={styles.typeRow}>

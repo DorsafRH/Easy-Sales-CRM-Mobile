@@ -60,6 +60,27 @@ export const makeStyles = (theme: AppTheme) =>
       paddingBottom:     theme.spacing[10],
     },
 
+    // ── Bouton import contacts ───────────────────────────────
+    importBtn: {
+      flexDirection:   'row',
+      alignItems:      'center',
+      justifyContent:  'center',
+      columnGap:       theme.spacing[2],
+      paddingVertical: theme.spacing[3],
+      borderRadius:    theme.radius.md,
+      borderWidth:     1.5,
+      borderStyle:     'dashed',
+      borderColor:     theme.colors.primary,
+      backgroundColor: theme.colors.primaryLight,
+      marginBottom:    theme.spacing[5],
+    },
+
+    importBtnText: {
+      fontSize:   theme.typography.size.sm,
+      fontWeight: '600',
+      color:      theme.colors.primary,
+    },
+
     // ── Sélecteur type ───────────────────────────────────────
     typeRow: {
       flexDirection: 'row',

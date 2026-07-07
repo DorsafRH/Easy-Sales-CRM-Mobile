@@ -38,7 +38,13 @@
           "defaultChannel": "default"
         }
       ],
-      "expo-mail-composer"
+      "expo-mail-composer",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Autoriser $(PRODUCT_NAME) à accéder à vos contacts pour créer un client à partir de votre répertoire."
+        }
+      ]
     ],
     "extra": {
       "eas": {
