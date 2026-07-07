@@ -174,3 +174,24 @@ export interface TopPostReactions {
   shares: number;
   reactionsBreakdown: Record<string, number>;
 }
+
+// ──────────────────────────────────────────────
+// Statistiques Facebook d'une publication PUBLIEE
+// ──────────────────────────────────────────────
+
+/** Point d'une série temporelle journalière (date ISO yyyy-MM-dd + valeur). */
+export interface PointStatistique {
+  date: string;
+  valeur: number;
+}
+
+/** Statistiques Facebook d'une publication : portée, engagement, courbe des vues. */
+export interface StatistiquesPublication {
+  vues: number;
+  vuesUniques: number;
+  reactions: number;
+  commentaires: number;
+  partages: number;
+  datePublication: string;
+  courbeVuesJournalieres: PointStatistique[];
+}
