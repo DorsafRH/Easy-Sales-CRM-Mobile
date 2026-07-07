@@ -22,9 +22,9 @@ import {
   View,
   ActivityIndicator,
   StyleSheet,
-  Platform,
-  StatusBar,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider }   from './src/context/AuthContext';
 import { AppNavigator }   from './src/navigation/AppNavigator';
 import { useThemeStore }  from './src/theme/themeStore';
@@ -64,36 +64,30 @@ export default function App() {
 
   /**
    * Écran de chargement — affiché pendant la lecture AsyncStorage.
-   * Typiquement < 100ms, imperceptible pour l'utilisateur.
-   * MAIS indispensable pour éviter le flash de thème incorrect.
    */
   if (!isHydrated) {
     return (
       <View style={styles.splash}>
-        <ActivityIndicator
-          size="large"
-          color="#2563EB"
-        />
+        <ActivityIndicator size="large" color="#2563EB" />
       </View>
     );
   }
 
   return (
-    <>
+    /**
+     * SafeAreaProvider — OBLIGATOIRE à la racine pour que les
+     * SafeAreaView de react-native-safe-area-context connaissent
+     * les insets de l'appareil. Sans lui, l'app plante au démarrage.
+     */
+    <SafeAreaProvider>
       {/**
-       * StatusBar adaptée à la plateforme et au thème.
-       * iOS     : barStyle change selon light/dark
-       * Android : backgroundColor visible, translucent évite le décalage
+       * StatusBar via expo-status-bar — compatible edge-to-edge (SDK 54).
+       * Sous edge-to-edge, les props backgroundColor/translucent de la
+       * StatusBar de react-native sont ignorées : on ne pilote donc que
+       * la couleur des icônes (style) selon le thème. Les insets sont
+       * gérés par les <SafeAreaView edges={['top']}> de chaque écran.
        */}
-      <StatusBar
-        barStyle={theme.isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={
-          Platform.OS === 'android'
-            ? theme.colors.bgSurface
-            : 'transparent'
-        }
-        translucent={Platform.OS === 'android'}
-      />
+      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
 
       {/**
        * AuthProvider — fournit le contexte d'authentification
@@ -104,7 +98,7 @@ export default function App() {
       <AuthProvider>
         <AppNavigator />
       </AuthProvider>
-    </>
+    </SafeAreaProvider>
   );
 }
 

@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets }     from 'react-native-safe-area-context';
 import { Ionicons }              from '@expo/vector-icons';
 import { useStyles, useTheme }   from '../../theme';
 import { makeStyles }            from './EnvoiDocumentSheet.styles';
@@ -33,6 +34,7 @@ export const EnvoiDocumentSheet: React.FC<EnvoiDocumentSheetProps> = ({
 }) => {
   const styles = useStyles(makeStyles);
   const theme  = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Ferme la feuille puis declenche l'action choisie.
   const choisir = (action: () => void) => {
@@ -43,7 +45,10 @@ export const EnvoiDocumentSheet: React.FC<EnvoiDocumentSheetProps> = ({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={styles.sheet}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[styles.sheet, { paddingBottom: Math.max(theme.spacing[8], insets.bottom + theme.spacing[4]) }]}
+        >
           <View style={styles.handle} />
           <Text style={styles.title}>{titre}</Text>
 
