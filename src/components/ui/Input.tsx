@@ -11,6 +11,7 @@ import {
   View, Text, TextInput, TouchableOpacity,
   TextInputProps, ViewStyle,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './Input.styles';
 
@@ -64,7 +65,11 @@ export const Input: React.FC<InputProps> = ({
             onPress={() => setShowPassword(v => !v)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁'}</Text>
+            <Ionicons
+              name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={theme.colors.textSecondary}
+            />
           </TouchableOpacity>
         )}
       </View>

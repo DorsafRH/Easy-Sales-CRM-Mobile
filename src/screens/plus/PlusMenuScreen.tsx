@@ -136,46 +136,47 @@ export const PlusMenuScreen: React.FC = () => {
   const ventesItems: MenuItem[] = [
     {
       label:    'Leads & Opportunites',
-      sub:      'Disponible en Sprint 3',
+      sub:      'Pipeline commercial',
       icon:     'trending-up-outline',
       iconBg:   '#F0FDF4',
       iconColor:'#16A34A',
-      badge:    'Sprint 3',
-      disabled: true,
-      onPress:  () => {},
+      onPress:  () => navigationPlus.getParent()?.navigate('Ventes' as never),
     },
     {
       label:    'Devis',
-      sub:      'Disponible en Sprint 3',
+      sub:      'Devis et factures',
       icon:     'document-text-outline',
       iconBg:   '#ECFDF5',
       iconColor:'#059669',
-      badge:    'Sprint 3',
-      disabled: true,
-      onPress:  () => {},
+      onPress:  () => (navigationPlus.getParent() as any)?.navigate(
+        'Ventes',
+        { screen: 'DevisList' },
+      ),
     },
   ];
 
   const marketingItems: MenuItem[] = [
     {
       label:    'Publications',
-      sub:      'Disponible en Sprint 4',
+      sub:      'Gerer vos publications',
       icon:     'megaphone-outline',
       iconBg:   '#FFF7ED',
       iconColor:'#EA580C',
-      badge:    'Sprint 4',
-      disabled: true,
-      onPress:  () => {},
+      onPress:  () => (navigationPlus.getParent() as any)?.navigate(
+        'Marketing',
+        { screen: 'MarketingHome', params: { onglet: 'publications' } },
+      ),
     },
     {
       label:    'Reseaux sociaux',
-      sub:      'Disponible en Sprint 4',
+      sub:      'Comptes et diffusion',
       icon:     'share-social-outline',
       iconBg:   '#F3E8FF',
       iconColor:'#7C3AED',
-      badge:    'Sprint 4',
-      disabled: true,
-      onPress:  () => {},
+      onPress:  () => (navigationPlus.getParent() as any)?.navigate(
+        'Marketing',
+        { screen: 'MarketingHome', params: { onglet: 'reseaux' } },
+      ),
     },
   ];
 

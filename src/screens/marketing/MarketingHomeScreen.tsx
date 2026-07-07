@@ -5,12 +5,12 @@
  * @author Riahi Dorsaf
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity, FlatList, RefreshControl, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -57,9 +57,10 @@ export const MarketingHomeScreen: React.FC = () => {
   const styles = useStyles(makeStyles);
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
+  const route = useRoute<RouteProp<MarketingStackParamList, 'MarketingHome'>>();
 
   const [publications, setPublications] = useState<PublicationMarketing[]>([]);
-  const [onglet, setOnglet] = useState<Onglet>('dashboard');
+  const [onglet, setOnglet] = useState<Onglet>(route.params?.onglet ?? 'dashboard');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filtreStatut, setFiltreStatut] = useState<FiltreStatut>('TOUS');
   const [recherche, setRecherche] = useState('');
@@ -80,6 +81,12 @@ export const MarketingHomeScreen: React.FC = () => {
   }, []);
 
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
+
+  // Ouvre l'onglet demandé depuis un autre écran (ex. menu Plus), même si
+  // l'écran Marketing était déjà monté.
+  useEffect(() => {
+    if (route.params?.onglet) setOnglet(route.params.onglet);
+  }, [route.params?.onglet]);
 
   const ouvrir = (id: number) =>
     navigation.navigate('PublicationDetail', { publicationId: id });

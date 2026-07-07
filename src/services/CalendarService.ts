@@ -43,6 +43,9 @@ export interface NativeCalendarEvent {
 
 export class CalendarService {
 
+  /** Nom du calendrier natif dédié aux réunions CRM. */
+  private static readonly CRM_CALENDAR_TITLE = 'Easy Sales CRM';
+
   /**
    * Demande les permissions d'accès au calendrier natif.
    * @returns true si l'accès est accordé
@@ -76,6 +79,13 @@ export class CalendarService {
 
       if (calendarIds.length === 0) return [];
 
+      // Identifiants du calendrier dédié "Easy Sales CRM" — critère fiable
+      // pour repérer les copies de réunions CRM (les notes peuvent être
+      // vides selon le provider Android).
+      const crmCalendarIds = new Set(
+        calendars.filter(c => c.title === this.CRM_CALENDAR_TITLE).map(c => c.id),
+      );
+
       const events = await Calendar.getEventsAsync(calendarIds, startOfDay, endOfDay);
 
       return events.map(e => ({
@@ -84,7 +94,11 @@ export class CalendarService {
         start:    new Date(e.startDate),
         end:      new Date(e.endDate),
         location: e.location ?? '',
-        isCrm:    e.notes?.includes('[EasySalesCRM]') ?? false,
+        // Copie CRM si : événement du calendrier dédié "Easy Sales CRM",
+        // OU marqueur "[EasySalesCRM:<id>]" dans les notes (cas de repli où
+        // l'événement a été écrit dans le calendrier par défaut).
+        isCrm:    crmCalendarIds.has(e.calendarId as string)
+               || (e.notes?.includes('[EasySalesCRM') ?? false),
       }));
     } catch (e) {
       console.warn('[CalendarService] Erreur getEventsForDay:', e);
@@ -144,7 +158,7 @@ export class CalendarService {
   private static async getOrCreateCrmCalendar(): Promise<string | null> {
     try {
       const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-      const existing = calendars.find(c => c.title === 'Easy Sales CRM');
+      const existing = calendars.find(c => c.title === this.CRM_CALENDAR_TITLE);
       if (existing) return existing.id;
 
       const writable = await this.getWritableCalendar();
@@ -155,7 +169,7 @@ export class CalendarService {
 
       try {
         const createOptions: any = {
-          title:        'Easy Sales CRM',
+          title:        this.CRM_CALENDAR_TITLE,
           color:        '#2563EB',
           entityType:   Calendar.EntityTypes.EVENT,
           name:         'easysalescrm',

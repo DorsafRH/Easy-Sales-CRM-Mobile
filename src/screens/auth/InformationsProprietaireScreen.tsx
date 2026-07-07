@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { View, Text, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Screen }  from '../../components/layout/Screen';
 import { Card }    from '../../components/layout/Card';
@@ -118,8 +118,7 @@ export const InformationsProprietaireScreen: React.FC<Props> = ({ navigation }) 
 
   return (
     <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <StepIndicator current={2} total={3} />
+      <StepIndicator current={2} total={3} />
         <Text style={styles.title}>Vos informations</Text>
         <Text style={styles.subtitle}>Informations du propriétaire du compte</Text>
 
@@ -221,7 +220,6 @@ export const InformationsProprietaireScreen: React.FC<Props> = ({ navigation }) 
             style={styles.btnNext}
           />
         </View>
-      </KeyboardAvoidingView>
     </Screen>
   );
 };

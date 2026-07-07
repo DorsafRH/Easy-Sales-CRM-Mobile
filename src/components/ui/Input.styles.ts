@@ -51,9 +51,6 @@ export const makeStyles = (theme: AppTheme) =>
       padding: theme.spacing[1],
       marginLeft: theme.spacing[2],
     },
-    eyeIcon: {
-      fontSize: 16,
-    },
     errorText: {
       fontSize: theme.typography.size.xs,
       color: theme.colors.danger,

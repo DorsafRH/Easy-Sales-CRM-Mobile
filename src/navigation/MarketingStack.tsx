@@ -19,7 +19,8 @@ import { PublicationMarketing } from '../types/marketing.types';
 // ─────────────────────────────────────────────────────────────
 
 export type MarketingStackParamList = {
-  MarketingHome:     undefined;
+  /** onglet — ouvre directement un onglet interne (défaut : dashboard) */
+  MarketingHome:     { onglet?: 'dashboard' | 'publications' | 'calendrier' | 'reseaux' } | undefined;
   /** Formulaire de création / édition — publication fournie en mode édition */
   PublicationForm:   { publication?: PublicationMarketing };
   /** Détail d'une publication et statut de diffusion par réseau */

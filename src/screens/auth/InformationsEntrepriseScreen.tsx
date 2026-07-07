@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Screen }  from '../../components/layout/Screen';
 import { Card }    from '../../components/layout/Card';
@@ -96,8 +96,7 @@ export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) =>
 
   return (
     <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <StepIndicator current={1} total={3} />
+      <StepIndicator current={1} total={3} />
         <Text style={styles.title}>Votre entreprise</Text>
         <Text style={styles.subtitle}>Renseignez les informations légales</Text>
 
@@ -219,7 +218,6 @@ export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) =>
           size="lg"
           style={styles.btn}
         />
-      </KeyboardAvoidingView>
     </Screen>
   );
 };

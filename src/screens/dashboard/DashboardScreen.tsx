@@ -13,7 +13,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  RefreshControl, ActivityIndicator, Alert,
+  RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient }       from 'expo-linear-gradient';
 import { SafeAreaView }         from 'react-native-safe-area-context';
@@ -36,6 +36,7 @@ import {
   ActiviteRecenteItem,
   PeriodeDashboard,
   PERIODE_LABELS,
+  PERIODE_COMPARAISON_LABEL,
   ACTIVITE_ICONE,
   ACTIVITE_BG,
   ACTIVITE_ICON_COLOR,
@@ -244,28 +245,28 @@ export const DashboardScreen: React.FC = () => {
       icon:      'person-add-outline',
       iconColor: '#2563EB',
       iconBg:    '#EFF6FF',
-      onPress: () => navigation.getParent()?.navigate('Clients'),
+      onPress: () => navigation.navigate('Clients', { screen: 'ClientForm' }),
     },
     {
       label:     'Planifier\nune réunion',
       icon:      'calendar-outline',
       iconColor: '#16A34A',
       iconBg:    '#F0FDF4',
-      onPress: () => navigation.getParent()?.navigate('Plus'),
+      onPress: () => navigation.navigate('Plus', { screen: 'PlanifierReunion' }),
     },
     {
       label:     'Ajouter\nun lead',
       icon:      'person-add-outline',
       iconColor: '#7C3AED',
       iconBg:    '#F5F3FF',
-      onPress: () => navigation.getParent()?.navigate('Ventes'),
+      onPress: () => navigation.navigate('Ventes', { screen: 'LeadForm' }),
     },
     {
       label:     'Publier',
       icon:      'megaphone-outline',
       iconColor: '#EA580C',
       iconBg:    '#FFF7ED',
-      onPress: () => Alert.alert('Sprint 4', 'Disponible en Sprint 4.'),
+      onPress: () => navigation.navigate('Marketing', { screen: 'PublicationForm' }),
     },
   ] as const;
 
@@ -342,7 +343,7 @@ export const DashboardScreen: React.FC = () => {
                   const evolColor = pct == null ? 'rgba(255,255,255,0.6)'
                                   : pct >= 0   ? '#4ADE80' : '#FCA5A5';
                   const evolTexte = pct == null ? '— N/A'
-                                  : `${pct >= 0 ? '+' : ''}${pct}% vs mois précédent`;
+                                  : `${pct >= 0 ? '+' : ''}${pct}% ${PERIODE_COMPARAISON_LABEL[periode]}`;
                   return (
                     <>
                       {pct !== null && (

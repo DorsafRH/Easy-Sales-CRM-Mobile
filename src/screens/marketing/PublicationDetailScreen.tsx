@@ -17,6 +17,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { FacebookPostPreview } from '../../components/marketing/FacebookPostPreview';
+import { PublicationStatsSection } from '../../components/marketing/PublicationStatsSection';
 import { parseLocalDateTime } from '../../utils/dateUtils';
 import { MarketingStackParamList } from '../../navigation/MarketingStack';
 
@@ -202,6 +203,10 @@ export const PublicationDetailScreen: React.FC = () => {
           <Button label="Supprimer" onPress={supprimer}
             variant="danger" disabled={action} fullWidth />
         </View>
+
+        {publication.statut === 'PUBLIEE' && (
+          <PublicationStatsSection publicationId={publicationId} />
+        )}
       </ScrollView>
     </SafeAreaView>
   );

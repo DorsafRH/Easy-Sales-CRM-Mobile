@@ -99,6 +99,13 @@ export const PERIODE_LABELS: Record<PeriodeDashboard, string> = {
   CETTE_ANNEE: 'Cette année',
 };
 
+/** Libellé de comparaison d'évolution affiché sous le CA, selon la période. */
+export const PERIODE_COMPARAISON_LABEL: Record<PeriodeDashboard, string> = {
+  AUJOURD_HUI: 'vs mois précédent',
+  CE_MOIS:     'vs mois précédent',
+  CETTE_ANNEE: 'vs année précédente',
+};
+
 /** Icône Ionicons par TypeActivite */
 export const ACTIVITE_ICONE: Record<string, string> = {
   CLIENT_CREE:        'person-add-outline',

@@ -135,7 +135,10 @@ export const PlanifierReunionScreen: React.FC = () => {
           toLocalDateString(date),
         ).catch(() => ({ success: false, data: [] } as any)),
       ]);
-      setNativeEvents(native);
+      // Exclut les copies CRM du calendrier natif (marqueur isCrm) :
+      // ces réunions arrivent déjà via l'API CRM — sinon elles
+      // apparaîtraient en double dans les plages occupées et les conflits.
+      setNativeEvents(native.filter(e => !e.isCrm));
       if (crmRes.success) setCrmEvents(crmRes.data ?? []);
     } catch (e) {
       console.warn('[PlanifierReunionScreen] Erreur chargement événements jour:', e);
@@ -385,6 +388,13 @@ export const PlanifierReunionScreen: React.FC = () => {
           </View>
 
           {enLigne && (
+            <Text style={styles.invitationInfo}>
+              📧 Le client et les participants ayant un email recevront
+              automatiquement l'invitation calendrier (.ics).
+            </Text>
+          )}
+
+          {enLigne && (
             <View style={styles.field}>
               <Text style={styles.label}>Lien <Text style={styles.labelOpt}>(laisser vide = Jitsi auto)</Text></Text>
               <View style={styles.lienRow}>
@@ -524,8 +534,9 @@ export const PlanifierReunionScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* ══ INVITATION EMAIL ══ */}
-        {participants.some(p => p.email) && (
+        {/* ══ INVITATION EMAIL ══
+            Masqué si réunion en ligne : l'envoi y est automatique (backend). */}
+        {!enLigne && participants.some(p => p.email) && (
           <View style={styles.section}>
             <View style={styles.invitationRow}>
               <View>
