@@ -23,6 +23,7 @@ import { useNavigation, useRoute,
          RouteProp }                 from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons }                  from '@expo/vector-icons';
+import { useTranslation }            from 'react-i18next';
 
 import { useStyles, useTheme }  from '../../theme';
 import { makeStyles }           from './ClientFormScreen.styles';
@@ -57,6 +58,7 @@ type Errors = Partial<Record<keyof ClientFormState, string>>;
 export const ClientFormScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t: tr }  = useTranslation(); // « tr » : le sélecteur de type utilise déjà « t » comme variable
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { client } = route.params ?? {};
@@ -110,8 +112,8 @@ export const ClientFormScreen: React.FC = () => {
       const { status } = await Contacts.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Accès aux contacts refusé',
-          "Autorisez l'accès aux contacts dans les réglages pour importer un client depuis votre répertoire.",
+          tr('clients.form.contactsDeniedTitle'),
+          tr('clients.form.contactsDeniedMsg'),
         );
         return;
       }
@@ -146,14 +148,14 @@ export const ClientFormScreen: React.FC = () => {
 
       if (!telephone) {
         Alert.alert(
-          'Téléphone manquant',
-          "Ce contact n'a pas de numéro. Renseignez-le manuellement avant d'enregistrer.",
+          tr('clients.form.phoneMissingTitle'),
+          tr('clients.form.phoneMissingMsg'),
         );
       }
     } catch (err) {
       Alert.alert(
-        'Import impossible',
-        "Une erreur est survenue lors de la lecture du répertoire.",
+        tr('clients.form.importErrorTitle'),
+        tr('clients.form.importErrorMsg'),
       );
     }
   };
@@ -162,14 +164,14 @@ export const ClientFormScreen: React.FC = () => {
   const validate = (): boolean => {
     const e: Errors = {};
     if (form.typeClient === 'INDIVIDUEL') {
-      if (!form.nom.trim())    e.nom    = 'Le nom est obligatoire.';
-      if (!form.prenom.trim()) e.prenom = 'Le prénom est obligatoire.';
+      if (!form.nom.trim())    e.nom    = tr('clients.form.errLastName');
+      if (!form.prenom.trim()) e.prenom = tr('clients.form.errFirstName');
     } else {
       if (!form.raisonSociale.trim())
-        e.raisonSociale = 'La raison sociale est obligatoire.';
+        e.raisonSociale = tr('clients.form.errCompanyName');
     }
     // Telephone obligatoire ; email optionnel (aucune validation requise).
-    if (!form.telephone.trim()) e.telephone = 'Le téléphone est obligatoire';
+    if (!form.telephone.trim()) e.telephone = tr('clients.form.errPhone');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -201,7 +203,7 @@ export const ClientFormScreen: React.FC = () => {
     } catch (err: any) {
       setApiError(
         err?.response?.data?.message ??
-        'Une erreur est survenue. Veuillez réessayer.',
+        tr('clients.form.errApi'),
       );
     } finally {
       setIsSaving(false);
@@ -216,7 +218,7 @@ export const ClientFormScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {isEditing ? 'Modifier le client' : 'Nouveau client'}
+          {isEditing ? tr('clients.form.titleEdit') : tr('clients.form.titleNew')}
         </Text>
       </View>
 
@@ -243,7 +245,7 @@ export const ClientFormScreen: React.FC = () => {
                 color={theme.colors.primary}
               />
               <Text style={styles.importBtnText}>
-                Importer depuis mes contacts
+                {tr('clients.form.importContacts')}
               </Text>
             </TouchableOpacity>
           )}
@@ -266,7 +268,7 @@ export const ClientFormScreen: React.FC = () => {
                       form.typeClient === t && styles.typeBtnTextActive,
                     ]}
                   >
-                    {t === 'INDIVIDUEL' ? 'Individuel' : 'Entreprise'}
+                    {t === 'INDIVIDUEL' ? tr('clients.form.individual') : tr('clients.form.company')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -284,8 +286,8 @@ export const ClientFormScreen: React.FC = () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>
               {form.typeClient === 'INDIVIDUEL'
-                ? 'Informations personnelles'
-                : 'Informations entreprise'}
+                ? tr('clients.form.personalInfo')
+                : tr('clients.form.companyInfo')}
             </Text>
 
             {form.typeClient === 'INDIVIDUEL' ? (
@@ -293,7 +295,7 @@ export const ClientFormScreen: React.FC = () => {
                 <View style={styles.row}>
                   <View style={styles.rowItem}>
                     <Input
-                      label="Prénom"
+                      label={tr('clients.form.firstName')}
                       placeholder="Ahmed"
                       value={form.prenom}
                       onChangeText={setField('prenom')}
@@ -304,7 +306,7 @@ export const ClientFormScreen: React.FC = () => {
                   </View>
                   <View style={styles.rowItem}>
                     <Input
-                      label="Nom"
+                      label={tr('clients.form.lastName')}
                       placeholder="Ben Ali"
                       value={form.nom}
                       onChangeText={setField('nom')}
@@ -317,8 +319,8 @@ export const ClientFormScreen: React.FC = () => {
               </>
             ) : (
               <Input
-                label="Raison sociale"
-                placeholder="Ex : TechCorp SARL"
+                label={tr('clients.form.companyName')}
+                placeholder={tr('clients.form.companyNamePlaceholder')}
                 value={form.raisonSociale}
                 onChangeText={setField('raisonSociale')}
                 error={errors.raisonSociale}
@@ -330,17 +332,17 @@ export const ClientFormScreen: React.FC = () => {
 
           {/* ── Coordonnées ── */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Coordonnées</Text>
+            <Text style={styles.cardTitle}>{tr('clients.form.coordinates')}</Text>
 
             <Input
-              label="Email"
+              label={tr('clients.form.email')}
               placeholder="contact@exemple.com"
               value={form.email}
               onChangeText={setField('email')}
               keyboardType="email-address"
             />
             <Input
-              label="Téléphone"
+              label={tr('clients.form.phone')}
               placeholder="+216 XX XXX XXX"
               value={form.telephone}
               onChangeText={setField('telephone')}
@@ -349,15 +351,15 @@ export const ClientFormScreen: React.FC = () => {
               required
             />
             <Input
-              label="Adresse"
-              placeholder="Rue, quartier"
+              label={tr('clients.form.address')}
+              placeholder={tr('clients.form.addressPlaceholder')}
               value={form.adresse}
               onChangeText={setField('adresse')}
             />
             <View style={styles.row}>
               <View style={styles.rowItem}>
                 <Input
-                  label="Ville"
+                  label={tr('clients.form.city')}
                   placeholder="Tunis"
                   value={form.ville}
                   onChangeText={setField('ville')}
@@ -365,7 +367,7 @@ export const ClientFormScreen: React.FC = () => {
               </View>
               <View style={styles.rowItem}>
                 <Input
-                  label="Pays"
+                  label={tr('clients.form.country')}
                   placeholder="Tunisie"
                   value={form.pays}
                   onChangeText={setField('pays')}
@@ -376,7 +378,7 @@ export const ClientFormScreen: React.FC = () => {
 
           {/* ── Bouton ── */}
           <Button
-            label={isEditing ? 'Enregistrer les modifications' : 'Créer le client'}
+            label={isEditing ? tr('clients.form.save') : tr('clients.form.create')}
             onPress={handleSubmit}
             loading={isSaving}
             fullWidth

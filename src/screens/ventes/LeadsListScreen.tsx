@@ -13,6 +13,7 @@ import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
 import { Ionicons }                      from '@expo/vector-icons';
+import { useTranslation }                from 'react-i18next';
 
 import { useStyles, useTheme }   from '../../theme';
 import { makeStyles }            from './LeadsListScreen.styles';
@@ -39,14 +40,7 @@ import {
 
 type Nav = NativeStackNavigationProp<VentesStackParamList, 'LeadsList'>;
 
-const FILTRE_CHIPS = [
-  { value: 'TOUS',        label: 'Tous'        },
-  { value: 'NOUVEAU',     label: 'Nouveaux'    },
-  { value: 'CONTACTE',    label: 'Contactes'   },
-  { value: 'QUALIFIE',    label: 'Qualifies'   },
-  { value: 'PROPOSITION', label: 'Proposition' },
-  { value: 'NEGOCIATION', label: 'Negociation' },
-];
+// Chips de filtre construits dans le composant (labels traduits via t())
 
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT
@@ -59,7 +53,17 @@ const FILTRE_CHIPS = [
 export const LeadsListScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<Nav>();
+
+  const FILTRE_CHIPS = [
+    { value: 'TOUS',        label: t('ventes.leadsList.filterAll')       },
+    { value: 'NOUVEAU',     label: t('ventes.leadsList.filterNew')       },
+    { value: 'CONTACTE',    label: t('ventes.leadsList.filterContacted') },
+    { value: 'QUALIFIE',    label: t('ventes.leadsList.filterQualified') },
+    { value: 'PROPOSITION', label: t('ventes.statutLead.PROPOSITION')    },
+    { value: 'NEGOCIATION', label: t('ventes.statutLead.NEGOCIATION')    },
+  ];
 
   const [leads,        setLeads]        = useState<LeadResponse[]>([]);
   const [searchText,   setSearchText]   = useState('');
@@ -99,10 +103,10 @@ export const LeadsListScreen: React.FC = () => {
       >
         <View style={styles.leadTopRow}>
           <Text style={styles.leadNom} numberOfLines={1}>{item.nom}</Text>
-          <Badge label={conf.label} variant="neutral" />
+          <Badge label={t(conf.labelKey)} variant="neutral" />
         </View>
         <Text style={styles.leadMeta}>
-          {item.entreprise ?? item.email ?? item.telephone ?? 'Aucune info de contact'}
+          {item.entreprise ?? item.email ?? item.telephone ?? t('ventes.leadsList.noContactInfo')}
         </Text>
         <View style={styles.scoreWrapper}>
           <ScoreBar score={item.score} />
@@ -118,16 +122,18 @@ export const LeadsListScreen: React.FC = () => {
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Leads</Text>
+          <Text style={styles.headerTitle}>{t('ventes.leadsList.title')}</Text>
           <Text style={styles.headerCount}>
-            {isLoading ? '...' : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
+            {isLoading
+              ? '...'
+              : t(leads.length !== 1 ? 'ventes.leadsList.countPlural' : 'ventes.leadsList.count', { nb: leads.length })}
           </Text>
         </View>
         <View style={styles.searchWrapper}>
           <SearchBar
             value={searchText}
             onChangeText={setSearchText}
-            placeholder="Rechercher un lead..."
+            placeholder={t('ventes.leadsList.searchPlaceholder')}
           />
         </View>
         <FilterChips
@@ -161,8 +167,8 @@ export const LeadsListScreen: React.FC = () => {
           ListEmptyComponent={
             <EmptyState
               icon="people-outline"
-              titre="Aucun lead"
-              soustitre="Ajoutez votre premier prospect"
+              titre={t('ventes.home.noLeads')}
+              soustitre={t('ventes.home.noLeadsSub')}
             />
           }
         />
@@ -170,7 +176,7 @@ export const LeadsListScreen: React.FC = () => {
 
       <FAB
         onPress={() => navigation.navigate('LeadForm', {})}
-        accessibilityLabel="Ajouter un lead"
+        accessibilityLabel={t('ventes.leadsList.fabLabel')}
       />
     </SafeAreaView>
   );

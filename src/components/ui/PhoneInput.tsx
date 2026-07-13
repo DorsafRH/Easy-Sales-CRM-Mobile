@@ -22,8 +22,9 @@ import {
   Modal, FlatList, Pressable,
 } from 'react-native';
 import { Ionicons }   from '@expo/vector-icons';
-import { useStyles }  from '../../theme';
-import { makeStyles } from './PhoneInput.styles';
+import { useStyles }       from '../../theme';
+import { makeStyles }      from './PhoneInput.styles';
+import { useTranslation }  from 'react-i18next';
 
 // ─── PAYS ────────────────────────────────────────────────────────────────────
 export interface Country {
@@ -79,6 +80,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   disabled    = false,
 }) => {
   const styles = useStyles(makeStyles);
+  const { t }  = useTranslation();
 
   const { country: ic, local: il } = useMemo(() => parsePhoneNumber(value), []); // eslint-disable-line
 
@@ -151,7 +153,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
         <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Choisir un pays</Text>
+              <Text style={styles.modalTitle}>{t('ui.phoneInput.chooseCountry')}</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={22} color="#374151" />
               </TouchableOpacity>

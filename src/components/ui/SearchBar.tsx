@@ -11,6 +11,7 @@ import { View, TextInput, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './SearchBar.styles';
+import { useTranslation } from 'react-i18next';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -41,10 +42,12 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChangeText,
-  placeholder = 'Rechercher…',
+  placeholder,
 }) => {
   const styles = useStyles(makeStyles);
   const theme  = useTheme();
+  const { t }  = useTranslation();
+  const ph     = placeholder ?? t('ui.searchBar.placeholder');
 
   return (
     <View style={styles.container}>
@@ -58,7 +61,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
-        placeholder={placeholder}
+        placeholder={ph}
         placeholderTextColor={theme.colors.textPlaceholder}
         autoCapitalize="none"
         autoCorrect={false}

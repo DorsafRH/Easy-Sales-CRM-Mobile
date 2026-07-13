@@ -23,6 +23,7 @@ import { SafeAreaView }              from 'react-native-safe-area-context';
 import { useNavigation }             from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons }                  from '@expo/vector-icons';
+import { useTranslation }            from 'react-i18next';
 
 import { useStyles, useTheme }     from '../../theme';
 import { makeStyles }              from './CatalogueScreen.styles';
@@ -49,19 +50,8 @@ import {
 // CONSTANTES
 // ─────────────────────────────────────────────────────────────
 
-const TYPE_CHIPS: FilterChip[] = [
-  { value: 'TOUS',      label: 'Tous'       },
-  { value: 'SERVICE',   label: 'Services'   },
-  { value: 'STOCKABLE', label: 'Stockables' },
-];
-
 type StatutOnglet = 'ACTIF' | 'INACTIF' | 'ARCHIVE';
-
-const STATUT_ONGLETS: { value: StatutOnglet; label: string }[] = [
-  { value: 'ACTIF',   label: 'Actifs'   },
-  { value: 'INACTIF', label: 'Inactifs' },
-  { value: 'ARCHIVE', label: 'Archivés' },
-];
+// Chips et onglets construits dans le composant (traduits via t())
 
 // ─────────────────────────────────────────────────────────────
 // HELPERS
@@ -76,18 +66,9 @@ const iconeCategorie = (nom?: string | null): string => {
   return CATEGORIE_ICONE_DEFAULT;
 };
 
-const formatPrix = (prixHT: number, unite?: string | null): string => {
-  const prix = prixHT.toLocaleString('fr-FR', { maximumFractionDigits: 3 });
+const makeFormatPrix = (locale: string) => (prixHT: number, unite?: string | null): string => {
+  const prix = prixHT.toLocaleString(locale, { maximumFractionDigits: 3 });
   return `${prix} TND${unite ? `/${unite}` : ''}`;
-};
-
-const getStockBadge = (
-  produit: ProduitResponse,
-): { label: string; variant: 'danger' | 'warning' | 'success' } | null => {
-  if (produit.type !== 'STOCKABLE') return null;
-  if (produit.stockDisponible === 0)  return { label: 'Rupture',  variant: 'danger'  };
-  if (produit.enAlerte)               return { label: 'Stock bas', variant: 'warning' };
-  return { label: `${produit.stockDisponible} en stock`, variant: 'success' };
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -101,7 +82,31 @@ const getStockBadge = (
 export const CatalogueScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale      = i18n.language === 'en' ? 'en-US' : 'fr-FR';
+  const formatPrix  = makeFormatPrix(locale);
   const navigation = useNavigation<NativeStackNavigationProp<CatalogueStackParamList>>();
+
+  const TYPE_CHIPS: FilterChip[] = [
+    { value: 'TOUS',      label: t('catalogue.filterAll')       },
+    { value: 'SERVICE',   label: t('catalogue.filterServices')  },
+    { value: 'STOCKABLE', label: t('catalogue.filterStockable') },
+  ];
+
+  const STATUT_ONGLETS: { value: StatutOnglet; label: string }[] = [
+    { value: 'ACTIF',   label: t('catalogue.tabActive')   },
+    { value: 'INACTIF', label: t('catalogue.tabInactive') },
+    { value: 'ARCHIVE', label: t('catalogue.tabArchived') },
+  ];
+
+  const getStockBadge = (
+    produit: ProduitResponse,
+  ): { label: string; variant: 'danger' | 'warning' | 'success' } | null => {
+    if (produit.type !== 'STOCKABLE') return null;
+    if (produit.stockDisponible === 0) return { label: t('catalogue.stockOut'), variant: 'danger' };
+    if (produit.enAlerte)              return { label: t('catalogue.stockLow'), variant: 'warning' };
+    return { label: t('catalogue.stockIn', { nb: produit.stockDisponible }), variant: 'success' };
+  };
 
   const [categories,    setCategories]    = useState<CategorieResponse[]>([]);
   const [produits,      setProduits]      = useState<ProduitResponse[]>([]);
@@ -147,13 +152,13 @@ export const CatalogueScreen: React.FC = () => {
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Catalogue</Text>
+          <Text style={styles.headerTitle}>{t('catalogue.title')}</Text>
         </View>
         <View style={styles.searchWrapper}>
           <SearchBar
             value={searchText}
             onChangeText={setSearchText}
-            placeholder="Rechercher un produit…"
+            placeholder={t('catalogue.searchPlaceholder')}
           />
         </View>
         <FilterChips
@@ -187,20 +192,20 @@ export const CatalogueScreen: React.FC = () => {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                Catégories ({categories.length})
+                {t('catalogue.categoriesTitle', { nb: categories.length })}
               </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('CategorieForm', {})}
               >
-                <Text style={styles.gererBtn}>+ Nouvelle</Text>
+                <Text style={styles.gererBtn}>{t('catalogue.newCategory')}</Text>
               </TouchableOpacity>
             </View>
 
             {categories.length === 0 ? (
               <EmptyState
                 icon="folder-open-outline"
-                titre="Aucune catégorie"
-                soustitre="Créez votre première catégorie"
+                titre={t('catalogue.noCategory')}
+                soustitre={t('catalogue.noCategorySub')}
               />
             ) : (
               <View style={styles.categoriesGrid}>
@@ -224,7 +229,7 @@ export const CatalogueScreen: React.FC = () => {
                       {cat.nom}
                     </Text>
                     <Text style={styles.categorieCount}>
-                      {cat.nbProduits} produit{cat.nbProduits !== 1 ? 's' : ''}
+                      {cat.nbProduits} {cat.nbProduits !== 1 ? t('catalogue.productPlural') : t('catalogue.productSingular')}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -236,7 +241,7 @@ export const CatalogueScreen: React.FC = () => {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                Produits ({produits.length})
+                {t('catalogue.productsTitle', { nb: produits.length })}
               </Text>
             </View>
 
@@ -270,7 +275,7 @@ export const CatalogueScreen: React.FC = () => {
                   color={theme.colors.warning}
                 />
                 <Text style={styles.archiveBannerText}>
-                  Ces produits sont archivés. Ouvrez-en un pour le désarchiver.
+                  {t('catalogue.archiveBanner')}
                 </Text>
               </View>
             )}
@@ -281,15 +286,15 @@ export const CatalogueScreen: React.FC = () => {
                 icon={filtreStatut === 'ARCHIVE' ? 'archive-outline' : 'cube-outline'}
                 titre={
                   filtreStatut === 'ARCHIVE'
-                    ? 'Aucun produit archivé'
+                    ? t('catalogue.emptyArchived')
                     : filtreStatut === 'INACTIF'
-                    ? 'Aucun produit inactif'
-                    : 'Aucun produit actif'
+                    ? t('catalogue.emptyInactive')
+                    : t('catalogue.emptyActive')
                 }
                 soustitre={
                   filtreStatut === 'ACTIF'
-                    ? 'Ajoutez votre premier produit avec le bouton +'
-                    : 'Aucun produit dans cette catégorie'
+                    ? t('catalogue.emptyActiveSub')
+                    : t('catalogue.emptyOther')
                 }
               />
             ) : (
@@ -326,7 +331,7 @@ export const CatalogueScreen: React.FC = () => {
                       </View>
                       <Text style={styles.produitCategorie}>
                         {produit.categorieNom ??
-                          (produit.type === 'SERVICE' ? 'Service' : 'Stockable')}
+                          (produit.type === 'SERVICE' ? t('catalogue.service') : t('catalogue.stockable'))}
                       </Text>
                     </View>
 
@@ -351,7 +356,7 @@ export const CatalogueScreen: React.FC = () => {
       {filtreStatut !== 'ARCHIVE' && (
         <FAB
           onPress={() => navigation.navigate('ProduitForm', {})}
-          accessibilityLabel="Ajouter un produit"
+          accessibilityLabel={t('catalogue.fabLabel')}
         />
       )}
     </SafeAreaView>

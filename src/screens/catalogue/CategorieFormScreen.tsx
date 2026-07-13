@@ -25,6 +25,7 @@ import { useNavigation, useRoute,
          RouteProp }                 from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons }                  from '@expo/vector-icons';
+import { useTranslation }            from 'react-i18next';
 
 import { useStyles, useTheme }     from '../../theme';
 import { makeStyles }              from './CategorieFormScreen.styles';
@@ -73,6 +74,7 @@ const iconeDepuisNom = (nom: string): string => {
 export const CategorieFormScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { categorie } = route.params ?? {};
@@ -105,7 +107,7 @@ export const CategorieFormScreen: React.FC = () => {
   // ── Validation ────────────────────────────────────────────
   const validate = (): boolean => {
     const e: Errors = {};
-    if (!form.nom.trim()) e.nom = 'Le nom de la catégorie est obligatoire.';
+    if (!form.nom.trim()) e.nom = t('catalogue.catForm.errName');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -127,7 +129,7 @@ export const CategorieFormScreen: React.FC = () => {
       }
       navigation.goBack();
     } catch (err: any) {
-      setApiError(err?.response?.data?.message ?? 'Une erreur est survenue.');
+      setApiError(err?.response?.data?.message ?? t('catalogue.form.errApi'));
     } finally {
       setIsSaving(false);
     }
@@ -145,8 +147,8 @@ export const CategorieFormScreen: React.FC = () => {
       navigation.goBack();
     } catch (err: any) {
       Alert.alert(
-        'Erreur',
-        err?.response?.data?.message ?? 'La suppression a échoué.',
+        t('ventes.leadDetail.error'),
+        err?.response?.data?.message ?? t('catalogue.catForm.cannotDelete'),
       );
     } finally {
       setIsDeleting(false);
@@ -171,12 +173,12 @@ export const CategorieFormScreen: React.FC = () => {
     if (nbProduits === 0) {
       // ── Catégorie vide : suppression directe ──
       Alert.alert(
-        'Supprimer la catégorie',
-        `Voulez-vous supprimer "${categorie?.nom}" ?`,
+        t('catalogue.catForm.deleteTitle'),
+        t('catalogue.catForm.deleteMsg', { nom: categorie?.nom }),
         [
-          { text: 'Annuler', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text:  'Supprimer',
+            text:  t('catalogue.detail.delete'),
             style: 'destructive',
             onPress: async () => {
               setIsDeleting(true);
@@ -188,11 +190,11 @@ export const CategorieFormScreen: React.FC = () => {
     } else {
       // ── Catégorie avec produits : propose 2 actions ──
       Alert.alert(
-        'Supprimer la catégorie',
-        `"${categorie?.nom}" contient ${nbProduits} produit(s) actif(s).\n\nQue voulez-vous faire avec ces produits ?`,
+        t('catalogue.catForm.deleteTitle'),
+        t('catalogue.catForm.deleteMsg', { nom: categorie?.nom }),
         [
           {
-            text:    'Désactiver les produits',
+            text:    t('catalogue.tabInactive'),
             onPress: async () => {
               setIsDeleting(true);
               try {
@@ -203,14 +205,14 @@ export const CategorieFormScreen: React.FC = () => {
               } catch (err: any) {
                 setIsDeleting(false);
                 Alert.alert(
-                  'Erreur',
-                  err?.response?.data?.message ?? 'Une erreur est survenue.',
+                  t('ventes.leadDetail.error'),
+                  err?.response?.data?.message ?? t('catalogue.form.errApi'),
                 );
               }
             },
           },
           {
-            text:    'Retirer la catégorie',
+            text:    t('catalogue.catForm.titleEdit'),
             onPress: async () => {
               setIsDeleting(true);
               try {
@@ -221,14 +223,14 @@ export const CategorieFormScreen: React.FC = () => {
               } catch (err: any) {
                 setIsDeleting(false);
                 Alert.alert(
-                  'Erreur',
-                  err?.response?.data?.message ?? 'Une erreur est survenue.',
+                  t('ventes.leadDetail.error'),
+                  err?.response?.data?.message ?? t('catalogue.form.errApi'),
                 );
               }
             },
           },
           {
-            text:  'Annuler',
+            text:  t('common.cancel'),
             style: 'cancel',
           },
         ],
@@ -247,7 +249,7 @@ export const CategorieFormScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>
-          {isEditing ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+          {isEditing ? t('catalogue.catForm.titleEdit') : t('catalogue.catForm.titleNew')}
         </Text>
       </View>
 
@@ -269,7 +271,7 @@ export const CategorieFormScreen: React.FC = () => {
           )}
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Informations</Text>
+            <Text style={styles.cardTitle}>{t('ventes.opport.infoTitle')}</Text>
 
             {/* Prévisualisation icône */}
             {form.nom.trim().length > 0 && (
@@ -282,14 +284,14 @@ export const CategorieFormScreen: React.FC = () => {
                   />
                 </View>
                 <Text style={styles.iconPreviewText}>
-                  Icône attribuée automatiquement
+                  {t('catalogue.catForm.nameLabel')}
                 </Text>
               </View>
             )}
 
             <Input
-              label="Nom de la catégorie"
-              placeholder="Ex : Logiciels, Services de conseil…"
+              label={t('catalogue.catForm.nameLabel')}
+              placeholder={t('catalogue.catForm.namePlaceholder')}
               value={form.nom}
               onChangeText={setField('nom')}
               error={errors.nom}
@@ -297,8 +299,8 @@ export const CategorieFormScreen: React.FC = () => {
               autoCapitalize="sentences"
             />
             <Input
-              label="Description"
-              placeholder="Description optionnelle de cette catégorie…"
+              label={t('catalogue.form.descLabel')}
+              placeholder={t('catalogue.form.descPlaceholder')}
               value={form.description}
               onChangeText={setField('description')}
               multiline
@@ -313,7 +315,7 @@ export const CategorieFormScreen: React.FC = () => {
 
           {/* ── Bouton enregistrer ── */}
           <Button
-            label={isEditing ? 'Enregistrer' : 'Créer la catégorie'}
+            label={isEditing ? t('catalogue.catForm.save') : t('catalogue.catForm.create')}
             onPress={handleSubmit}
             loading={isSaving}
             fullWidth
@@ -330,7 +332,7 @@ export const CategorieFormScreen: React.FC = () => {
               activeOpacity={0.75}
             >
               <Text style={styles.deleteBtnText}>
-                {isDeleting ? 'Suppression en cours…' : 'Supprimer la catégorie'}
+                {isDeleting ? t('common.loading') : t('catalogue.catForm.deleteTitle')}
               </Text>
             </TouchableOpacity>
           )}

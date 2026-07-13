@@ -17,6 +17,7 @@ import { useStyles } from '../../theme';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { TailleEntreprise } from '../../types/entreprise.types';
 import { makeStyles } from './InformationsEntrepriseScreen.styles';
+import { useTranslation } from 'react-i18next';
 
 type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'InformationsEntreprise'> };
 
@@ -83,6 +84,7 @@ const StepIndicator: React.FC<{ current: number; total: number }> = ({ current, 
 export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) => {
   const { form, errors, updateField, validateStep1 } = useInscriptionContext();
   const styles = useStyles(makeStyles);
+  const { t }  = useTranslation();
 
   /**
    * Valide l'étape 1 et navigue vers l'étape suivante si valide.
@@ -97,12 +99,12 @@ export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) =>
   return (
     <Screen>
       <StepIndicator current={1} total={3} />
-        <Text style={styles.title}>Votre entreprise</Text>
-        <Text style={styles.subtitle}>Renseignez les informations légales</Text>
+        <Text style={styles.title}>{t('signup.entreprise.title')}</Text>
+        <Text style={styles.subtitle}>{t('signup.entreprise.subtitle')}</Text>
 
         <Card style={styles.card}>
           <Input
-            label="Nom de l'entreprise"
+            label={t('signup.entreprise.name')}
             placeholder="Ex : TechCorp SARL"
             value={form.nomEntreprise}
             onChangeText={v => updateField('nomEntreprise', v)}
@@ -111,7 +113,7 @@ export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) =>
             autoCapitalize="words"
           />
           <Input
-            label="Matricule fiscale"
+            label={t('signup.entreprise.fiscalId')}
             placeholder="Ex : 1234567ABC"
             value={form.matriculeFiscale}
             onChangeText={v => updateField('matriculeFiscale', v.toUpperCase())}
@@ -164,7 +166,7 @@ export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) =>
           </View>
 
           <Input
-            label="Téléphone entreprise"
+            label={t('signup.entreprise.phone')}
             placeholder="+216 71 000 000"
             value={form.telephoneEntreprise}
             onChangeText={v => updateField('telephoneEntreprise', v)}
@@ -173,7 +175,7 @@ export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) =>
             keyboardType="phone-pad"
           />
           <Input
-            label="Adresse"
+            label={t('signup.entreprise.address')}
             placeholder="12 Rue des Roses"
             value={form.adresse}
             onChangeText={v => updateField('adresse', v)}
@@ -183,7 +185,7 @@ export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) =>
           <View style={styles.row}>
             <View style={styles.rowItem}>
               <Input
-                label="Ville"
+                label={t('signup.entreprise.city')}
                 placeholder="Tunis"
                 value={form.ville}
                 onChangeText={v => updateField('ville', v)}
@@ -193,7 +195,7 @@ export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) =>
             </View>
             <View style={styles.rowItem}>
               <Input
-                label="Pays"
+                label={t('signup.entreprise.country')}
                 placeholder="Tunisie"
                 value={form.pays}
                 onChangeText={v => updateField('pays', v)}
@@ -203,7 +205,7 @@ export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) =>
             </View>
           </View>
           <Input
-            label="Site web (optionnel)"
+            label={t('signup.entreprise.website')}
             placeholder="https://mon-site.com"
             value={form.siteWeb}
             onChangeText={v => updateField('siteWeb', v)}
@@ -212,7 +214,7 @@ export const InformationsEntrepriseScreen: React.FC<Props> = ({ navigation }) =>
         </Card>
 
         <Button
-          label="Suivant — Mes informations"
+          label={t('signup.entreprise.next')}
           onPress={handleSuivant}
           fullWidth
           size="lg"

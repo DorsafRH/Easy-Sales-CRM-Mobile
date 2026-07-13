@@ -16,6 +16,7 @@ import { useInscriptionContext } from '../../context/InscriptionContext';
 import { useStyles, useTheme, AppTheme } from '../../theme';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { makeStyles } from './InformationsProprietaireScreen.styles';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'InformationsProprietaire'>;
@@ -103,6 +104,7 @@ export const InformationsProprietaireScreen: React.FC<Props> = ({ navigation }) 
   const { form, errors, updateField, validateStep2 } = useInscriptionContext();
   const styles = useStyles(makeStyles);
   const theme  = useTheme();
+  const { t }  = useTranslation();
 
   /**
    * Valide l'étape 2 et navigue vers le récapitulatif si valide.
@@ -119,14 +121,14 @@ export const InformationsProprietaireScreen: React.FC<Props> = ({ navigation }) 
   return (
     <Screen>
       <StepIndicator current={2} total={3} />
-        <Text style={styles.title}>Vos informations</Text>
-        <Text style={styles.subtitle}>Informations du propriétaire du compte</Text>
+        <Text style={styles.title}>{t('signup.proprietaire.title')}</Text>
+        <Text style={styles.subtitle}>{t('signup.proprietaire.subtitle')}</Text>
 
         <Card style={styles.card}>
           <View style={styles.row}>
             <View style={styles.rowItem}>
               <Input
-                label="Prénom"
+                label={t('profile.firstName')}
                 placeholder="Ahmed"
                 value={form.prenom}
                 onChangeText={(v: string) => updateField('prenom', v)}
@@ -137,7 +139,7 @@ export const InformationsProprietaireScreen: React.FC<Props> = ({ navigation }) 
             </View>
             <View style={styles.rowItem}>
               <Input
-                label="Nom"
+                label={t('profile.lastName')}
                 placeholder="Ben Ali"
                 value={form.nom}
                 onChangeText={(v: string) => updateField('nom', v)}
@@ -149,7 +151,7 @@ export const InformationsProprietaireScreen: React.FC<Props> = ({ navigation }) 
           </View>
 
           <Input
-            label="Email"
+            label={t('auth.login.emailLabel')}
             placeholder="votre@email.com"
             value={form.email}
             onChangeText={(v: string) => updateField('email', v)}
@@ -158,7 +160,7 @@ export const InformationsProprietaireScreen: React.FC<Props> = ({ navigation }) 
             keyboardType="email-address"
           />
           <Input
-            label="Téléphone"
+            label={t('signup.proprietaire.phone')}
             placeholder="+216 20 000 000"
             value={form.telephone}
             onChangeText={(v: string) => updateField('telephone', v)}
@@ -174,7 +176,7 @@ export const InformationsProprietaireScreen: React.FC<Props> = ({ navigation }) 
           </View>
 
           <Input
-            label="Mot de passe"
+            label={t('auth.login.passwordLabel')}
             placeholder="Minimum 8 caractères"
             value={form.motDePasse}
             onChangeText={(v: string) => updateField('motDePasse', v)}
@@ -195,7 +197,7 @@ export const InformationsProprietaireScreen: React.FC<Props> = ({ navigation }) 
           )}
 
           <Input
-            label="Confirmer le mot de passe"
+            label={t('auth.reset.confirmLabel')}
             placeholder="Répétez votre mot de passe"
             value={form.confirmMotDePasse}
             onChangeText={(v: string) => updateField('confirmMotDePasse', v)}
@@ -207,14 +209,14 @@ export const InformationsProprietaireScreen: React.FC<Props> = ({ navigation }) 
 
         <View style={styles.btnRow}>
           <Button
-            label="Retour"
+            label={t('signup.proprietaire.back')}
             onPress={() => navigation.goBack()}
             variant="secondary"
             size="lg"
             style={styles.btnBack}
           />
           <Button
-            label="Récapitulatif"
+            label={t('signup.proprietaire.next')}
             onPress={handleSuivant}
             size="lg"
             style={styles.btnNext}

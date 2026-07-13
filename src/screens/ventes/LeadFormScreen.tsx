@@ -25,8 +25,9 @@ import * as VenteApi from '../../api/vente.api';
 import {
   LeadRequest,
   SourceLead,
-  SOURCE_LEAD_LABELS,
+  SOURCE_LEAD_LABEL_KEYS,
 } from '../../types/vente.types';
+import { useTranslation } from 'react-i18next';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -51,6 +52,7 @@ const SOURCES: SourceLead[] = [
 export const LeadFormScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { leadId } = route.params ?? {};
@@ -88,7 +90,7 @@ export const LeadFormScreen: React.FC = () => {
         setDescBesoin(l.descriptionBesoin ?? '');
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger le lead.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.leadDetail.loadError'));
       navigation.goBack();
     } finally {
       setIsLoading(false);
@@ -102,14 +104,13 @@ export const LeadFormScreen: React.FC = () => {
   const valider = (): boolean => {
     let valide = true;
     if (!nom.trim()) {
-      setNomError('Le nom est obligatoire');
+      setNomError(t('clients.form.errLastName'));
       valide = false;
     } else {
       setNomError('');
     }
-    // Telephone obligatoire ; email optionnel (aucune validation requise).
     if (!telephone.trim()) {
-      setTelephoneError('Le téléphone est obligatoire');
+      setTelephoneError(t('clients.form.errPhone'));
       valide = false;
     } else {
       setTelephoneError('');
@@ -141,7 +142,7 @@ export const LeadFormScreen: React.FC = () => {
       }
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de sauvegarder le lead.');
+      Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('clients.form.errApi'));
     } finally {
       setIsSaving(false);
     }
@@ -170,23 +171,23 @@ export const LeadFormScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {estEdition ? 'Modifier le lead' : 'Nouveau lead'}
+            {estEdition ? t('ventes.leadForm.titleEdit') : t('ventes.leadForm.titleNew')}
           </Text>
         </View>
 
         {/* ── Identite ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Identite du prospect</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.leadForm.identityTitle')}</Text>
           <View style={styles.fieldGroup}>
             <Input
-              label="Nom complet *"
+              label={t('ventes.leadForm.fullName')}
               value={nom}
               onChangeText={v => { setNom(v); if (v.trim()) setNomError(''); }}
               placeholder="Ex: Ahmed Ben Ali"
               error={nomError}
             />
             <Input
-              label="Email"
+              label={t('clients.form.email')}
               value={email}
               onChangeText={setEmail}
               placeholder="ahmed@entreprise.com"
@@ -194,7 +195,7 @@ export const LeadFormScreen: React.FC = () => {
               autoCapitalize="none"
             />
             <Input
-              label="Telephone *"
+              label={t('ventes.leadForm.phone')}
               value={telephone}
               onChangeText={v => { setTelephone(v); if (v.trim()) setTelephoneError(''); }}
               placeholder="+216 XX XXX XXX"
@@ -206,16 +207,16 @@ export const LeadFormScreen: React.FC = () => {
 
         {/* ── Entreprise ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Entreprise</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.leadForm.companySection')}</Text>
           <View style={styles.fieldGroup}>
             <Input
-              label="Nom de l'entreprise"
+              label={t('ventes.leadForm.companyName')}
               value={entreprise}
               onChangeText={setEntreprise}
               placeholder="Ex: Societe ABC"
             />
             <Input
-              label="Poste occupe"
+              label={t('ventes.leadForm.position')}
               value={poste}
               onChangeText={setPoste}
               placeholder="Ex: Directeur commercial"
@@ -225,7 +226,7 @@ export const LeadFormScreen: React.FC = () => {
 
         {/* ── Source ── */}
         <View style={styles.section}>
-          <Text style={styles.selectLabel}>Source du lead *</Text>
+          <Text style={styles.selectLabel}>{t('ventes.leadForm.sourceLabel')}</Text>
           <View style={styles.sourceGrid}>
             {SOURCES.map(s => (
               <TouchableOpacity
@@ -234,7 +235,7 @@ export const LeadFormScreen: React.FC = () => {
                 onPress={() => setSource(s)}
               >
                 <Text style={[styles.sourceChipText, source === s && styles.sourceChipTextSelected]}>
-                  {SOURCE_LEAD_LABELS[s]}
+                  {t(SOURCE_LEAD_LABEL_KEYS[s])}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -243,12 +244,12 @@ export const LeadFormScreen: React.FC = () => {
 
         {/* ── Besoin ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Besoin identifie</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.leadDetail.needTitle')}</Text>
           <Input
-            label="Description du besoin"
+            label={t('ventes.leadForm.needLabel')}
             value={descriptionBesoin}
             onChangeText={setDescBesoin}
-            placeholder="Decrire le besoin ou le contexte du prospect..."
+            placeholder={t('ventes.leadForm.needPlaceholder')}
             multiline
             numberOfLines={4}
           />
@@ -265,12 +266,12 @@ export const LeadFormScreen: React.FC = () => {
               <ActivityIndicator size="small" color={theme.colors.white} />
             ) : (
               <Text style={styles.submitBtnText}>
-                {estEdition ? 'Enregistrer les modifications' : 'Creer le lead'}
+                {estEdition ? t('clients.form.save') : t('ventes.leadForm.create')}
               </Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.cancelBtnText}>Annuler</Text>
+            <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
 

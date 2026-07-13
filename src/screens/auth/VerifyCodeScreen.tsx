@@ -35,6 +35,7 @@ import { RouteProp }                 from '@react-navigation/native';
 import { Button }         from '../../components/ui/Button';
 import { useStyles }      from '../../theme';
 import { makeStyles }     from './VerifyCodeScreen.styles';
+import { useTranslation } from 'react-i18next';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import * as AuthApi       from '../../api/auth.api';
 
@@ -58,6 +59,7 @@ const OTP_LENGTH = 6;
  */
 export const VerifyCodeScreen: React.FC<Props> = ({ navigation, route }) => {
   const styles = useStyles(makeStyles);
+  const { t }  = useTranslation();
   const { email } = route.params;
 
   // ── État ──────────────────────────────────────────────────────
@@ -273,7 +275,7 @@ export const VerifyCodeScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
 
           {/* Titre */}
-          <Text style={styles.title}>Vérifiez votre email</Text>
+          <Text style={styles.title}>{t('auth.verify.title')}</Text>
           <Text style={styles.subtitle}>
             Nous avons envoyé un code à 6 chiffres à{'\n'}
             <Text style={styles.email}>{email}</Text>
@@ -335,7 +337,7 @@ export const VerifyCodeScreen: React.FC<Props> = ({ navigation, route }) => {
 
           {/* Bouton vérifier */}
           <Button
-            label="Vérifier le code"
+            label={t('auth.verify.verifyBtn')}
             onPress={() => handleVerify()}
             loading={isLoading}
             fullWidth
@@ -358,7 +360,7 @@ export const VerifyCodeScreen: React.FC<Props> = ({ navigation, route }) => {
                 // ← Correction style : gris si pas encore actif
                 !canResend && styles.footerLinkDisabled,
               ]}>
-                {isResending ? 'Envoi...' : 'Renvoyer'}
+                {isResending ? t('auth.verify.resending') : t('auth.verify.resend')}
               </Text>
             </TouchableOpacity>
           </View>

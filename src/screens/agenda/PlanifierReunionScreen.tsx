@@ -16,6 +16,7 @@ import { SafeAreaView }                        from 'react-native-safe-area-cont
 import { useNavigation, useRoute, RouteProp }  from '@react-navigation/native';
 import { NativeStackNavigationProp }           from '@react-navigation/native-stack';
 import { Ionicons }                            from '@expo/vector-icons';
+import { useTranslation }                      from 'react-i18next';
 import DateTimePicker                          from '@react-native-community/datetimepicker';
 
 import { useStyles, useTheme } from '../../theme';
@@ -57,6 +58,8 @@ const makeKey = () => Math.random().toString(36).slice(2);
 export const PlanifierReunionScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale      = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
 
@@ -208,8 +211,8 @@ export const PlanifierReunionScreen: React.FC = () => {
   const toggleRappel = (m: number) =>
     setRappels(prev => prev.includes(m) ? prev.filter(r => r !== m) : [...prev, m]);
 
-  const fmtDate  = (d: Date) => d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
-  const fmtHeure = (d: Date) => d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const fmtDate  = (d: Date) => d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
+  const fmtHeure = (d: Date) => d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   const fmtDuree = (m: number) => DUREES.find(d => d.minutes === m)?.label ?? `${m} min`;
 
   const isValid = titre.trim().length > 0 && clientId !== null;
@@ -244,7 +247,7 @@ export const PlanifierReunionScreen: React.FC = () => {
           );
           await CalendarService.addReunionToCalendar(res.data);
         }
-        Alert.alert('✅', 'Réunion mise à jour.');
+        Alert.alert('✅', t('agenda.form.updatedTitle'));
       } else {
         const res = await ReunionApi.creer(request);
         if (res.success) {
@@ -253,11 +256,11 @@ export const PlanifierReunionScreen: React.FC = () => {
           );
           await CalendarService.addReunionToCalendar(res.data);
         }
-        Alert.alert('✅', 'Réunion planifiée avec succès.');
+        Alert.alert('✅', t('agenda.form.savedTitle'));
       }
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de sauvegarder.');
+      Alert.alert(t('agenda.error'), e?.response?.data?.message ?? t('agenda.form.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -282,7 +285,7 @@ export const PlanifierReunionScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {isEdition ? 'Modifier la réunion' : 'Planifier une réunion'}
+          {isEdition ? t('agenda.form.titleEdit') : t('agenda.form.titleNew')}
         </Text>
       </View>
 
@@ -291,24 +294,24 @@ export const PlanifierReunionScreen: React.FC = () => {
 
         {/* ══ INFORMATIONS ══ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informations</Text>
+          <Text style={styles.sectionTitle}>{t('agenda.form.infoSection')}</Text>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Titre *</Text>
-            <TextInput style={styles.input} placeholder="Ex : Présentation offre commerciale"
+            <Text style={styles.label}>{t('agenda.form.titleLabel')}</Text>
+            <TextInput style={styles.input} placeholder={t('agenda.form.titlePlaceholder')}
               placeholderTextColor={theme.colors.textTertiary} value={titre} onChangeText={setTitre} />
           </View>
 
           <View style={styles.rowDateHeure}>
             <View style={[styles.field, styles.fieldDate]}>
-              <Text style={styles.label}>Date *</Text>
+              <Text style={styles.label}>{t('agenda.form.dateLabel')}</Text>
               <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowDate(true)}>
                 <Text style={styles.pickerBtnTxt}>{fmtDate(date)}</Text>
                 <Ionicons name="calendar-outline" size={16} color={theme.colors.textTertiary} />
               </TouchableOpacity>
             </View>
             <View style={[styles.field, styles.fieldHeure]}>
-              <Text style={styles.label}>Heure *</Text>
+              <Text style={styles.label}>{t('agenda.form.timeLabel')}</Text>
               <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowHeure(true)}>
                 <Text style={styles.pickerBtnTxt}>{fmtHeure(date)}</Text>
                 <Ionicons name="time-outline" size={16} color={theme.colors.textTertiary} />
@@ -326,19 +329,19 @@ export const PlanifierReunionScreen: React.FC = () => {
           )}
 
           <View style={styles.conflictBox}>
-            <Text style={styles.sectionTitle}>Plages occupées</Text>
+            <Text style={styles.sectionTitle}>{t('agenda.form.busySlots')}</Text>
             {isLoadingEvents ? (
               <ActivityIndicator size="small" color={theme.colors.primary} />
             ) : (
               <>
                 {nativeEvents.length === 0 && crmEvents.length === 0 ? (
-                  <Text style={styles.conflictTxt}>Aucun événement natif ou réunion CRM trouvé ce jour.</Text>
+                  <Text style={styles.conflictTxt}>{t('agenda.form.noEvents')}</Text>
                 ) : (
                   <>
                     {nativeEvents.map(event => (
                       <View key={`native-${event.id}`} style={styles.slotRow}>
                         <Text style={styles.slotTitle}>{event.title}</Text>
-                        <Text style={styles.slotSub}>{`${event.start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} – ${event.end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}</Text>
+                        <Text style={styles.slotSub}>{`${event.start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} – ${event.end.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`}</Text>
                       </View>
                     ))}
                     {crmEvents.filter(r => r.id !== reunionId).map(event => {
@@ -347,7 +350,7 @@ export const PlanifierReunionScreen: React.FC = () => {
                       return (
                         <View key={`crm-${event.id}`} style={styles.slotRow}>
                           <Text style={styles.slotTitle}>{event.titre}</Text>
-                          <Text style={styles.slotSub}>{`${start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}</Text>
+                          <Text style={styles.slotSub}>{`${start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`}</Text>
                         </View>
                       );
                     })}
@@ -355,7 +358,7 @@ export const PlanifierReunionScreen: React.FC = () => {
                 )}
                 {hasConflict && (
                   <Text style={styles.warningTxt}>
-                    ⚠️ Conflit détecté : la plage sélectionnée chevauche un événement existant.
+                    {t('agenda.form.conflictWarning')}
                   </Text>
                 )}
               </>
@@ -363,7 +366,7 @@ export const PlanifierReunionScreen: React.FC = () => {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Durée *</Text>
+            <Text style={styles.label}>{t('agenda.form.durationLabel')}</Text>
             <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowDureeModal(true)}>
               <Text style={styles.pickerBtnTxt}>{fmtDuree(dureeMinutes)}</Text>
               <Ionicons name="chevron-down" size={16} color={theme.colors.textTertiary} />
@@ -371,14 +374,14 @@ export const PlanifierReunionScreen: React.FC = () => {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Lieu <Text style={styles.labelOpt}>(optionnel)</Text></Text>
-            <TextInput style={styles.input} placeholder="Ex : Bureau client, Siège social…"
+            <Text style={styles.label}>{t('agenda.form.locationLabel')} <Text style={styles.labelOpt}>({t('agenda.form.locationOpt')})</Text></Text>
+            <TextInput style={styles.input} placeholder={t('agenda.form.locationPlaceholder')}
               placeholderTextColor={theme.colors.textTertiary} value={lieu} onChangeText={setLieu} />
           </View>
 
           {/* Toggle en ligne */}
           <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Réunion en ligne</Text>
+            <Text style={styles.toggleLabel}>{t('agenda.form.onlineMeeting')}</Text>
             <TouchableOpacity
               style={[styles.toggle, enLigne && styles.toggleActive]}
               onPress={() => setEnLigne(!enLigne)}
@@ -389,14 +392,13 @@ export const PlanifierReunionScreen: React.FC = () => {
 
           {enLigne && (
             <Text style={styles.invitationInfo}>
-              📧 Le client et les participants ayant un email recevront
-              automatiquement l'invitation calendrier (.ics).
+              {t('agenda.form.onlineInviteInfo')}
             </Text>
           )}
 
           {enLigne && (
             <View style={styles.field}>
-              <Text style={styles.label}>Lien <Text style={styles.labelOpt}>(laisser vide = Jitsi auto)</Text></Text>
+              <Text style={styles.label}>{t('agenda.form.linkLabel')} <Text style={styles.labelOpt}>({t('agenda.form.linkOpt')})</Text></Text>
               <View style={styles.lienRow}>
                 <TextInput
                   style={[styles.input, styles.lienInput]}
@@ -418,12 +420,12 @@ export const PlanifierReunionScreen: React.FC = () => {
 
         {/* ══ CLIENT ══ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Client principal</Text>
+          <Text style={styles.sectionTitle}>{t('agenda.form.clientSection')}</Text>
           <View style={styles.field}>
-            <Text style={styles.label}>Client *</Text>
+            <Text style={styles.label}>{t('agenda.form.clientLabel')}</Text>
             <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowClientModal(true)}>
               <Text style={[styles.pickerBtnTxt, !clientNom && styles.pickerBtnPlaceholder]}>
-                {clientNom || 'Rechercher un client…'}
+                {clientNom || t('agenda.form.clientPlaceholder')}
               </Text>
               <Ionicons name="search-outline" size={16} color={theme.colors.textTertiary} />
             </TouchableOpacity>
@@ -433,13 +435,13 @@ export const PlanifierReunionScreen: React.FC = () => {
         {/* ══ PARTICIPANTS ══ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            Participants ({participants.length})
+            {t('agenda.form.participantsSection', { nb: participants.length })}
           </Text>
 
           {participants.map((p, idx) => (
             <View key={p._key} style={styles.participantCard}>
               <View style={styles.participantCardHeader}>
-                <Text style={styles.participantCardTitle}>Participant {idx + 1}</Text>
+                <Text style={styles.participantCardTitle}>{t('agenda.form.participantN', { n: idx + 1 })}</Text>
                 <TouchableOpacity
                   style={styles.participantDeleteBtn}
                   onPress={() => supprimerParticipant(p._key)}
@@ -451,14 +453,14 @@ export const PlanifierReunionScreen: React.FC = () => {
               <View style={styles.participantRow}>
                 <TextInput
                   style={[styles.input, styles.participantField]}
-                  placeholder="Prénom"
+                  placeholder={t('agenda.form.firstNamePlaceholder')}
                   placeholderTextColor={theme.colors.textTertiary}
                   value={p.prenom ?? ''}
                   onChangeText={v => modifierParticipant(p._key, 'prenom', v)}
                 />
                 <TextInput
                   style={[styles.input, styles.participantField]}
-                  placeholder="Nom *"
+                  placeholder={t('agenda.form.lastNamePlaceholder')}
                   placeholderTextColor={theme.colors.textTertiary}
                   value={p.nom}
                   onChangeText={v => modifierParticipant(p._key, 'nom', v)}
@@ -467,7 +469,7 @@ export const PlanifierReunionScreen: React.FC = () => {
 
               <TextInput
                 style={[styles.input, { marginTop: theme.spacing[2] }]}
-                placeholder="Email"
+                placeholder={t('agenda.form.emailPlaceholder')}
                 placeholderTextColor={theme.colors.textTertiary}
                 value={p.email ?? ''}
                 onChangeText={v => modifierParticipant(p._key, 'email', v)}
@@ -476,7 +478,7 @@ export const PlanifierReunionScreen: React.FC = () => {
               />
               <TextInput
                 style={[styles.input, { marginTop: theme.spacing[2] }]}
-                placeholder="Téléphone (ex: +21621000000)"
+                placeholder={t('agenda.form.phonePlaceholder')}
                 placeholderTextColor={theme.colors.textTertiary}
                 value={p.telephone ?? ''}
                 onChangeText={v => modifierParticipant(p._key, 'telephone', v)}
@@ -496,7 +498,7 @@ export const PlanifierReunionScreen: React.FC = () => {
                       onPress={() => setTypeParticipant(p._key, type)}
                     >
                       <Text style={[styles.typeBadgeTxt, actif && { color: conf.color }]}>
-                        {conf.label}
+                        {t(conf.labelKey)}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -507,14 +509,14 @@ export const PlanifierReunionScreen: React.FC = () => {
 
           <TouchableOpacity style={styles.addParticipantBtn} onPress={ajouterParticipant}>
             <Ionicons name="person-add-outline" size={16} color={theme.colors.primary} />
-            <Text style={styles.addParticipantTxt}>Ajouter un participant</Text>
+            <Text style={styles.addParticipantTxt}>{t('agenda.form.addParticipant')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* ══ RAPPELS ══ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            Rappels — {rappels.length} sélectionné{rappels.length !== 1 ? 's' : ''}
+            {t(rappels.length !== 1 ? 'agenda.form.remindersSectionPlural' : 'agenda.form.remindersSection', { nb: rappels.length })}
           </Text>
           <View style={styles.rappelsGrid}>
             {RAPPELS.map(r => {
@@ -540,9 +542,9 @@ export const PlanifierReunionScreen: React.FC = () => {
           <View style={styles.section}>
             <View style={styles.invitationRow}>
               <View>
-                <Text style={styles.label}>Envoyer une invitation</Text>
+                <Text style={styles.label}>{t('agenda.form.sendInvite')}</Text>
                 <Text style={styles.invitationInfo}>
-                  Email avec fichier .ics aux participants ayant un email
+                  {t('agenda.form.sendInviteInfo')}
                 </Text>
               </View>
               <TouchableOpacity
@@ -557,10 +559,10 @@ export const PlanifierReunionScreen: React.FC = () => {
 
         {/* ══ NOTES ══ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notes</Text>
+          <Text style={styles.sectionTitle}>{t('agenda.form.notesSection')}</Text>
           <TextInput
             style={[styles.input, styles.inputMultiline]}
-            placeholder="Notes sur la réunion…"
+            placeholder={t('agenda.form.notesPlaceholder')}
             placeholderTextColor={theme.colors.textTertiary}
             value={notes}
             onChangeText={setNotes}
@@ -579,7 +581,7 @@ export const PlanifierReunionScreen: React.FC = () => {
             <ActivityIndicator color={theme.colors.white} />
           ) : (
             <Text style={styles.btnSauvegarderTxt}>
-              {isEdition ? 'Mettre à jour' : 'Planifier la réunion'}
+              {isEdition ? t('agenda.form.update') : t('agenda.form.save')}
             </Text>
           )}
         </TouchableOpacity>
@@ -593,7 +595,7 @@ export const PlanifierReunionScreen: React.FC = () => {
           onPress={() => setShowDureeModal(false)}>
           <TouchableOpacity activeOpacity={1}>
             <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>Durée de la réunion</Text>
+              <Text style={styles.modalTitle}>{t('agenda.form.durationModal')}</Text>
               <FlatList data={DUREES} keyExtractor={i => String(i.minutes)}
                 renderItem={({ item }) => (
                   <TouchableOpacity style={styles.modalItem}
@@ -615,10 +617,10 @@ export const PlanifierReunionScreen: React.FC = () => {
           onPress={fermerModalClient}>
           <TouchableOpacity activeOpacity={1}>
             <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>Sélectionner un client</Text>
+              <Text style={styles.modalTitle}>{t('agenda.form.selectClient')}</Text>
               <TextInput
                 style={styles.inputRecherche}
-                placeholder="Rechercher par nom, email…"
+                placeholder={t('agenda.form.searchClientPlaceholder')}
                 placeholderTextColor={theme.colors.textTertiary}
                 value={recherche}
                 onChangeText={setRecherche}
@@ -645,7 +647,7 @@ export const PlanifierReunionScreen: React.FC = () => {
                   )}
                   ListEmptyComponent={
                     <Text style={[styles.modalItemTxt, { textAlign: 'center', padding: 16 }]}>
-                      Aucun client trouvé
+                      {t('agenda.form.noClient')}
                     </Text>
                   }
                 />

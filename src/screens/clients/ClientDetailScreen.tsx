@@ -20,6 +20,7 @@ import { useNavigation, useRoute,
          RouteProp, CommonActions }  from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, Feather }         from '@expo/vector-icons';
+import { useTranslation }            from 'react-i18next';
 
 import { useStyles, useTheme }     from '../../theme';
 import { makeStyles }              from './ClientDetailScreen.styles';
@@ -81,6 +82,7 @@ const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({
 export const ClientDetailScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { clientId } = route.params;
@@ -157,19 +159,19 @@ export const ClientDetailScreen: React.FC = () => {
 
   const handleSupprimer = () => {
     Alert.alert(
-      'Supprimer le client',
-      `Voulez-vous supprimer définitivement "${client?.nomAffichage}" ?`,
+      t('clients.detail.deleteTitle'),
+      t('clients.detail.deleteConfirm', { name: client?.nomAffichage }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('clients.detail.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await ClientApi.supprimerClient(clientId);
               navigation.goBack();
             } catch {
-              Alert.alert('Erreur', 'Impossible de supprimer ce client.');
+              Alert.alert(t('clients.detail.errorTitle'), t('clients.detail.deleteError'));
             }
           },
         },
@@ -221,7 +223,7 @@ export const ClientDetailScreen: React.FC = () => {
             {client.ville && client.typeClient ? ' · ' : ''}
           </Text>
           <Badge
-            label={client.typeClient === 'ENTREPRISE' ? 'Entreprise' : 'Individuel'}
+            label={client.typeClient === 'ENTREPRISE' ? t('clients.badgeCompany') : t('clients.badgeIndividual')}
             variant={variantFromValue(client.typeClient)}
           />
         </View>
@@ -235,7 +237,7 @@ export const ClientDetailScreen: React.FC = () => {
             activeOpacity={0.75}
           >
             <Ionicons name="call-outline" size={18} color={theme.colors.primary} />
-            <Text style={[styles.actionBtnText, { color: theme.colors.primary }]}>Appeler</Text>
+            <Text style={[styles.actionBtnText, { color: theme.colors.primary }]}>{t('clients.detail.call')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -267,7 +269,7 @@ export const ClientDetailScreen: React.FC = () => {
             activeOpacity={0.8}
           >
             <Ionicons name="calendar-outline" size={18} color="#16A34A" />
-            <Text style={styles.reunionBtnText}>Planifier une réunion</Text>
+            <Text style={styles.reunionBtnText}>{t('clients.detail.planMeeting')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -275,21 +277,21 @@ export const ClientDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.card}>
             {client.telephone && (
-              <InfoRow icon="call-outline" label="Téléphone" value={client.telephone} />
+              <InfoRow icon="call-outline" label={t('clients.detail.phone')} value={client.telephone} />
             )}
             {client.email && (
-              <InfoRow icon="mail-outline" label="Email" value={client.email} />
+              <InfoRow icon="mail-outline" label={t('clients.detail.emailLabel')} value={client.email} />
             )}
             {client.adresse && (
               <InfoRow
                 icon="location-outline"
-                label="Adresse"
+                label={t('clients.detail.address')}
                 value={`${client.adresse}${client.ville ? ', ' + client.ville : ''}`}
               />
             )}
             <View style={styles.infoRow}>
               <Ionicons name="cash-outline" size={18} color={theme.colors.primary} />
-              <Text style={styles.infoLabel}>CA total</Text>
+              <Text style={styles.infoLabel}>{t('clients.detail.totalRevenue')}</Text>
               <Text style={styles.infoValueCA}>{formatCA(client.chiffreAffaires)}</Text>
             </View>
           </View>
@@ -298,20 +300,20 @@ export const ClientDetailScreen: React.FC = () => {
         {/* ── Contacts ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Contacts ({contacts.length})</Text>
+            <Text style={styles.sectionTitle}>{t('clients.detail.contactsTitle', { nb: contacts.length })}</Text>
             <TouchableOpacity
               style={styles.addBtn}
               onPress={() => navigation.navigate('ContactForm', { clientId })}
             >
               <Ionicons name="add" size={18} color={theme.colors.primary} />
-              <Text style={styles.addBtnText}>Ajouter</Text>
+              <Text style={styles.addBtnText}>{t('clients.detail.add')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.card}>
             {contacts.length === 0 ? (
               <View style={styles.opportunitesPlaceholder}>
-                <Text style={styles.opportunitesText}>Aucun contact associé</Text>
+                <Text style={styles.opportunitesText}>{t('clients.detail.noContacts')}</Text>
               </View>
             ) : (
               contacts.map(contact => (
@@ -353,7 +355,7 @@ export const ClientDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              Opportunités ({opportunites.length})
+              {t('clients.detail.opportunitiesTitle', { nb: opportunites.length })}
             </Text>
             {opportunites.length > 3 && (
               <TouchableOpacity
@@ -363,14 +365,14 @@ export const ClientDetailScreen: React.FC = () => {
                   )
                 }
               >
-                <Text style={styles.addBtnText}>Voir tout</Text>
+                <Text style={styles.addBtnText}>{t('common.seeAll')}</Text>
               </TouchableOpacity>
             )}
           </View>
           <View style={styles.card}>
             {opportunites.length === 0 ? (
               <View style={styles.opportunitesPlaceholder}>
-                <Text style={styles.opportunitesText}>Aucune opportunité</Text>
+                <Text style={styles.opportunitesText}>{t('clients.detail.noOpportunities')}</Text>
               </View>
             ) : (
               opportunites.slice(0, 3).map((op, i) => {
@@ -414,7 +416,7 @@ export const ClientDetailScreen: React.FC = () => {
         {/* ── Devis ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Devis ({devis.length})</Text>
+            <Text style={styles.sectionTitle}>{t('clients.detail.quotesTitle', { nb: devis.length })}</Text>
             {devis.length > 3 && (
               <TouchableOpacity
                 onPress={() =>
@@ -423,14 +425,14 @@ export const ClientDetailScreen: React.FC = () => {
                   )
                 }
               >
-                <Text style={styles.addBtnText}>Voir tout</Text>
+                <Text style={styles.addBtnText}>{t('common.seeAll')}</Text>
               </TouchableOpacity>
             )}
           </View>
           <View style={styles.card}>
             {devis.length === 0 ? (
               <View style={styles.opportunitesPlaceholder}>
-                <Text style={styles.opportunitesText}>Aucun devis</Text>
+                <Text style={styles.opportunitesText}>{t('clients.detail.noQuotes')}</Text>
               </View>
             ) : (
               devis.slice(0, 3).map((d, i) => {
@@ -477,12 +479,12 @@ export const ClientDetailScreen: React.FC = () => {
         {/* ── Factures ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Factures ({factures.length})</Text>
+            <Text style={styles.sectionTitle}>{t('clients.detail.invoicesTitle', { nb: factures.length })}</Text>
           </View>
           <View style={styles.card}>
             {factures.length === 0 ? (
               <View style={styles.opportunitesPlaceholder}>
-                <Text style={styles.opportunitesText}>Aucune facture</Text>
+                <Text style={styles.opportunitesText}>{t('clients.detail.noInvoices')}</Text>
               </View>
             ) : (
               factures.slice(0, 3).map((f, i) => {
@@ -528,7 +530,7 @@ export const ClientDetailScreen: React.FC = () => {
 
         {/* ── Bouton Supprimer ── */}
         <TouchableOpacity style={styles.deleteBtn} onPress={handleSupprimer}>
-          <Text style={styles.deleteBtnText}>Supprimer le client</Text>
+          <Text style={styles.deleteBtnText}>{t('clients.detail.deleteBtn')}</Text>
         </TouchableOpacity>
 
       </ScrollView>

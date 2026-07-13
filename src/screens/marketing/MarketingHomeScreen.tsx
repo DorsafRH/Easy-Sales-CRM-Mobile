@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './MarketingHomeScreen.styles';
@@ -35,19 +36,7 @@ type Onglet = 'dashboard' | 'publications' | 'calendrier' | 'reseaux';
 type FiltreStatut = 'TOUS' | 'PUBLIEE' | 'PROGRAMMEE' | 'BROUILLON';
 
 const PAGE_SIZE = 8;
-const FILTRES: Array<{ key: FiltreStatut; label: string }> = [
-  { key: 'TOUS',       label: 'Toutes' },
-  { key: 'PUBLIEE',    label: 'Publiées' },
-  { key: 'PROGRAMMEE', label: 'Programmées' },
-  { key: 'BROUILLON',  label: 'Brouillons' },
-];
-
-const ONGLETS: Array<{ key: Onglet; label: string; icon: string }> = [
-  { key: 'dashboard',    label: 'Dashboard',    icon: 'stats-chart-outline' },
-  { key: 'publications', label: 'Publications', icon: 'newspaper-outline'   },
-  { key: 'calendrier',   label: 'Calendrier',   icon: 'calendar-outline'    },
-  { key: 'reseaux',      label: 'Réseaux',      icon: 'share-social-outline' },
-];
+// FILTRES et ONGLETS construits dans le composant (labels traduits via tr())
 
 /**
  * Écran d'accueil Marketing avec navigation par onglets.
@@ -56,6 +45,21 @@ const ONGLETS: Array<{ key: Onglet; label: string; icon: string }> = [
 export const MarketingHomeScreen: React.FC = () => {
   const styles = useStyles(makeStyles);
   const theme = useTheme();
+  const { t: tr } = useTranslation();
+
+  const FILTRES: Array<{ key: FiltreStatut; label: string }> = [
+    { key: 'TOUS',       label: tr('marketing.home.filterAll')       },
+    { key: 'PUBLIEE',    label: tr('marketing.home.filterPublished') },
+    { key: 'PROGRAMMEE', label: tr('marketing.home.filterScheduled') },
+    { key: 'BROUILLON',  label: tr('marketing.home.filterDraft')    },
+  ];
+
+  const ONGLETS: Array<{ key: Onglet; label: string; icon: string }> = [
+    { key: 'dashboard',    label: tr('marketing.home.tabDashboard'),    icon: 'stats-chart-outline'  },
+    { key: 'publications', label: tr('marketing.home.tabPublications'), icon: 'newspaper-outline'    },
+    { key: 'calendrier',   label: tr('marketing.home.tabCalendar'),     icon: 'calendar-outline'     },
+    { key: 'reseaux',      label: tr('marketing.home.tabNetworks'),     icon: 'share-social-outline' },
+  ]; // « tr » pour éviter le conflit avec le param t de majRecherche
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteProp<MarketingStackParamList, 'MarketingHome'>>();
 
@@ -243,8 +247,8 @@ export const MarketingHomeScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Marketing</Text>
-        <Text style={styles.headerSub}>Publications, calendrier & réseaux</Text>
+        <Text style={styles.headerTitle}>{tr('screens.marketingHome.title')}</Text>
+        <Text style={styles.headerSub}>{tr('screens.marketingHome.subtitle')}</Text>
       </View>
       {renderTabs()}
       <View style={styles.body}>

@@ -105,14 +105,15 @@ export const RAPPELS: RappelOption[] = [
 // ─────────────────────────────────────────────────────────────
 
 export const STATUT_REUNION_CONFIG: Record<StatutReunion, {
-  label:  string;
-  color:  string;
-  bg:     string;
-  icon:   string;
+  label:    string;
+  labelKey: string;
+  color:    string;
+  bg:       string;
+  icon:     string;
 }> = {
-  PLANIFIEE: { label: 'Planifiée', color: '#2563EB', bg: '#EFF6FF', icon: 'time-outline'      },
-  TERMINEE:  { label: 'Terminée',  color: '#16A34A', bg: '#F0FDF4', icon: 'checkmark-circle-outline' },
-  ANNULEE:   { label: 'Annulée',   color: '#DC2626', bg: '#FEF2F2', icon: 'close-circle-outline'     },
+  PLANIFIEE: { label: 'Planifiée', labelKey: 'agenda.statutReunion.PLANIFIEE', color: '#2563EB', bg: '#EFF6FF', icon: 'time-outline'      },
+  TERMINEE:  { label: 'Terminée',  labelKey: 'agenda.statutReunion.TERMINEE',  color: '#16A34A', bg: '#F0FDF4', icon: 'checkmark-circle-outline' },
+  ANNULEE:   { label: 'Annulée',   labelKey: 'agenda.statutReunion.ANNULEE',   color: '#DC2626', bg: '#FEF2F2', icon: 'close-circle-outline'     },
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -120,11 +121,12 @@ export const STATUT_REUNION_CONFIG: Record<StatutReunion, {
 // ─────────────────────────────────────────────────────────────
 
 export const TYPE_PARTICIPANT_CONFIG: Record<TypeParticipant, {
-  label: string;
-  color: string;
-  bg:    string;
+  label:    string;
+  labelKey: string;
+  color:    string;
+  bg:       string;
 }> = {
-  CLIENT:  { label: 'Client',  color: '#2563EB', bg: '#EFF6FF' },
-  CONTACT: { label: 'Contact', color: '#7C3AED', bg: '#F5F3FF' },
-  EXTERNE: { label: 'Externe', color: '#EA580C', bg: '#FFF7ED' },
+  CLIENT:  { label: 'Client',  labelKey: 'agenda.participantType.CLIENT',  color: '#2563EB', bg: '#EFF6FF' },
+  CONTACT: { label: 'Contact', labelKey: 'agenda.participantType.CONTACT', color: '#7C3AED', bg: '#F5F3FF' },
+  EXTERNE: { label: 'Externe', labelKey: 'agenda.participantType.EXTERNE', color: '#EA580C', bg: '#FFF7ED' },
 };

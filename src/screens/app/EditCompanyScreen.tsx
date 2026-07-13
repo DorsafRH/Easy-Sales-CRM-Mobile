@@ -19,6 +19,7 @@ import { makeStyles } from './EditCompanyScreen.styles';
 import { AppStackParamList } from '../../navigation/AppStack';
 import * as ProprietaireApi from '../../api/proprietaire.api';
 import { ModifierEntrepriseRequest, TailleEntreprise } from '../../types/proprietaire.types';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'EditCompany'>;
@@ -43,6 +44,7 @@ const EMPTY: FormData = {
 
 export const EditCompanyScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useStyles(makeStyles);
+  const { t }  = useTranslation();
 
   const [original,  setOriginal]  = useState<FormData>(EMPTY);
   const [form,      setForm]      = useState<FormData>(EMPTY);
@@ -160,10 +162,10 @@ export const EditCompanyScreen: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mon entreprise</Text>
+        <Text style={styles.headerTitle}>{t('company.title')}</Text>
         {isEditing && (
           <TouchableOpacity style={styles.annulerBtn} onPress={handleAnnuler}>
-            <Text style={styles.annulerText}>Annuler</Text>
+            <Text style={styles.annulerText}>{t('profile.cancel')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -200,19 +202,19 @@ export const EditCompanyScreen: React.FC<Props> = ({ navigation }) => {
             {isEditing ? (
               /* ── Mode édition ── */
               <>
-                <Input label="Nom de l'entreprise" placeholder="Ex : TechCorp SARL"
+                <Input label={t('company.name')} placeholder="Ex : TechCorp SARL"
                   value={form.nomEntreprise} required autoCapitalize="words"
                   error={errors.nomEntreprise}
                   onChangeText={v => { setField('nomEntreprise')(v); setErrors(e => ({ ...e, nomEntreprise: '' })); }} />
 
-                <Input label="Secteur d'activité" placeholder="Ex : Technologies"
+                <Input label={t('company.sector')} placeholder="Ex : Technologies"
                   value={form.secteurActivite} autoCapitalize="words"
                   onChangeText={setField('secteurActivite')} />
 
                 {/* Taille */}
                 <View style={styles.fieldGroup}>
                   <Text style={styles.fieldLabel}>
-                    Taille <Text style={styles.required}>*</Text>
+                    {t('company.size')} <Text style={styles.required}>*</Text>
                   </Text>
                   <View style={styles.tailleRow}>
                     {TAILLES.map(t => (
@@ -227,45 +229,45 @@ export const EditCompanyScreen: React.FC<Props> = ({ navigation }) => {
                   {errors.tailleEntreprise ? <Text style={styles.errorText}>{errors.tailleEntreprise}</Text> : null}
                 </View>
 
-                <Input label="Téléphone entreprise" placeholder="+216 71 000 000"
+                <Input label={t('company.phone')} placeholder="+216 71 000 000"
                   value={form.telephone} keyboardType="phone-pad"
                   onChangeText={setField('telephone')} />
 
-                <Input label="Adresse" placeholder="12 Rue des Roses"
+                <Input label={t('company.address')} placeholder="12 Rue des Roses"
                   value={form.adresse} onChangeText={setField('adresse')} />
 
                 <View style={styles.row}>
                   <View style={styles.rowItem}>
-                    <Input label="Ville" placeholder="Tunis"
+                    <Input label={t('company.city')} placeholder="Tunis"
                       value={form.ville} onChangeText={setField('ville')} />
                   </View>
                   <View style={styles.rowItem}>
-                    <Input label="Pays" placeholder="Tunisie"
+                    <Input label={t('company.country')} placeholder="Tunisie"
                       value={form.pays} onChangeText={setField('pays')} />
                   </View>
                 </View>
 
-                <Input label="Site web (optionnel)" placeholder="https://mon-site.com"
+                <Input label={t('company.website')} placeholder="https://mon-site.com"
                   value={form.siteWeb} keyboardType="url"
                   onChangeText={setField('siteWeb')} />
 
-                <Button label="Enregistrer les modifications"
+                <Button label={t('company.save')}
                   onPress={handleSubmit} loading={isSaving}
                   disabled={!hasChanged} fullWidth size="lg" style={styles.btnSubmit} />
               </>
             ) : (
               /* ── Mode lecture ── */
               <>
-                <FicheRow label="Nom"     value={form.nomEntreprise    || '—'} />
-                <FicheRow label="Secteur" value={form.secteurActivite  || '—'} />
-                <FicheRow label="Taille"  value={form.tailleEntreprise || '—'} />
-                <FicheRow label="Tél."    value={form.telephone        || '—'} />
-                <FicheRow label="Adresse" value={form.adresse          || '—'} />
-                <FicheRow label="Ville"   value={form.ville            || '—'} />
-                <FicheRow label="Pays"    value={form.pays             || '—'} />
-                <FicheRow label="Site web" value={form.siteWeb         || '—'} />
+                <FicheRow label={t('company.name')}    value={form.nomEntreprise    || '—'} />
+                <FicheRow label={t('company.sector')}  value={form.secteurActivite  || '—'} />
+                <FicheRow label={t('company.size')}    value={form.tailleEntreprise || '—'} />
+                <FicheRow label={t('company.phone')}   value={form.telephone        || '—'} />
+                <FicheRow label={t('company.address')} value={form.adresse          || '—'} />
+                <FicheRow label={t('company.city')}    value={form.ville            || '—'} />
+                <FicheRow label={t('company.country')} value={form.pays             || '—'} />
+                <FicheRow label={t('company.website')} value={form.siteWeb          || '—'} />
 
-                <Button label="✏️  Modifier l'entreprise"
+                <Button label={t('company.edit')}
                   onPress={() => setIsEditing(true)}
                   fullWidth size="lg" style={styles.btnSubmit} />
               </>

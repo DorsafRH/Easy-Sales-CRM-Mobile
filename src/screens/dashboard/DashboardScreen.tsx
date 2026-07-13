@@ -20,11 +20,13 @@ import { SafeAreaView }         from 'react-native-safe-area-context';
 import { useNavigation,
          useFocusEffect }       from '@react-navigation/native';
 import { Ionicons }             from '@expo/vector-icons';
+import { useTranslation }       from 'react-i18next';
 
 import { useStyles, useTheme }                         from '../../theme';
 import { makeStyles }                                   from './DashboardScreen.styles';
 import { useAuth }                                      from '../../context/AuthContext';
 import { Avatar }                                       from '../../components/ui/Avatar';
+import { LanguageSelector }                             from '../../components/ui/LanguageSelector';
 import { SkeletonKpiGrid, SkeletonListItem }            from '../../components/ui/Skeleton';
 
 import * as ReportingApi  from '../../api/reporting.api';
@@ -35,8 +37,6 @@ import {
   ReportingKpisResponse,
   ActiviteRecenteItem,
   PeriodeDashboard,
-  PERIODE_LABELS,
-  PERIODE_COMPARAISON_LABEL,
   ACTIVITE_ICONE,
   ACTIVITE_BG,
   ACTIVITE_ICON_COLOR,
@@ -51,11 +51,11 @@ import { ReunionResponse, STATUT_REUNION_CONFIG } from '../../types/reunion.type
 const toLocalISO = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-const formatCA = (v: number) =>
-  v.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+const formatCA = (v: number, locale: string) =>
+  v.toLocaleString(locale, { maximumFractionDigits: 0 });
 
-const fmtHeure = (iso: string) =>
-  new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+const fmtHeure = (iso: string, locale: string) =>
+  new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 
 const fmtDuree = (m: number) => {
   if (m < 60) return `${m} min`;
@@ -68,6 +68,23 @@ const fmtDuree = (m: number) => {
 // ─────────────────────────────────────────────────────────────
 
 const PERIODES: PeriodeDashboard[] = ['AUJOURD_HUI', 'CE_MOIS', 'CETTE_ANNEE'];
+
+/**
+ * Maps période → clés i18n.
+ * On ne traduit PAS les constantes PERIODE_LABELS / PERIODE_COMPARAISON_LABEL
+ * de reporting.types.ts (encore utilisées par d'autres écrans hors lot i18n).
+ */
+const PERIODE_LABEL_KEY: Record<PeriodeDashboard, string> = {
+  AUJOURD_HUI: 'dashboard.periods.today',
+  CE_MOIS:     'dashboard.periods.thisMonth',
+  CETTE_ANNEE: 'dashboard.periods.thisYear',
+};
+
+const PERIODE_COMPARAISON_KEY: Record<PeriodeDashboard, string> = {
+  AUJOURD_HUI: 'dashboard.comparison.today',
+  CE_MOIS:     'dashboard.comparison.thisMonth',
+  CETTE_ANNEE: 'dashboard.comparison.thisYear',
+};
 
 const calculerPctEvolution = (current: number, previous: number): number | null => {
   if (previous <= 0) return null;
@@ -85,6 +102,9 @@ const calculerPctEvolution = (current: number, previous: number): number | null 
 export const DashboardScreen: React.FC = () => {
   const styles                       = useStyles(makeStyles);
   const theme                        = useTheme();
+  const { t, i18n }                  = useTranslation();
+  // Locale pour les formats de nombres/heures (fr-FR ou en-US)
+  const locale                       = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const { currentUser, refreshUser } = useAuth();
   const navigation                   = useNavigation<any>();
 
@@ -241,28 +261,28 @@ export const DashboardScreen: React.FC = () => {
   // ─────────────────────────────────────────────────────────────
   const ACTIONS_RAPIDES = [
     {
-      label:     'Ajouter\nclient',
+      label:     t('dashboard.quickActions.addClient'),
       icon:      'person-add-outline',
       iconColor: '#2563EB',
       iconBg:    '#EFF6FF',
       onPress: () => navigation.navigate('Clients', { screen: 'ClientForm' }),
     },
     {
-      label:     'Planifier\nune réunion',
+      label:     t('dashboard.quickActions.planMeeting'),
       icon:      'calendar-outline',
       iconColor: '#16A34A',
       iconBg:    '#F0FDF4',
       onPress: () => navigation.navigate('Plus', { screen: 'PlanifierReunion' }),
     },
     {
-      label:     'Ajouter\nun lead',
+      label:     t('dashboard.quickActions.addLead'),
       icon:      'person-add-outline',
       iconColor: '#7C3AED',
       iconBg:    '#F5F3FF',
       onPress: () => navigation.navigate('Ventes', { screen: 'LeadForm' }),
     },
     {
-      label:     'Publier',
+      label:     t('dashboard.quickActions.publish'),
       icon:      'megaphone-outline',
       iconColor: '#EA580C',
       iconBg:    '#FFF7ED',
@@ -310,31 +330,35 @@ export const DashboardScreen: React.FC = () => {
           {/* Ligne supérieure : salutation + avatar */}
           <View style={styles.heroTopRow}>
             <View>
-              <Text style={styles.heroGreeting}>Bonjour, {prenom} 👋</Text>
+              <Text style={styles.heroGreeting}>{t('dashboard.greeting', { name: prenom })}</Text>
               <Text style={styles.heroName}>{nomEntreprise}</Text>
             </View>
-            <TouchableOpacity
-              style={styles.heroAvatarBtn}
-              onPress={() => navigation.navigate('Plus')}
-            >
-              <Avatar nom={nomComplet} size="sm" />
-            </TouchableOpacity>
+            <View style={styles.heroActionsRow}>
+              {/* Sélecteur de langue FR/EN (bouton globe + bottom sheet) */}
+              <LanguageSelector />
+              <TouchableOpacity
+                style={styles.heroAvatarBtn}
+                onPress={() => navigation.navigate('Plus')}
+              >
+                <Avatar nom={nomComplet} size="sm" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Chiffre d'affaires */}
           <Text style={styles.caLabel}>
-            Chiffre d'affaires {PERIODE_LABELS[periode].toLowerCase()}
+            {t('dashboard.revenue', { period: t(PERIODE_LABEL_KEY[periode]).toLowerCase() })}
           </Text>
 
           {isLoadingStats ? (
             <View style={styles.caLoadingRow}>
               <ActivityIndicator size="small" color="rgba(255,255,255,0.9)" />
-              <Text style={styles.caLoadingText}>Mise à jour…</Text>
+              <Text style={styles.caLoadingText}>{t('common.loading')}</Text>
             </View>
           ) : (
             <>
               <Text style={styles.caValue}>
-                {formatCA(kpis?.chiffreAffaires ?? 0)}
+                {formatCA(kpis?.chiffreAffaires ?? 0, locale)}
                 <Text style={styles.caUnit}> TND</Text>
               </Text>
               <View style={styles.caEvolution}>
@@ -342,8 +366,8 @@ export const DashboardScreen: React.FC = () => {
                   const pct       = calculerPctEvolution(kpis?.chiffreAffaires ?? 0, caMoisPrecedent);
                   const evolColor = pct == null ? 'rgba(255,255,255,0.6)'
                                   : pct >= 0   ? '#4ADE80' : '#FCA5A5';
-                  const evolTexte = pct == null ? '— N/A'
-                                  : `${pct >= 0 ? '+' : ''}${pct}% ${PERIODE_COMPARAISON_LABEL[periode]}`;
+                  const evolTexte = pct == null ? t('common.na')
+                                  : `${pct >= 0 ? '+' : ''}${pct}% ${t(PERIODE_COMPARAISON_KEY[periode])}`;
                   return (
                     <>
                       {pct !== null && (
@@ -374,7 +398,7 @@ export const DashboardScreen: React.FC = () => {
                   styles.periodeBtnText,
                   periode === p && styles.periodeBtnTextActive,
                 ]}>
-                  {PERIODE_LABELS[p]}
+                  {t(PERIODE_LABEL_KEY[p])}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -384,9 +408,9 @@ export const DashboardScreen: React.FC = () => {
         {/* ══════════════════ KPIs ══════════════════ */}
         <View style={styles.kpisRow}>
           {[
-            { value: kpis?.nbClients      ?? 0, label: 'Clients', color: '#2563EB' },
-            { value: kpis?.nbOpportunites ?? 0, label: 'Opport.', color: '#7C3AED' },
-            { value: kpis?.nbDevis        ?? 0, label: 'Devis',   color: '#D97706' },
+            { value: kpis?.nbClients      ?? 0, label: t('dashboard.kpis.clients'),       color: '#2563EB' },
+            { value: kpis?.nbOpportunites ?? 0, label: t('dashboard.kpis.opportunities'), color: '#7C3AED' },
+            { value: kpis?.nbDevis        ?? 0, label: t('dashboard.kpis.quotes'),        color: '#D97706' },
           ].map(k => (
             <View key={k.label} style={styles.kpiCard}>
               {isLoadingStats ? (
@@ -402,12 +426,12 @@ export const DashboardScreen: React.FC = () => {
         {/* ══════════════════ ACTIONS RAPIDES ══════════════════ */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Actions rapides</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.quickActions.title')}</Text>
           </View>
           <View style={styles.actionsGrid}>
-            {ACTIONS_RAPIDES.map(action => (
+            {ACTIONS_RAPIDES.map((action, idx) => (
               <TouchableOpacity
-                key={action.label}
+                key={idx}
                 style={styles.actionItem}
                 activeOpacity={0.75}
                 onPress={action.onPress}
@@ -427,14 +451,14 @@ export const DashboardScreen: React.FC = () => {
             <View style={styles.stockAlertCard}>
               <View style={styles.stockAlertHeader}>
                 <Text style={styles.stockAlertTitle}>
-                  ⚠ Alertes stock ({produitAlertes.length})
+                  {t('dashboard.stockAlerts.title', { nb: produitAlertes.length })}
                 </Text>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Plus', {
                     screen: 'CatalogueHome',
                   })}
                 >
-                  <Text style={styles.stockAlertVoirTout}>Voir tout</Text>
+                  <Text style={styles.stockAlertVoirTout}>{t('common.seeAll')}</Text>
                 </TouchableOpacity>
               </View>
               {produitAlertes.slice(0, 3).map(p => (
@@ -444,7 +468,7 @@ export const DashboardScreen: React.FC = () => {
                   </Text>
                   <Text style={styles.stockAlertStock}>
                     {p.stockDisponible === 0
-                      ? 'Rupture'
+                      ? t('dashboard.stockAlerts.outOfStock')
                       : `${p.stockDisponible} / ${p.stockMinimum}`}
                   </Text>
                 </View>
@@ -457,7 +481,7 @@ export const DashboardScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              Réunions du jour
+              {t('dashboard.meetings.title')}
               {reunionsDuJour.length > 0 && ` (${reunionsDuJour.length})`}
             </Text>
 
@@ -470,14 +494,14 @@ export const DashboardScreen: React.FC = () => {
                 params: undefined,
               })}
             >
-              <Text style={styles.voirToutBtn}>Agenda</Text>
+              <Text style={styles.voirToutBtn}>{t('dashboard.meetings.agenda')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.card}>
             {reunionsDuJour.length === 0 ? (
               <View style={styles.reunionDuJourVide}>
-                <Text style={styles.reunionDuJourVideTxt}>Aucune réunion aujourd'hui</Text>
+                <Text style={styles.reunionDuJourVideTxt}>{t('dashboard.meetings.empty')}</Text>
               </View>
             ) : (
               reunionsDuJour
@@ -499,7 +523,7 @@ export const DashboardScreen: React.FC = () => {
                     >
                       <View style={styles.reunionDuJourHeure}>
                         <Text style={styles.reunionDuJourHeureTxt}>
-                          {fmtHeure(r.dateHeure)}
+                          {fmtHeure(r.dateHeure, locale)}
                         </Text>
                         <Text style={styles.reunionDuJourDureeTxt}>
                           {fmtDuree(r.dureeMinutes)}
@@ -536,19 +560,19 @@ export const DashboardScreen: React.FC = () => {
         {/* ══════════════════ ACTIVITÉ RÉCENTE ══════════════════ */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Activité récente</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.activity.title')}</Text>
 
             {/**
              * "Voir tout" → écran Activites (dans AppStack ou drawer)
              */}
             <TouchableOpacity onPress={() => navigation.navigate('Activites' as never)}>
-              <Text style={styles.voirToutBtn}>Voir tout</Text>
+              <Text style={styles.voirToutBtn}>{t('common.seeAll')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.card}>
             {(kpis?.activiteRecente ?? []).length === 0 ? (
-              <Text style={styles.activiteDate}>Aucune activité récente</Text>
+              <Text style={styles.activiteDate}>{t('dashboard.activity.empty')}</Text>
             ) : (
               kpis!.activiteRecente.slice(0, 3).map((item, i) => {
                 const icone     = ACTIVITE_ICONE[item.typeActivite]      ?? 'ellipse-outline';

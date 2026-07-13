@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/Button';
 import { useStyles } from '../../theme';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { makeStyles } from './OnboardingScreen.styles';
+import { useTranslation } from 'react-i18next';
 
 type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'Onboarding'> };
 
@@ -33,6 +34,7 @@ const FEATURES = [
  */
 export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useStyles(makeStyles);
+  const { t }  = useTranslation();
 
   return (
     <Screen scrollable={false} padded={false}>
@@ -56,7 +58,7 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.actions}>
         <Button
-          label="Se connecter"
+          label={t('signup.onboarding.login')}
           onPress={() => navigation.navigate('Login')}
           variant="primary"
           size="lg"
@@ -64,7 +66,7 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.btnPrimary}
         />
         <Button
-          label="Créer un compte entreprise"
+          label={t('signup.onboarding.createAccount')}
           onPress={() => navigation.navigate('InformationsEntreprise')}
           variant="outline"
           size="lg"

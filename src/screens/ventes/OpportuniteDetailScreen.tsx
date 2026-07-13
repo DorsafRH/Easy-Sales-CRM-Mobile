@@ -16,6 +16,7 @@ import { useNavigation, useRoute,
          RouteProp, useFocusEffect }            from '@react-navigation/native';
 import { NativeStackNavigationProp }            from '@react-navigation/native-stack';
 import { Ionicons }                             from '@expo/vector-icons';
+import { useTranslation }                       from 'react-i18next';
 
 import { useStyles, useTheme }          from '../../theme';
 import { makeStyles }                   from './OpportuniteDetailScreen.styles';
@@ -71,6 +72,8 @@ const trouverFacture = (
 export const OpportuniteDetailScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale      = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { opportuniteId } = route.params;
@@ -93,7 +96,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
       VenteApi.listerFactures(),
     ]);
     if (oppRes.status === 'rejected' || !oppRes.value.success) {
-      Alert.alert('Erreur', 'Impossible de charger l opportunite.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.opport.loadError'));
       navigation.goBack();
       setIsLoading(false);
       return;
@@ -125,41 +128,34 @@ export const OpportuniteDetailScreen: React.FC = () => {
     if (next === 'GAGNEE') {
       const devis = trouverDevisActif(devisList, opportunite.id);
       if (!devis) {
-        Alert.alert(
-          'Devis requis',
-          "Créez d'abord un devis pour cette opportunité avant de la marquer gagnée.",
-        );
+        Alert.alert(t('ventes.opport.devisRequired'), t('ventes.opport.devisRequiredMsg'));
         return;
       }
       const montant = devis.montantTtc
-        ? devis.montantTtc.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND'
-        : 'montant à compléter';
+        ? devis.montantTtc.toLocaleString(locale, { maximumFractionDigits: 0 }) + ' TND'
+        : t('ventes.opport.amountTBC');
       Alert.alert(
-        "Gagner l'opportunité",
-        `Devis ${devis.numero} — ${montant}.\n` +
-          'Le client a-t-il accepté ce devis ? La facture en sera générée.',
+        t('ventes.opport.winTitle'),
+        `${t('ventes.opport.winMsg', { numero: devis.numero, montant })}`,
         [
-          { text: 'Annuler', style: 'cancel' },
-          {
-            text: 'Modifier le devis',
-            onPress: () => navigation.navigate('DevisDetail', { devisId: devis.id }),
-          },
-          { text: 'Accepter + facturer', onPress: confirmerGagne },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('ventes.opport.editQuote'), onPress: () => navigation.navigate('DevisDetail', { devisId: devis.id }) },
+          { text: t('ventes.opport.acceptAndInvoice'), onPress: confirmerGagne },
         ],
       );
       return;
     }
 
-    Alert.alert('Avancer', `Passer a ${next} ?`, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('ventes.opport.advanceTitle'), t('ventes.opport.advanceConfirm', { next: t(`ventes.statutOpportunite.${next}`) }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Confirmer',
+        text: t('ventes.leadDetail.confirm'),
         onPress: async () => {
           try {
             const res = await VenteApi.changerStatutOpportunite(opportunite.id, next);
             if (res.success) setOpportunite(res.data);
           } catch {
-            Alert.alert('Erreur', 'Impossible de changer le statut.');
+            Alert.alert(t('ventes.leadDetail.error'), t('ventes.leadDetail.loseError'));
           }
         },
       },
@@ -177,16 +173,16 @@ export const OpportuniteDetailScreen: React.FC = () => {
         charger();
       }
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de changer le statut.');
+      Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.leadDetail.loseError'));
     }
   };
 
   const handlePerdre = () => {
     if (!opportunite) return;
-    Alert.alert('Marquer comme perdue', `Confirmer la perte de "${opportunite.titre}" ?`, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('ventes.opport.loseTitle'), t('ventes.opport.loseConfirm', { titre: opportunite.titre }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Confirmer',
+        text: t('ventes.leadDetail.confirm'),
         style: 'destructive',
         onPress: async () => {
           const res = await VenteApi.changerStatutOpportunite(opportunite.id, 'PERDUE');
@@ -208,7 +204,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
           onPress={() => navigation.navigate('DevisDetail', { devisId: devisActif.id })}
         >
           <Ionicons name="document-text-outline" size={18} color={theme.colors.primary} />
-          <Text style={styles.btnVoirDevisText}>Voir Devis</Text>
+          <Text style={styles.btnVoirDevisText}>{t('ventes.opport.viewQuote')}</Text>
         </TouchableOpacity>
       );
     }
@@ -221,7 +217,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
         })}
       >
         <Ionicons name="document-text-outline" size={20} color={theme.colors.white} />
-        <Text style={styles.primaryBtnText}>Creer un devis</Text>
+        <Text style={styles.primaryBtnText}>{t('ventes.opport.createQuote')}</Text>
       </TouchableOpacity>
     );
   };
@@ -237,7 +233,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
           onPress={() => navigation.navigate('FactureDetail', { factureId: facture.id })}
         >
           <Ionicons name="receipt-outline" size={18} color={theme.colors.success} />
-          <Text style={styles.btnVoirFactureText}>Voir Facture</Text>
+          <Text style={styles.btnVoirFactureText}>{t('ventes.opport.viewInvoice')}</Text>
         </TouchableOpacity>
       );
     }
@@ -248,7 +244,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
           onPress={() => navigation.navigate('DevisDetail', { devisId: devisActif.id })}
         >
           <Ionicons name="document-text-outline" size={18} color={theme.colors.primary} />
-          <Text style={styles.btnVoirDevisText}>Voir Devis</Text>
+          <Text style={styles.btnVoirDevisText}>{t('ventes.opport.viewQuote')}</Text>
         </TouchableOpacity>
       );
     }
@@ -306,7 +302,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
   const showActions  = devisBtn !== null || peutAvancer || peutPerdre;
 
   const fmt = (v: number | null) =>
-    v ? v.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND' : 'Non renseigne';
+    v ? v.toLocaleString(locale, { maximumFractionDigits: 0 }) + ' TND' : t('ventes.opport.notSet');
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -332,10 +328,10 @@ export const OpportuniteDetailScreen: React.FC = () => {
 
         {/* ── Hero montant ── */}
         <View style={styles.heroSection}>
-          <Text style={styles.heroLabel}>Montant estime</Text>
+          <Text style={styles.heroLabel}>{t('ventes.opport.estimatedAmount')}</Text>
           <Text style={styles.heroMontant}>{fmt(opportunite.montantEstime)}</Text>
           {opportunite.probabilite ? (
-            <Text style={styles.heroProbabilite}>Probabilite : {opportunite.probabilite}%</Text>
+            <Text style={styles.heroProbabilite}>{t('ventes.opport.probability', { pct: opportunite.probabilite })}</Text>
           ) : null}
         </View>
 
@@ -352,7 +348,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
                   styles.statutPillText,
                   { color: isActif ? '#FFFFFF' : theme.colors.textTertiary },
                 ]}>
-                  {c.label}
+                  {t(c.labelKey)}
                 </Text>
               </View>
             );
@@ -361,21 +357,21 @@ export const OpportuniteDetailScreen: React.FC = () => {
 
         {/* ── Informations ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informations</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.opport.infoTitle')}</Text>
           <View style={styles.card}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Client</Text>
+              <Text style={styles.infoLabel}>{t('ventes.opport.client')}</Text>
               <Text style={styles.infoValue}>{opportunite.clientNom}</Text>
             </View>
             {opportunite.leadNom ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Lead source</Text>
+                <Text style={styles.infoLabel}>{t('ventes.opport.leadSource')}</Text>
                 <Text style={styles.infoValue}>{opportunite.leadNom}</Text>
               </View>
             ) : null}
             {opportunite.dateCloturePrevue ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Cloture prevue</Text>
+                <Text style={styles.infoLabel}>{t('ventes.opport.closureDate')}</Text>
                 <Text style={styles.infoValue}>{opportunite.dateCloturePrevue}</Text>
               </View>
             ) : null}
@@ -387,7 +383,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
               </View>
             ) : (
               <View style={[styles.infoRow, styles.infoRowLast]}>
-                <Text style={styles.infoLabel}>Cree le</Text>
+                <Text style={styles.infoLabel}>{t('ventes.opport.createdAt')}</Text>
                 <Text style={styles.infoValue}>{opportunite.dateRelative}</Text>
               </View>
             )}
@@ -396,11 +392,11 @@ export const OpportuniteDetailScreen: React.FC = () => {
 
         {/* ── Activites ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activites ({activites.length})</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.leadDetail.activitiesTitle', { nb: activites.length })}</Text>
           <View style={styles.timelineCard}>
             {activites.length === 0 ? (
               <View style={styles.emptyTimeline}>
-                <Text style={styles.emptyTimelineText}>Aucune activite enregistree</Text>
+                <Text style={styles.emptyTimelineText}>{t('ventes.leadDetail.noActivities')}</Text>
               </View>
             ) : (
               activites.map((a, i) => (
@@ -409,7 +405,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
             )}
             <TouchableOpacity style={styles.addActiviteBtn}>
               <Ionicons name="add" size={16} color={theme.colors.textTertiary} />
-              <Text style={styles.addActiviteBtnText}>Ajouter une activite</Text>
+              <Text style={styles.addActiviteBtnText}>{t('ventes.leadDetail.addActivity')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -427,7 +423,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
                   >
                     <Ionicons name="arrow-forward-outline" size={16} color={theme.colors.primary} />
                     <Text style={[styles.actionBtnText, { color: theme.colors.primary }]}>
-                      Avancer
+                      {t('ventes.opport.advance')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -437,7 +433,7 @@ export const OpportuniteDetailScreen: React.FC = () => {
                     onPress={handlePerdre}
                   >
                     <Ionicons name="close-outline" size={16} color={theme.colors.danger} />
-                    <Text style={[styles.actionBtnText, { color: theme.colors.danger }]}>Perdre</Text>
+                    <Text style={[styles.actionBtnText, { color: theme.colors.danger }]}>{t('ventes.leadDetail.lose')}</Text>
                   </TouchableOpacity>
                 )}
               </View>

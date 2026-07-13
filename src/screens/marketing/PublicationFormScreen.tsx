@@ -20,6 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './PublicationFormScreen.styles';
+import { useTranslation } from 'react-i18next';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { FacebookPostPreview } from '../../components/marketing/FacebookPostPreview';
@@ -46,6 +47,7 @@ const NB_CHIPS = 3; // nombre de raccourcis affichés avant le bouton « Autre�
 export const PublicationFormScreen: React.FC = () => {
   const styles = useStyles(makeStyles);
   const theme = useTheme();
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Rt>();
   const publication = route.params?.publication;
@@ -272,7 +274,7 @@ export const PublicationFormScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {estEdition ? 'Modifier la publication' : 'Nouvelle publication'}
+          {estEdition ? t('marketing.form.titleEdit') : t('marketing.form.titleNew')}
         </Text>
       </View>
 
@@ -316,17 +318,17 @@ export const PublicationFormScreen: React.FC = () => {
 
           {/* Remise + consigne libre : toujours visibles */}
           <Input
-            label="Remise (%) — optionnel"
+            label={t('marketing.form.discount')}
             value={remise}
             onChangeText={setRemise}
             placeholder="Ex : 20"
             keyboardType="numeric"
           />
           <Input
-            label="Décrivez ce que vous voulez"
+            label={t('marketing.form.prompt')}
             value={consigne}
             onChangeText={setConsigne}
-            placeholder="Ex : nouvel arrivage, livraison gratuite, fête…"
+            placeholder={t('marketing.form.promptPlaceholder')}
           />
 
           {/* Tonalité */}
@@ -336,7 +338,7 @@ export const PublicationFormScreen: React.FC = () => {
           </View>
 
           <Button
-            label="Générer avec IA"
+            label={t('marketing.form.generate')}
             onPress={genererIa}
             variant="secondary"
             loading={generation}
@@ -344,10 +346,10 @@ export const PublicationFormScreen: React.FC = () => {
           />
         </View>
 
-        <Input label="Titre (généré par l'IA, modifiable)" value={titre} onChangeText={setTitre}
-          placeholder="Rempli automatiquement à la génération" />
-        <Input label="Texte" value={texte} onChangeText={setTexte} required
-          placeholder="Contenu de la publication (modifiable après génération)" multiline
+        <Input label={t('marketing.form.titleLabel')} value={titre} onChangeText={setTitre}
+          placeholder={t('marketing.form.titlePlaceholder')} />
+        <Input label={t('marketing.form.contentLabel')} value={texte} onChangeText={setTexte} required
+          placeholder={t('marketing.form.contentPlaceholder')} multiline
           numberOfLines={6} style={styles.textarea} />
         {texte.trim().length > 0 && (
           <>
@@ -360,14 +362,14 @@ export const PublicationFormScreen: React.FC = () => {
             {ameliorerOuvert && (
               <View style={styles.ameliorerBox}>
                 <Input
-                  label="Qu'améliorer ?"
+                  label={t('marketing.form.improveLabel')}
                   value={ameliorerConsigne}
                   onChangeText={setAmeliorerConsigne}
-                  placeholder="Ex : plus court, ajoute la livraison gratuite, ton plus chaleureux…"
+                  placeholder={t('marketing.form.improvePlaceholder')}
                   multiline
                 />
                 <Button
-                  label="Appliquer l'amélioration"
+                  label={t('marketing.form.improveBtn')}
                   onPress={ameliorerIa}
                   variant="secondary"
                   loading={amelioration}
@@ -445,8 +447,8 @@ export const PublicationFormScreen: React.FC = () => {
         <View style={styles.submitWrapper}>
           <Button
             label={estEdition
-              ? 'Enregistrer'
-              : (programmer ? 'Programmer la publication' : 'Créer un brouillon')}
+              ? t('marketing.form.save')
+              : (programmer ? t('marketing.form.scheduleDraft') : t('marketing.form.createDraft'))}
             onPress={enregistrer}
             loading={enregistrement}
             fullWidth
@@ -460,17 +462,17 @@ export const PublicationFormScreen: React.FC = () => {
         <Pressable style={styles.modalOverlay} onPress={() => setPicker(null)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <Text style={styles.modalTitre}>
-              {picker === 'categorie' ? 'Choisir une catégorie' : 'Choisir des produits'}
+              {picker === 'categorie' ? t('marketing.form.chooseCategory') : t('marketing.form.chooseProducts')}
             </Text>
             <Input
               value={recherche}
               onChangeText={setRecherche}
-              placeholder="Rechercher…"
+              placeholder={t('marketing.form.searchPlaceholder')}
               autoCapitalize="none"
             />
             <ScrollView style={styles.modalListe} keyboardShouldPersistTaps="handled">
               {listeModal.length === 0 ? (
-                <Text style={styles.aucunReseau}>Aucun résultat.</Text>
+                <Text style={styles.aucunReseau}>{t('marketing.form.noResult')}</Text>
               ) : (
                 listeModal.map(item => {
                   const actif = estActifModal(item.id);
@@ -488,7 +490,7 @@ export const PublicationFormScreen: React.FC = () => {
                 })
               )}
             </ScrollView>
-            <Button label="Terminé" onPress={() => setPicker(null)} fullWidth />
+            <Button label={t('marketing.form.doneBtn')} onPress={() => setPicker(null)} fullWidth />
           </Pressable>
         </Pressable>
       </Modal>

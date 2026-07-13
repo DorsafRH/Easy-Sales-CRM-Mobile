@@ -15,6 +15,7 @@ import { useNavigation, useRoute,
          RouteProp, useFocusEffect }            from '@react-navigation/native';
 import { NativeStackNavigationProp }            from '@react-navigation/native-stack';
 import { Ionicons }                             from '@expo/vector-icons';
+import { useTranslation }                       from 'react-i18next';
 import { useStyles, useTheme }       from '../../theme';
 import { makeStyles }                from './FactureDetailScreen.styles';
 import { SkeletonCard }             from '../../components/ui/Skeleton';
@@ -84,6 +85,8 @@ const messageConfirmationLivraison = (facture: FactureResponse): string =>
 export const FactureDetailScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale      = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { factureId } = route.params;
@@ -120,7 +123,7 @@ export const FactureDetailScreen: React.FC = () => {
         chargerContactClient(res.data.clientId);
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger la facture.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.facture.loadError'));
       navigation.goBack();
     } finally {
       setIsLoading(false);
@@ -133,15 +136,15 @@ export const FactureDetailScreen: React.FC = () => {
 
   const handleChangerStatut = async (statut: 'EMISE' | 'PAYEE' | 'ANNULEE' | 'EN_RETARD') => {
     const labels: Record<string, string> = {
-      EMISE:    'Emettre la facture',
-      PAYEE:    'Marquer comme payee',
-      ANNULEE:  'Annuler la facture',
-      EN_RETARD: 'Signaler un retard',
+      EMISE:    t('ventes.facture.issue'),
+      PAYEE:    t('ventes.facture.markPaid'),
+      ANNULEE:  t('ventes.facture.cancel'),
+      EN_RETARD: t('ventes.facture.reportLate'),
     };
-    Alert.alert(labels[statut], 'Confirmer cette action ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(labels[statut], t('ventes.facture.confirmAction'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Confirmer',
+        text: t('ventes.leadDetail.confirm'),
         style: statut === 'ANNULEE' ? 'destructive' : 'default',
         onPress: async () => {
           try {
@@ -153,7 +156,7 @@ export const FactureDetailScreen: React.FC = () => {
               }
             }
           } catch (e: any) {
-            Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de changer le statut.');
+            Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.leadDetail.loseError'));
           }
         },
       },
@@ -167,40 +170,40 @@ export const FactureDetailScreen: React.FC = () => {
       try {
         await VenteApi.changerStatutOpportunite(opportuniteId, statut);
         Alert.alert(
-          'Opportunité mise à jour',
+          t('ventes.facture.oppUpdatedTitle'),
           statut === 'NEGOCIATION'
-            ? "L'opportunité est rouverte en négociation : le devis redevient modifiable."
-            : "L'opportunité a été marquée comme perdue.",
+            ? t('ventes.facture.oppReopened')
+            : t('ventes.facture.oppLost'),
         );
       } catch (e: any) {
-        Alert.alert('Erreur', e?.response?.data?.message ?? "Impossible de mettre à jour l'opportunité.");
+        Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.facture.oppUpdateError'));
       }
     };
     Alert.alert(
-      'Et l\'opportunité ?',
-      'La facture est annulée. Que faire de l\'opportunité associée ?',
+      t('ventes.facture.oppTitle'),
+      t('ventes.facture.oppMsg'),
       [
-        { text: 'Plus tard', style: 'cancel' },
-        { text: 'Marquer perdue', style: 'destructive', onPress: () => majOpportunite('PERDUE') },
-        { text: 'Rouvrir pour re-facturer', onPress: () => majOpportunite('NEGOCIATION') },
+        { text: t('ventes.facture.oppLater'), style: 'cancel' },
+        { text: t('ventes.facture.oppMarkLost'), style: 'destructive', onPress: () => majOpportunite('PERDUE') },
+        { text: t('ventes.facture.oppReopen'), onPress: () => majOpportunite('NEGOCIATION') },
       ],
     );
   };
 
   const handleMarquerLivre = () => {
     Alert.alert(
-      'Marquer livree',
-      messageConfirmationLivraison(facture!),
+      t('ventes.facture.markDelivered'),
+      factureConcerneStock(facture!) ? t('ventes.facture.stockWarning') : t('ventes.facture.confirmDelivery'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Confirmer',
+          text: t('ventes.leadDetail.confirm'),
           onPress: async () => {
             try {
               const res = await VenteApi.changerStatutFacture(factureId, 'LIVREE');
               if (res.success) setFacture(res.data);
             } catch (e: any) {
-              Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de changer le statut.');
+              Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.leadDetail.loseError'));
             }
           },
         },
@@ -242,7 +245,7 @@ export const FactureDetailScreen: React.FC = () => {
       setPdfUri(uri);
       setEnvoiVisible(true);
     } catch {
-      Alert.alert('Erreur', 'Impossible de générer le PDF.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.facture.pdfError'));
     } finally {
       setIsExporting(false);
     }
@@ -257,10 +260,10 @@ export const FactureDetailScreen: React.FC = () => {
       const uri = await genererPdfUri(genererHtmlFacture(facture));
       const res = await telechargerPdf(uri, `Facture ${facture.numero}`);
       if (res === 'enregistre') {
-        Alert.alert('PDF enregistré', 'La facture a été enregistrée dans vos Téléchargements.');
+        Alert.alert(t('ventes.devis.pdfSavedTitle'), t('ventes.facture.pdfSavedMsg'));
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de générer le PDF.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.facture.pdfError'));
     } finally {
       setIsExporting(false);
     }
@@ -277,10 +280,10 @@ export const FactureDetailScreen: React.FC = () => {
     const diffJours  = Math.ceil((echeance.getTime() - maintenant.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffJours < 0) {
-      return { message: `Echeance depassee de ${Math.abs(diffJours)} jour(s)`, color: theme.colors.danger, bg: '#FEF2F2', icon: 'warning-outline' };
+      return { message: t('ventes.facture.duePassed', { nb: Math.abs(diffJours) }), color: theme.colors.danger, bg: '#FEF2F2', icon: 'warning-outline' };
     }
     if (diffJours <= 7) {
-      return { message: `Echeance dans ${diffJours} jour(s)`, color: '#D97706', bg: '#FFFBEB', icon: 'time-outline' };
+      return { message: t('ventes.facture.dueSoon', { nb: diffJours }), color: '#D97706', bg: '#FFFBEB', icon: 'time-outline' };
     }
     return null;
   };
@@ -321,15 +324,15 @@ export const FactureDetailScreen: React.FC = () => {
             <Text style={styles.headerNumero}>{facture.numero}</Text>
             <Text style={styles.headerDate}>{facture.clientNom} — {facture.dateRelative}</Text>
           </View>
-          <Badge label={conf.label} variant="neutral" />
+          <Badge label={t(conf.labelKey)} variant="neutral" />
         </View>
 
         {/* ── Hero montant ── */}
         <View style={styles.heroSection}>
-          <Text style={styles.heroLabel}>Montant TTC</Text>
+          <Text style={styles.heroLabel}>{t('ventes.devis.totalTtc')}</Text>
           <Text style={styles.heroMontant}>{fmt(facture.montantTtc)}</Text>
           <View style={[styles.heroStatut, { backgroundColor: conf.bg }]}>
-            <Text style={[styles.heroStatutText, { color: conf.color }]}>{conf.label}</Text>
+            <Text style={[styles.heroStatutText, { color: conf.color }]}>{t(conf.labelKey)}</Text>
           </View>
         </View>
 
@@ -350,29 +353,29 @@ export const FactureDetailScreen: React.FC = () => {
 
         {/* ── Informations ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informations</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.opport.infoTitle')}</Text>
           <View style={styles.card}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Client</Text>
+              <Text style={styles.infoLabel}>{t('ventes.opport.client')}</Text>
               <Text style={styles.infoValue}>{facture.clientNom}</Text>
             </View>
             {facture.devisNumero ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Devis d'origine</Text>
+                <Text style={styles.infoLabel}>{t('ventes.facture.originQuote')}</Text>
                 <Text style={styles.infoValue}>{facture.devisNumero}</Text>
               </View>
             ) : null}
             {facture.dateEmission ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Date d'emission</Text>
+                <Text style={styles.infoLabel}>{t('ventes.facture.issueDate')}</Text>
                 <Text style={styles.infoValue}>{facture.dateEmission.split('T')[0]}</Text>
               </View>
             ) : null}
             {facture.statut === 'LIVREE' && facture.dateLivraison ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Date de livraison</Text>
+                <Text style={styles.infoLabel}>{t('ventes.facture.deliveryDate')}</Text>
                 <Text style={styles.infoValue}>
-                  {new Date(facture.dateLivraison).toLocaleDateString('fr-FR', {
+                  {new Date(facture.dateLivraison).toLocaleDateString(locale, {
                     day: '2-digit', month: 'long', year: 'numeric',
                   })}
                 </Text>
@@ -380,20 +383,20 @@ export const FactureDetailScreen: React.FC = () => {
             ) : null}
             {facture.dateEcheance ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Echeance</Text>
+                <Text style={styles.infoLabel}>{t('ventes.facture.dueDate')}</Text>
                 <Text style={styles.infoValue}>{facture.dateEcheance}</Text>
               </View>
             ) : null}
             {facture.datePaiement ? (
               <View style={[styles.infoRow, styles.infoRowLast]}>
-                <Text style={styles.infoLabel}>Paye le</Text>
+                <Text style={styles.infoLabel}>{t('ventes.facture.paidOn')}</Text>
                 <Text style={[styles.infoValue, { color: '#16A34A' }]}>
                   {facture.datePaiement.split('T')[0]}
                 </Text>
               </View>
             ) : (
               <View style={[styles.infoRow, styles.infoRowLast]}>
-                <Text style={styles.infoLabel}>Cree le</Text>
+                <Text style={styles.infoLabel}>{t('ventes.opport.createdAt')}</Text>
                 <Text style={styles.infoValue}>{facture.dateRelative}</Text>
               </View>
             )}
@@ -402,7 +405,7 @@ export const FactureDetailScreen: React.FC = () => {
 
         {/* ── Lignes ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Articles ({facture.lignes.length})</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.devis.articles', { nb: facture.lignes.length })}</Text>
           <View style={styles.card}>
             {facture.lignes.map(ligne => (
               <View key={ligne.id} style={styles.ligneItem}>
@@ -412,8 +415,8 @@ export const FactureDetailScreen: React.FC = () => {
                 </View>
                 <Text style={styles.ligneSub}>
                   {ligne.quantite} x {fmt(ligne.prixUnitaireHt)}
-                  {ligne.remise > 0 ? ` — Remise ${ligne.remise}%` : ''}
-                  {ligne.tauxTva > 0 ? ` — TVA ${ligne.tauxTva}%` : ''}
+                  {ligne.remise > 0 ? ` — ${t('ventes.devis.discount')} ${ligne.remise}%` : ''}
+                  {ligne.tauxTva > 0 ? ` — ${t('ventes.devis.vat')} ${ligne.tauxTva}%` : ''}
                 </Text>
               </View>
             ))}
@@ -422,18 +425,18 @@ export const FactureDetailScreen: React.FC = () => {
 
         {/* ── Totaux ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recapitulatif</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.facture.summary')}</Text>
           <View style={styles.totauxCard}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Sous-total HT</Text>
+              <Text style={styles.totalLabel}>{t('ventes.devis.subtotalHt')}</Text>
               <Text style={styles.totalValue}>{fmt(facture.montantHt)}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>TVA</Text>
+              <Text style={styles.totalLabel}>{t('ventes.devis.vat')}</Text>
               <Text style={styles.totalValue}>{fmt(facture.montantTva)}</Text>
             </View>
             <View style={styles.totalTtcRow}>
-              <Text style={styles.totalTtcLabel}>Total TTC</Text>
+              <Text style={styles.totalTtcLabel}>{t('ventes.devis.totalTtc')}</Text>
               <Text style={styles.totalTtcValue}>{fmt(facture.montantTtc)}</Text>
             </View>
           </View>
@@ -448,7 +451,7 @@ export const FactureDetailScreen: React.FC = () => {
             ) : (
               <>
                 <Ionicons name="send-outline" size={18} color={theme.colors.textSecondary} />
-                <Text style={styles.pdfBtnText}>Envoyer la facture</Text>
+                <Text style={styles.pdfBtnText}>{t('ventes.facture.sendInvoice')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -456,7 +459,7 @@ export const FactureDetailScreen: React.FC = () => {
           {/* Telecharger le PDF sur le telephone */}
           <TouchableOpacity style={styles.pdfBtn} onPress={handleTelechargerPdf} disabled={isExporting}>
             <Ionicons name="download-outline" size={18} color={theme.colors.textSecondary} />
-            <Text style={styles.pdfBtnText}>Télécharger le PDF</Text>
+            <Text style={styles.pdfBtnText}>{t('ventes.devis.downloadPdf')}</Text>
           </TouchableOpacity>
 
           {/* Emettre la facture */}
@@ -466,7 +469,7 @@ export const FactureDetailScreen: React.FC = () => {
               onPress={() => handleChangerStatut('EMISE')}
             >
               <Ionicons name="send-outline" size={18} color={theme.colors.white} />
-              <Text style={styles.primaryBtnText}>Emettre la facture</Text>
+              <Text style={styles.primaryBtnText}>{t('ventes.facture.issue')}</Text>
             </TouchableOpacity>
           )}
 
@@ -474,7 +477,7 @@ export const FactureDetailScreen: React.FC = () => {
           {estEmise && (
             <TouchableOpacity style={styles.btnLivre} onPress={handleMarquerLivre}>
               <Ionicons name="cube-outline" size={18} color={theme.colors.info} />
-              <Text style={styles.btnLivreText}>Marquer livre</Text>
+              <Text style={styles.btnLivreText}>{t('ventes.facture.markDelivered')}</Text>
             </TouchableOpacity>
           )}
 
@@ -482,7 +485,7 @@ export const FactureDetailScreen: React.FC = () => {
           {estLivree && (
             <TouchableOpacity style={styles.successBtn} onPress={handlePayerDepuisLivre}>
               <Ionicons name="checkmark-circle-outline" size={20} color={theme.colors.white} />
-              <Text style={styles.successBtnText}>Marquer payee</Text>
+              <Text style={styles.successBtnText}>{t('ventes.facture.markPaid')}</Text>
             </TouchableOpacity>
           )}
 
@@ -493,7 +496,7 @@ export const FactureDetailScreen: React.FC = () => {
               onPress={() => handleChangerStatut('PAYEE')}
             >
               <Ionicons name="checkmark-circle-outline" size={20} color={theme.colors.white} />
-              <Text style={styles.successBtnText}>Marquer comme payee</Text>
+              <Text style={styles.successBtnText}>{t('ventes.facture.markAsPaid')}</Text>
             </TouchableOpacity>
           )}
 
@@ -504,7 +507,7 @@ export const FactureDetailScreen: React.FC = () => {
               onPress={() => handleChangerStatut('EN_RETARD')}
             >
               <Text style={[styles.dangerBtnText, { color: '#D97706' }]}>
-                Signaler un retard de paiement
+                {t('ventes.facture.reportLatePayment')}
               </Text>
             </TouchableOpacity>
           )}
@@ -515,7 +518,7 @@ export const FactureDetailScreen: React.FC = () => {
               style={styles.dangerBtn}
               onPress={() => handleChangerStatut('ANNULEE')}
             >
-              <Text style={styles.dangerBtnText}>Annuler la facture</Text>
+              <Text style={styles.dangerBtnText}>{t('ventes.facture.cancel')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -526,12 +529,12 @@ export const FactureDetailScreen: React.FC = () => {
       <EnvoiDocumentSheet
         visible={envoiVisible}
         onClose={() => setEnvoiVisible(false)}
-        titre={`Envoyer la facture ${facture.numero}`}
+        titre={t('ventes.facture.sendTitle', { numero: facture.numero })}
         hasEmail={!!clientEmail?.trim()}
         hasPhone={!!clientTelephone?.trim()}
         onMail={() => pdfUri && envoyerMail(pdfUri)}
-        onWhatsapp={() => pdfUri && partagerPdf(pdfUri, `Facture ${facture.numero}`)}
-        onExport={() => pdfUri && partagerPdf(pdfUri, `Facture ${facture.numero}`)}
+        onWhatsapp={() => pdfUri && partagerPdf(pdfUri, `${t('ventes.facture.factureLabel')} ${facture.numero}`)}
+        onExport={() => pdfUri && partagerPdf(pdfUri, `${t('ventes.facture.factureLabel')} ${facture.numero}`)}
       />
     </SafeAreaView>
   );

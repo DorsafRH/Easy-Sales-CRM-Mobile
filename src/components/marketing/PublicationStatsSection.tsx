@@ -13,6 +13,7 @@ import { LineChart } from 'react-native-chart-kit';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './PublicationStatsSection.styles';
+import { useTranslation } from 'react-i18next';
 import * as MarketingStatsApi from '../../api/marketing-stats.api';
 import { StatistiquesPublication } from '../../types/marketing.types';
 
@@ -41,6 +42,7 @@ const formaterDate = (iso: string): string => {
 export const PublicationStatsSection: React.FC<Props> = ({ publicationId }) => {
   const styles = useStyles(makeStyles);
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const [stats, setStats] = useState<StatistiquesPublication | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ export const PublicationStatsSection: React.FC<Props> = ({ publicationId }) => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.sectionTitre}>Statistiques</Text>
+        <Text style={styles.sectionTitre}>{t('marketing.stats.title')}</Text>
         <View style={styles.skeletonRow}>
           <View style={styles.skeletonCard} />
           <View style={styles.skeletonCard} />
@@ -80,12 +82,12 @@ export const PublicationStatsSection: React.FC<Props> = ({ publicationId }) => {
   if (erreur || !stats) {
     return (
       <View style={styles.container}>
-        <Text style={styles.sectionTitre}>Statistiques</Text>
+        <Text style={styles.sectionTitre}>{t('marketing.stats.title')}</Text>
         <View style={styles.errorBox}>
           <Ionicons name="stats-chart-outline" size={22} color={theme.colors.textTertiary} />
-          <Text style={styles.errorText}>Statistiques indisponibles</Text>
+          <Text style={styles.errorText}>{t('marketing.stats.unavailable')}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={charger}>
-            <Text style={styles.retryText}>Réessayer</Text>
+            <Text style={styles.retryText}>{t('marketing.stats.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -121,7 +123,7 @@ export const PublicationStatsSection: React.FC<Props> = ({ publicationId }) => {
     <View style={styles.container}>
       {/* ────────────────── Section 1 — Overview ────────────────── */}
       <View>
-        <Text style={styles.sectionTitre}>Overview</Text>
+        <Text style={styles.sectionTitre}>{t('marketing.stats.overview')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.cardsRow}>
             {overviewCards.map(card => (

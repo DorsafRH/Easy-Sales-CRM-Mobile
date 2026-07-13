@@ -17,6 +17,7 @@ import { useNavigation, useRoute,
          RouteProp }                     from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
 import { Ionicons }                      from '@expo/vector-icons';
+import { useTranslation }                from 'react-i18next';
 
 import { useStyles, useTheme }       from '../../theme';
 import { makeStyles }                from './ProduitFormScreen.styles';
@@ -156,8 +157,9 @@ const construireRequete = (form: ProduitFormState) => ({
  * Adaptatif : les champs stock n'apparaissent que pour STOCKABLE.
  */
 export const ProduitFormScreen: React.FC = () => {
-  const styles     = useStyles(makeStyles);
-  const theme      = useTheme();
+  const styles  = useStyles(makeStyles);
+  const theme   = useTheme();
+  const { t: tr } = useTranslation(); // « tr » : la map du selector type utilise déjà « t »
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
 
@@ -243,7 +245,7 @@ export const ProduitFormScreen: React.FC = () => {
       await sauvegarder();
       navigation.goBack();
     } catch (err: any) {
-      setApiError(err?.response?.data?.message ?? 'Une erreur est survenue.');
+      setApiError(err?.response?.data?.message ?? tr('catalogue.form.errApi'));
     } finally {
       setIsSaving(false);
     }
@@ -263,14 +265,14 @@ export const ProduitFormScreen: React.FC = () => {
 
   /** Nom de la catégorie sélectionnée pour affichage. */
   const nomCategorie = (): string => {
-    if (!form.categorieId) return 'Sélectionner une catégorie…';
+    if (!form.categorieId) return tr('catalogue.form.categoryPlaceholder');
     return categories.find(c => c.id === form.categorieId)?.nom
-      ?? 'Sélectionner une catégorie…';
+      ?? tr('catalogue.form.categoryPlaceholder');
   };
 
   /** Label d'unité pour affichage dans le sélecteur. */
   const labelUnite = (): string => {
-    if (!form.unite) return 'Sélectionner une unité…';
+    if (!form.unite) return tr('catalogue.form.categoryPlaceholder');
     if (form.unite === 'Autre') {
       return form.uniteAutre || 'Unité personnalisée…';
     }
@@ -304,13 +306,13 @@ export const ProduitFormScreen: React.FC = () => {
             styles.typeBtnText,
             form.type === t && styles.typeBtnTextActive,
           ]}>
-            {t === 'SERVICE' ? 'Service' : 'Stockable'}
+            {t === 'SERVICE' ? tr('catalogue.filterServices') : tr('catalogue.filterStockable')}
           </Text>
           <Text style={[
             styles.typeBtnSub,
             form.type === t && styles.typeBtnSubActive,
           ]}>
-            {t === 'SERVICE' ? 'Immatériel' : 'Avec stock'}
+            {t === 'SERVICE' ? tr('catalogue.service') : tr('catalogue.detail.stock')}
           </Text>
         </TouchableOpacity>
       ))}
@@ -320,16 +322,16 @@ export const ProduitFormScreen: React.FC = () => {
   /** Rendu de la section Informations générales. */
   const renderInfosGenerales = () => (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>Informations générales</Text>
+      <Text style={styles.cardTitle}>{tr('catalogue.form.nameLabel').replace(' *','')}</Text>
       <Input
-        label="Nom du produit"
+        label={tr('catalogue.form.nameLabel')}
         value={form.nom}
         onChangeText={v => setChamp('nom', v)}
         error={errors.nom}
         required
       />
       <Input
-        label="Description"
+        label={tr('catalogue.form.descLabel')}
         value={form.description}
         onChangeText={v => setChamp('description', v)}
         multiline
@@ -353,11 +355,11 @@ export const ProduitFormScreen: React.FC = () => {
   /** Rendu de la section Tarification. */
   const renderTarification = () => (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>Tarification</Text>
+      <Text style={styles.cardTitle}>{tr('catalogue.detail.price')}</Text>
       <View style={styles.row}>
         <View style={styles.rowItem}>
           <Input
-            label="Prix HT (TND)"
+            label={tr('catalogue.form.priceLabel')}
             value={form.prixHT}
             onChangeText={v => setChamp('prixHT', v)}
             error={errors.prixHT}
@@ -367,7 +369,7 @@ export const ProduitFormScreen: React.FC = () => {
         </View>
         <View style={styles.rowItem}>
           <Input
-            label="TVA (%)"
+            label={`${tr('ventes.devis.vat')} (%)`}
             value={form.tauxTVA}
             onChangeText={v => setChamp('tauxTVA', v)}
             error={errors.tauxTVA}
@@ -389,7 +391,7 @@ export const ProduitFormScreen: React.FC = () => {
       </TouchableOpacity>
       {form.unite === 'Autre' && (
         <Input
-          label="Unité personnalisée"
+          label={tr('catalogue.form.unitLabel')}
           value={form.uniteAutre}
           onChangeText={v => setChamp('uniteAutre', v)}
         />
@@ -402,9 +404,9 @@ export const ProduitFormScreen: React.FC = () => {
     if (form.type !== 'STOCKABLE') return null;
     return (
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Stock</Text>
+        <Text style={styles.cardTitle}>{tr('catalogue.detail.stock')}</Text>
         <Input
-          label="Quantité disponible"
+          label={tr('catalogue.form.stockLabel')}
           value={form.stockDisponible}
           onChangeText={v => setChamp('stockDisponible', v)}
           error={errors.stockDisponible}
@@ -412,7 +414,7 @@ export const ProduitFormScreen: React.FC = () => {
           required
         />
         <Input
-          label="Seuil d'alerte (stock minimum)"
+          label={tr('catalogue.form.minStockLabel')}
           value={form.stockMinimum}
           onChangeText={v => setChamp('stockMinimum', v)}
           error={errors.stockMinimum}
@@ -440,7 +442,7 @@ export const ProduitFormScreen: React.FC = () => {
               styles.statutBtnText,
               form.statut === s && styles.statutBtnTextActive,
             ]}>
-              {s === 'ACTIF' ? 'Actif' : 'Inactif'}
+              {s === 'ACTIF' ? tr('catalogue.tabActive') : tr('catalogue.tabInactive')}
             </Text>
           </TouchableOpacity>
         ))}
@@ -467,9 +469,9 @@ export const ProduitFormScreen: React.FC = () => {
       >
         <View style={styles.modalSheet}>
           <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Catégorie</Text>
+          <Text style={styles.modalTitle}>{tr('catalogue.form.categoryLabel')}</Text>
           <FlatList
-            data={[{ id: null, nom: 'Aucune catégorie' }, ...categories]}
+            data={[{ id: null, nom: tr('catalogue.noCategory') }, ...categories]}
             keyExtractor={item => String(item.id)}
             renderItem={({ item }) => renderItemCategorie(item)}
           />
@@ -514,7 +516,7 @@ export const ProduitFormScreen: React.FC = () => {
       >
         <View style={styles.modalSheet}>
           <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Unité</Text>
+          <Text style={styles.modalTitle}>{tr('catalogue.form.unitLabel')}</Text>
           <FlatList
             data={listeUnites()}
             keyExtractor={item => item}
@@ -560,7 +562,7 @@ export const ProduitFormScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {estEdition ? 'Modifier le produit' : 'Nouveau produit'}
+          {estEdition ? tr('catalogue.form.titleEdit') : tr('catalogue.form.titleNew')}
         </Text>
       </View>
 
@@ -589,8 +591,8 @@ export const ProduitFormScreen: React.FC = () => {
         {/* ── Bouton soumettre ── */}
         <Button
           label={isSaving
-            ? 'Enregistrement…'
-            : estEdition ? 'Enregistrer les modifications' : 'Créer le produit'}
+            ? tr('common.loading')
+            : estEdition ? tr('catalogue.form.save') : tr('catalogue.form.create')}
           onPress={handleSoumettre}
           variant="primary"
           fullWidth

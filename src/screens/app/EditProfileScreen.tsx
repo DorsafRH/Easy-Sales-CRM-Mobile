@@ -17,6 +17,7 @@ import { Input }   from '../../components/ui/Input';
 import { Button }  from '../../components/ui/Button';
 import { useStyles } from '../../theme';
 import { makeStyles } from './EditProfileScreen.styles';
+import { useTranslation } from 'react-i18next';
 import { AppStackParamList } from '../../navigation/AppStack';
 import { useAuth } from '../../context/AuthContext';
 import * as ProprietaireApi from '../../api/proprietaire.api';
@@ -28,6 +29,7 @@ type Props = {
 
 export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const styles          = useStyles(makeStyles);
+  const { t }           = useTranslation();
   const { currentUser } = useAuth();
 
   // ── Données originales (référence pour détecter les changements) ──
@@ -147,10 +149,10 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mon profil</Text>
+        <Text style={styles.headerTitle}>{t('profile.title')}</Text>
         {isEditing && (
           <TouchableOpacity style={styles.annulerBtn} onPress={handleAnnuler}>
-            <Text style={styles.annulerText}>Annuler</Text>
+            <Text style={styles.annulerText}>{t('profile.cancel')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -189,15 +191,15 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
             {isEditing ? (
               /* ── Mode édition ── */
               <>
-                <Input label="Prénom" placeholder="Ahmed" value={prenom}
+                <Input label={t('profile.firstName')} placeholder="Ahmed" value={prenom}
                   onChangeText={v => { setPrenom(v); setErrors(e => ({ ...e, prenom: '' })); }}
                   error={errors.prenom} required autoCapitalize="words" />
 
-                <Input label="Nom" placeholder="Ben Ali" value={nom}
+                <Input label={t('profile.lastName')} placeholder="Ben Ali" value={nom}
                   onChangeText={v => { setNom(v); setErrors(e => ({ ...e, nom: '' })); }}
                   error={errors.nom} required autoCapitalize="words" />
 
-                <Input label="Téléphone" placeholder="+216 20 000 000" value={telephone}
+                <Input label={t('profile.phone')} placeholder="+216 20 000 000" value={telephone}
                   onChangeText={v => { setTelephone(v); setErrors(e => ({ ...e, telephone: '' })); }}
                   error={errors.telephone} required keyboardType="phone-pad" />
 
@@ -211,7 +213,7 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
 
                 <Button
-                  label="Enregistrer les modifications"
+                  label={t('profile.save')}
                   onPress={handleSubmit}
                   loading={isSaving}
                   disabled={!hasChanged}
@@ -223,13 +225,13 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
             ) : (
               /* ── Mode lecture ── */
               <>
-                <FicheRow label="Prénom"    value={prenom} />
-                <FicheRow label="Nom"       value={nom} />
-                <FicheRow label="Téléphone" value={telephone || '—'} />
-                <FicheRow label="Email"     value={currentUser?.email ?? '—'} />
+                <FicheRow label={t('profile.firstName')} value={prenom} />
+                <FicheRow label={t('profile.lastName')}  value={nom} />
+                <FicheRow label={t('profile.phone')}     value={telephone || '—'} />
+                <FicheRow label={t('profile.email')}     value={currentUser?.email ?? '—'} />
 
                 <Button
-                  label="✏️  Modifier le profil"
+                  label={t('profile.edit')}
                   onPress={() => setIsEditing(true)}
                   fullWidth
                   size="lg"

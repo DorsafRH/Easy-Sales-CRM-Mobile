@@ -29,6 +29,7 @@ LocaleConfig.defaultLocale = 'fr';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './CalendrierScreen.styles';
+import { useTranslation } from 'react-i18next';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { parseLocalDateTime } from '../../utils/dateUtils';
 
@@ -49,23 +50,8 @@ const extraireJour = (publication: PublicationMarketing): string | null => {
   return date ? date.slice(0, 10) : null;
 };
 
-/** Date + heure formatées « JJ/MM/AAAA à HH:MM ». */
-const fmtDateHeure = (s: string): string => {
-  const d = parseLocalDateTime(s);
-  const date = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  return `${date} à ${heure}`;
-};
 
-/** Libellé de date contextualisé selon le statut. */
-const libelleDate = (pub: PublicationMarketing): string => {
-  if (pub.statut === 'PROGRAMMEE' && pub.dateProgrammation) {
-    return `Programmée le ${fmtDateHeure(pub.dateProgrammation)}`;
-  }
-  if (pub.datePublication) return `Publiée le ${fmtDateHeure(pub.datePublication)}`;
-  if (pub.dateProgrammation) return `Le ${fmtDateHeure(pub.dateProgrammation)}`;
-  return 'Non programmée';
-};
+// libelleDate est définie dans le composant (accès à t + locale)
 
 /**
  * Calendrier éditorial des publications + liste du jour sélectionné.
@@ -74,6 +60,25 @@ const libelleDate = (pub: PublicationMarketing): string => {
 export const CalendrierScreen: React.FC<CalendrierScreenProps> = ({ publications, onOpen }) => {
   const styles = useStyles(makeStyles);
   const theme = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-US' : 'fr-FR';
+
+  const fmtDateLocale = (s: string): string => {
+    const d = parseLocalDateTime(s);
+    const date = d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const heure = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    return `${date} ${heure}`;
+  };
+
+  const libelleDate = (pub: PublicationMarketing): string => {
+    if (pub.statut === 'PROGRAMMEE' && pub.dateProgrammation)
+      return t('marketing.calendrier.scheduledOn', { date: fmtDateLocale(pub.dateProgrammation) });
+    if (pub.datePublication)
+      return t('marketing.calendrier.publishedOn', { date: fmtDateLocale(pub.datePublication) });
+    if (pub.dateProgrammation)
+      return t('marketing.calendrier.on', { date: fmtDateLocale(pub.dateProgrammation) });
+    return t('marketing.calendrier.notScheduled');
+  };
   const [jourSelectionne, setJourSelectionne] = useState<string | null>(null);
 
   const marquages = useMemo(() => {
@@ -122,16 +127,18 @@ export const CalendrierScreen: React.FC<CalendrierScreenProps> = ({ publications
 
       <Text style={styles.sectionTitre}>
         {jourSelectionne
-          ? 'Publications du ' + new Date(jourSelectionne + 'T00:00:00')
-              .toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-          : 'Publications à venir'}
+          ? t('marketing.calendrier.publicationsOf', {
+              date: new Date(jourSelectionne + 'T00:00:00')
+                .toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }),
+            })
+          : t('marketing.calendrier.upcoming')}
       </Text>
 
       {(jourSelectionne ? publicationsDuJour : publications).length === 0 ? (
         <EmptyState
           icon="calendar-outline"
-          titre="Aucune publication"
-          soustitre="Programmez une publication pour la voir ici"
+          titre={t('marketing.calendrier.empty')}
+          soustitre={t('marketing.calendrier.emptySub')}
         />
       ) : (
         (jourSelectionne ? publicationsDuJour : publications).map(pub => {
@@ -146,7 +153,7 @@ export const CalendrierScreen: React.FC<CalendrierScreenProps> = ({ publications
               <View style={styles.itemRow}>
                 <Text style={styles.itemTitre} numberOfLines={1}>{pub.titre}</Text>
                 <View style={[styles.statutPill, { backgroundColor: conf.bg }]}>
-                  <Text style={[styles.statutPillText, { color: conf.color }]}>{conf.label}</Text>
+                  <Text style={[styles.statutPillText, { color: conf.color }]}>{t(conf.labelKey)}</Text>
                 </View>
               </View>
               <View style={styles.itemMetaRow}>

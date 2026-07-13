@@ -15,6 +15,7 @@ import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
 import { Ionicons }                      from '@expo/vector-icons';
+import { useTranslation }                from 'react-i18next';
 import { LinearGradient }                from 'expo-linear-gradient';
 import Svg, {
   Path, Rect, Defs, Stop, ClipPath, G,
@@ -82,14 +83,15 @@ const CHART_PAD = 14;
 type Nav    = NativeStackNavigationProp<VentesStackParamList, 'VentesHome'>;
 type TabKey = 'resume' | 'leads' | 'devis';
 
+// Labels des tabs = clés i18n (traduits via t() dans le rendu)
 const TABS: Array<
-  | { key: TabKey;     label: string; navigate?: false }
-  | { key: 'pipeline'; label: string; navigate: true  }
+  | { key: TabKey;     labelKey: string; navigate?: false }
+  | { key: 'pipeline'; labelKey: string; navigate: true  }
 > = [
-  { key: 'resume',   label: 'Dashboard' },
-  { key: 'leads',    label: 'Leads' },
-  { key: 'pipeline', label: 'Pipeline', navigate: true },
-  { key: 'devis',    label: 'Devis & Fact.' },
+  { key: 'resume',   labelKey: 'ventes.home.tabDashboard' },
+  { key: 'leads',    labelKey: 'ventes.home.tabLeads' },
+  { key: 'pipeline', labelKey: 'ventes.home.tabPipeline', navigate: true },
+  { key: 'devis',    labelKey: 'ventes.home.tabQuotes' },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -153,14 +155,14 @@ const buildDonutArc = (
 };
 
 // ── Config statique des segments donut ───────────────────────
-type DonutSegment = { statut: string; label: string; color: string; count: number; start: number; end: number };
-const DONUT_CONFIG: Array<{ statut: string; label: string; color: string }> = [
-  { statut: 'PROSPECTION',   label: 'Prospect.', color: PIE_COLOR_PROSPECTION  },
-  { statut: 'QUALIFICATION', label: 'Qualif.',   color: PIE_COLOR_QUALIFICATION },
-  { statut: 'PROPOSITION',   label: 'Propos.',   color: PIE_COLOR_PROPOSITION  },
-  { statut: 'NEGOCIATION',   label: 'Négoc.', color: PIE_COLOR_NEGOCIATION  },
-  { statut: 'GAGNEE',        label: 'Gagnée', color: PIE_COLOR_GAGNEE       },
-  { statut: 'PERDUE',        label: 'Perdue',    color: PIE_COLOR_PERDUE       },
+type DonutSegment = { statut: string; labelKey: string; color: string; count: number; start: number; end: number };
+const DONUT_CONFIG: Array<{ statut: string; labelKey: string; color: string }> = [
+  { statut: 'PROSPECTION',   labelKey: 'ventes.statutOpportuniteShort.PROSPECTION',   color: PIE_COLOR_PROSPECTION  },
+  { statut: 'QUALIFICATION', labelKey: 'ventes.statutOpportuniteShort.QUALIFICATION', color: PIE_COLOR_QUALIFICATION },
+  { statut: 'PROPOSITION',   labelKey: 'ventes.statutOpportuniteShort.PROPOSITION',   color: PIE_COLOR_PROPOSITION  },
+  { statut: 'NEGOCIATION',   labelKey: 'ventes.statutOpportuniteShort.NEGOCIATION',   color: PIE_COLOR_NEGOCIATION  },
+  { statut: 'GAGNEE',        labelKey: 'ventes.statutOpportuniteShort.GAGNEE',        color: PIE_COLOR_GAGNEE       },
+  { statut: 'PERDUE',        labelKey: 'ventes.statutOpportuniteShort.PERDUE',        color: PIE_COLOR_PERDUE       },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -174,6 +176,8 @@ const DONUT_CONFIG: Array<{ statut: string; label: string; color: string }> = [
 export const VentesHomeScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale      = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const navigation = useNavigation<Nav>();
 
   // ── État ventes (tous tabs) ───────────────────────────────
@@ -355,10 +359,10 @@ export const VentesHomeScreen: React.FC = () => {
       <View style={[styles.kpiCard, { borderLeftWidth: 3, borderLeftColor: KPI_COLOR_CA }]}>
         <Ionicons name="cash-outline" size={20} color={KPI_COLOR_CA} />
         <Text style={[styles.kpiCardValue, { color: KPI_COLOR_CA }]} numberOfLines={1}>
-          {value.toLocaleString('fr-FR')}{' '}
+          {value.toLocaleString(locale)}{' '}
           <Text style={styles.kpiCardUnit}>TND</Text>
         </Text>
-        <Text style={styles.kpiCardLabel}>CA payé</Text>
+        <Text style={styles.kpiCardLabel}>{t('ventes.home.kpiPaidRevenue')}</Text>
         {renderMiniBarChart(last6)}
       </View>
     );
@@ -369,7 +373,7 @@ export const VentesHomeScreen: React.FC = () => {
   ): React.ReactElement => (
     <View style={[styles.kpiCard, { borderLeftWidth: 3, borderLeftColor: color }]}>
       <Ionicons name={icon as any} size={20} color={color} />
-      <Text style={[styles.kpiCardValue, { color }]} numberOfLines={1}>{value.toLocaleString('fr-FR')}</Text>
+      <Text style={[styles.kpiCardValue, { color }]} numberOfLines={1}>{value.toLocaleString(locale)}</Text>
       <Text style={styles.kpiCardLabel}>{label}</Text>
     </View>
   );
@@ -377,9 +381,9 @@ export const VentesHomeScreen: React.FC = () => {
   const renderKpiCards = (): React.ReactElement => (
     <View style={styles.kpisGrid}>
       {renderCaCard(Math.round(ca * prog))}
-      {renderSimpleKpiCard('people-outline',        Math.round((statsVentes?.nbLeadsActifs ?? 0) * prog), 'Leads actifs',  KPI_COLOR_LEADS)}
-      {renderSimpleKpiCard('trending-up-outline',   Math.round(nbOpportActives * prog),                   'Opport. act.',  KPI_COLOR_OPPORT)}
-      {renderSimpleKpiCard('document-text-outline', Math.round(nbDevis * prog),                           'Devis envoyés', KPI_COLOR_DEVIS)}
+      {renderSimpleKpiCard('people-outline',        Math.round((statsVentes?.nbLeadsActifs ?? 0) * prog), t('ventes.home.kpiActiveLeads'),  KPI_COLOR_LEADS)}
+      {renderSimpleKpiCard('trending-up-outline',   Math.round(nbOpportActives * prog),                   t('ventes.home.kpiActiveOpport'), KPI_COLOR_OPPORT)}
+      {renderSimpleKpiCard('document-text-outline', Math.round(nbDevis * prog),                           t('ventes.home.kpiSentQuotes'),   KPI_COLOR_DEVIS)}
     </View>
   );
 
@@ -480,10 +484,10 @@ export const VentesHomeScreen: React.FC = () => {
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>CA sur 12 mois</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.home.chart12Months')}</Text>
           {evol !== null && (
             <Text style={[styles.sectionLink, { color: evol >= 0 ? theme.colors.success : theme.colors.danger }]}>
-              {evol >= 0 ? '+' : ''}{evol}% (S2 vs S1)
+              {evol >= 0 ? '+' : ''}{evol}% {t('ventes.home.chartEvol')}
             </Text>
           )}
         </View>
@@ -511,15 +515,15 @@ export const VentesHomeScreen: React.FC = () => {
 
   const renderPerformanceGrid = (): React.ReactElement => {
     const s   = statsVentes;
-    const fmt = (v: number) => v.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+    const fmt = (v: number) => v.toLocaleString(locale, { maximumFractionDigits: 0 });
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitleOnly}>Performance commerciale</Text>
+        <Text style={styles.sectionTitleOnly}>{t('ventes.home.performanceTitle')}</Text>
         <View style={styles.statsGrid}>
-          {renderPerfCard('trending-up-outline',      s ? `${s.tauxConversionLeads}%`        : '—', 'Leads convertis')}
-          {renderPerfCard('trophy-outline',           s ? `${s.tauxConversionOpportunites}%` : '—', 'Opportunités gagnées')}
-          {renderPerfCard('checkmark-circle-outline', s ? `${s.tauxAcceptationDevis}%`       : '—', 'Devis acceptés')}
-          {renderPerfCard('cart-outline',             s ? `${fmt(s.panierMoyen)} TND`         : '—', 'Panier moyen')}
+          {renderPerfCard('trending-up-outline',      s ? `${s.tauxConversionLeads}%`        : '—', t('ventes.home.perfLeadsConverted'))}
+          {renderPerfCard('trophy-outline',           s ? `${s.tauxConversionOpportunites}%` : '—', t('ventes.home.perfOpportWon'))}
+          {renderPerfCard('checkmark-circle-outline', s ? `${s.tauxAcceptationDevis}%`       : '—', t('ventes.home.perfQuotesAccepted'))}
+          {renderPerfCard('cart-outline',             s ? `${fmt(s.panierMoyen)} TND`         : '—', t('ventes.home.perfAvgBasket'))}
         </View>
       </View>
     );
@@ -527,24 +531,24 @@ export const VentesHomeScreen: React.FC = () => {
 
   const renderFinancialCards = (): React.ReactElement => {
     const s = statsVentes;
-    const fmt = (v: number) => v.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+    const fmt = (v: number) => v.toLocaleString(locale, { maximumFractionDigits: 0 });
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitleOnly}>Indicateurs financiers</Text>
+        <Text style={styles.sectionTitleOnly}>{t('ventes.home.financialTitle')}</Text>
         <View style={styles.finRow}>
           <View style={styles.finCard}>
             <Ionicons name="funnel-outline" size={18} color={theme.colors.primary} />
-            <Text style={styles.finLabel}>Valeur pipeline</Text>
+            <Text style={styles.finLabel}>{t('ventes.home.pipelineValue')}</Text>
             <Text style={styles.finValue}>{s ? fmt(s.valeurPipeline) : '—'}</Text>
             <Text style={styles.finUnit}>TND</Text>
-            <Text style={styles.finDesc}>Opportunités en cours</Text>
+            <Text style={styles.finDesc}>{t('ventes.home.pipelineValueDesc')}</Text>
           </View>
           <View style={styles.finCard}>
             <Ionicons name="calendar-outline" size={18} color={theme.colors.textSecondary} />
-            <Text style={styles.finLabel}>CA mois précédent</Text>
+            <Text style={styles.finLabel}>{t('ventes.home.prevMonthRevenue')}</Text>
             <Text style={styles.finValue}>{fmt(caMoisPrec)}</Text>
             <Text style={styles.finUnit}>TND</Text>
-            <Text style={styles.finDesc}>Mois dernier</Text>
+            <Text style={styles.finDesc}>{t('ventes.home.prevMonthDesc')}</Text>
           </View>
         </View>
       </View>
@@ -573,7 +577,7 @@ export const VentesHomeScreen: React.FC = () => {
           <Circle cx={80} cy={80} r={68} fill={PIE_COLOR_EMPTY} />
           <Circle cx={80} cy={80} r={42} fill={theme.colors.bgSurface} />
           <SvgText x={80} y={84} textAnchor="middle" fontSize={10} fill={theme.colors.textTertiary}>
-            Aucune opportunité
+            {t('ventes.home.noOpportunity')}
           </SvgText>
         </>
       ) : (
@@ -586,7 +590,7 @@ export const VentesHomeScreen: React.FC = () => {
             {total}
           </SvgText>
           <SvgText x={80} y={91} textAnchor="middle" fontSize={10} fill={theme.colors.textSecondary}>
-            opport.
+            {t('ventes.home.opportShort')}
           </SvgText>
         </>
       )}
@@ -601,7 +605,7 @@ export const VentesHomeScreen: React.FC = () => {
         return (
           <View key={cfg.statut} style={styles.pieLegendItem}>
             <View style={[styles.pieLegendDot, { backgroundColor: cfg.color }]} />
-            <Text style={styles.pieLegendLabel}>{cfg.label}</Text>
+            <Text style={styles.pieLegendLabel}>{t(cfg.labelKey)}</Text>
             <Text style={styles.pieLegendCount}>{count}</Text>
           </View>
         );
@@ -613,7 +617,7 @@ export const VentesHomeScreen: React.FC = () => {
     const { segments, total } = buildDonutSegments();
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitleOnly}>Répartition pipeline</Text>
+        <Text style={styles.sectionTitleOnly}>{t('ventes.home.pipelineDistribution')}</Text>
         <View style={styles.pieCard}>
           {renderDonutSvg(segments, total)}
           {renderPieLegend(total)}
@@ -646,7 +650,7 @@ export const VentesHomeScreen: React.FC = () => {
       </View>
       <Text style={[styles.top3Montant, { color: RANK_COLORS[idx] }]}>
         {o.montantEstime != null
-          ? o.montantEstime.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND'
+          ? o.montantEstime.toLocaleString(locale, { maximumFractionDigits: 0 }) + ' TND'
           : '—'}
       </Text>
     </TouchableOpacity>
@@ -657,17 +661,17 @@ export const VentesHomeScreen: React.FC = () => {
     return (
       <View style={[styles.section, { paddingBottom: 16 }]}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Top 3 opportunités</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.home.top3Title')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('OpportunitesKanban')}>
-            <Text style={styles.sectionLink}>Kanban</Text>
+            <Text style={styles.sectionLink}>{t('ventes.home.kanban')}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.top3Card}>
           {top3.length === 0 ? (
             <EmptyState
               icon="trophy-outline"
-              titre="Aucune opportunité active"
-              soustitre="Ajoutez des opportunités au pipeline"
+              titre={t('ventes.home.top3Empty')}
+              soustitre={t('ventes.home.top3EmptySub')}
             />
           ) : (
             top3.map((o, i) => renderTop3Item(o, i))
@@ -684,7 +688,7 @@ export const VentesHomeScreen: React.FC = () => {
       return (
         <View style={styles.dashLoading}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.dashLoadingText}>Chargement du dashboard…</Text>
+          <Text style={styles.dashLoadingText}>{t('ventes.home.loadingDashboard')}</Text>
         </View>
       );
     }
@@ -718,14 +722,14 @@ export const VentesHomeScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              Tous les leads ({allLeads.length})
+              {t('ventes.home.allLeads', { nb: allLeads.length })}
             </Text>
           </View>
           {allLeads.length === 0 ? (
             <EmptyState
               icon="people-outline"
-              titre="Aucun lead"
-              soustitre="Ajoutez votre premier prospect"
+              titre={t('ventes.home.noLeads')}
+              soustitre={t('ventes.home.noLeadsSub')}
             />
           ) : (
             allLeads.map(l => {
@@ -743,7 +747,7 @@ export const VentesHomeScreen: React.FC = () => {
                   <View style={styles.recentContent}>
                     <Text style={styles.recentTitle} numberOfLines={1}>{l.nom}</Text>
                     <Text style={styles.recentSub} numberOfLines={1}>
-                      {l.entreprise ?? l.email ?? l.telephone ?? 'Aucune info'}
+                      {l.entreprise ?? l.email ?? l.telephone ?? t('ventes.home.noInfo')}
                     </Text>
                     <View style={{ marginTop: 4 }}>
                       <ScoreBar score={l.score} showLabel={false} />
@@ -751,7 +755,7 @@ export const VentesHomeScreen: React.FC = () => {
                   </View>
                   <View style={[styles.badge, { backgroundColor: conf.bg }]}>
                     <Text style={[styles.badgeText, { color: conf.color }]}>
-                      {conf.label}
+                      {t(conf.labelKey)}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -781,16 +785,16 @@ export const VentesHomeScreen: React.FC = () => {
     >
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Devis récents</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.home.recentQuotes')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('DevisList')}>
-            <Text style={styles.sectionLink}>Voir tous</Text>
+            <Text style={styles.sectionLink}>{t('ventes.home.seeAllQuotes')}</Text>
           </TouchableOpacity>
         </View>
         {devis.length === 0 ? (
           <EmptyState
             icon="document-text-outline"
-            titre="Aucun devis"
-            soustitre="Aucun devis n'a été créé"
+            titre={t('ventes.home.noQuotes')}
+            soustitre={t('ventes.home.noQuotesSub')}
           />
         ) : (
           devis.slice(0, 3).map(d => {
@@ -811,7 +815,7 @@ export const VentesHomeScreen: React.FC = () => {
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <View style={[styles.badge, { backgroundColor: conf.bg }]}>
-                    <Text style={[styles.badgeText, { color: conf.color }]}>{conf.label}</Text>
+                    <Text style={[styles.badgeText, { color: conf.color }]}>{t(conf.labelKey)}</Text>
                   </View>
                   <Text style={[styles.recentMontant, { marginTop: 4 }]}>
                     {formaterMontant(d.montantTtc)}
@@ -825,13 +829,13 @@ export const VentesHomeScreen: React.FC = () => {
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Factures récentes</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.home.recentInvoices')}</Text>
         </View>
         {factures.length === 0 ? (
           <EmptyState
             icon="receipt-outline"
-            titre="Aucune facture"
-            soustitre="Aucune facture n'a été générée"
+            titre={t('ventes.home.noInvoices')}
+            soustitre={t('ventes.home.noInvoicesSub')}
           />
         ) : (
           factures.slice(0, 3).map(f => {
@@ -852,7 +856,7 @@ export const VentesHomeScreen: React.FC = () => {
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <View style={[styles.badge, { backgroundColor: conf.bg }]}>
-                    <Text style={[styles.badgeText, { color: conf.color }]}>{conf.label}</Text>
+                    <Text style={[styles.badgeText, { color: conf.color }]}>{t(conf.labelKey)}</Text>
                   </View>
                   <Text style={[styles.recentMontant, { marginTop: 4 }]}>
                     {formaterMontant(f.montantTtc)}
@@ -882,8 +886,8 @@ export const VentesHomeScreen: React.FC = () => {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ventes</Text>
-        <Text style={styles.headerSub}>Pipeline commercial</Text>
+        <Text style={styles.headerTitle}>{t('screens.salesHome.title')}</Text>
+        <Text style={styles.headerSub}>{t('screens.salesHome.subtitle')}</Text>
       </View>
 
       <View style={styles.tabBar}>
@@ -901,7 +905,7 @@ export const VentesHomeScreen: React.FC = () => {
               activeOpacity={0.8}
             >
               <Text style={[styles.tabItemText, isActive && styles.tabItemTextActive]}>
-                {tab.label}
+                {t(tab.labelKey)}
               </Text>
             </TouchableOpacity>
           );

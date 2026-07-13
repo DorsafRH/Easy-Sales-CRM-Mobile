@@ -99,13 +99,13 @@ export interface PublicationRequest {
 // ─────────────────────────────────────────────────────────────
 
 export const STATUT_PUBLICATION_CONFIG:
-  Record<StatutPublication, { label: string; color: string; bg: string }> = {
-  BROUILLON:  { label: 'Brouillon',  color: '#6B7280', bg: '#F3F4F6' },
-  PROGRAMMEE: { label: 'Programmée', color: '#DB2777', bg: '#FDF2F8' },
-  EN_COURS:   { label: 'En cours',   color: '#D97706', bg: '#FFFBEB' },
-  PUBLIEE:    { label: 'Publiée',    color: '#16A34A', bg: '#F0FDF4' },
-  ECHEC:      { label: 'Échec',      color: '#DC2626', bg: '#FEF2F2' },
-  ANNULEE:    { label: 'Annulée',    color: '#7C3AED', bg: '#F5F3FF' },
+  Record<StatutPublication, { label: string; labelKey: string; color: string; bg: string }> = {
+  BROUILLON:  { label: 'Brouillon',  labelKey: 'marketing.statutPub.BROUILLON',  color: '#6B7280', bg: '#F3F4F6' },
+  PROGRAMMEE: { label: 'Programmée', labelKey: 'marketing.statutPub.PROGRAMMEE', color: '#DB2777', bg: '#FDF2F8' },
+  EN_COURS:   { label: 'En cours',   labelKey: 'marketing.statutPub.EN_COURS',   color: '#D97706', bg: '#FFFBEB' },
+  PUBLIEE:    { label: 'Publiée',    labelKey: 'marketing.statutPub.PUBLIEE',    color: '#16A34A', bg: '#F0FDF4' },
+  ECHEC:      { label: 'Échec',      labelKey: 'marketing.statutPub.ECHEC',      color: '#DC2626', bg: '#FEF2F2' },
+  ANNULEE:    { label: 'Annulée',    labelKey: 'marketing.statutPub.ANNULEE',   color: '#7C3AED', bg: '#F5F3FF' },
 };
 
 export const STATUT_DIFFUSION_CONFIG:

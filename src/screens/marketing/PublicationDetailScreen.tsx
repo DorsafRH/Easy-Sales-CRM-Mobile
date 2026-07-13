@@ -20,6 +20,7 @@ import { FacebookPostPreview } from '../../components/marketing/FacebookPostPrev
 import { PublicationStatsSection } from '../../components/marketing/PublicationStatsSection';
 import { parseLocalDateTime } from '../../utils/dateUtils';
 import { MarketingStackParamList } from '../../navigation/MarketingStack';
+import { useTranslation } from 'react-i18next';
 
 import * as MarketingApi from '../../api/marketing.api';
 import {
@@ -39,6 +40,8 @@ type Rt = RouteProp<MarketingStackParamList, 'PublicationDetail'>;
  */
 export const PublicationDetailScreen: React.FC = () => {
   const styles = useStyles(makeStyles);
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Rt>();
@@ -110,7 +113,7 @@ export const PublicationDetailScreen: React.FC = () => {
             </Text>
           )}
         </View>
-        <Badge label={conf.label} variant="neutral" />
+        <Badge label={t(conf.labelKey)} variant="neutral" />
       </View>
     );
   };
@@ -130,13 +133,13 @@ export const PublicationDetailScreen: React.FC = () => {
 
   const fmtDateHeure = (s: string) => {
     const d = parseLocalDateTime(s);
-    return `${d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`
-      + ` à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    return `${d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })}`
+      + ` ${d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
   };
   const infoDate = publication.statut === 'PROGRAMMEE' && publication.dateProgrammation
-    ? { icon: 'time-outline', texte: `Programmée le ${fmtDateHeure(publication.dateProgrammation)}` }
+    ? { icon: 'time-outline', texte: t('marketing.calendrier.scheduledOn', { date: fmtDateHeure(publication.dateProgrammation) }) }
     : publication.datePublication
-      ? { icon: 'checkmark-circle-outline', texte: `Publiée le ${fmtDateHeure(publication.datePublication)}` }
+      ? { icon: 'checkmark-circle-outline', texte: t('marketing.calendrier.publishedOn', { date: fmtDateHeure(publication.datePublication) }) }
       : null;
   const modifiable = publication.statut === 'BROUILLON'
     || publication.statut === 'PROGRAMMEE';
@@ -163,7 +166,7 @@ export const PublicationDetailScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.statutRow}>
-          <Badge label={confStatut.label} variant="neutral" />
+          <Badge label={t(confStatut.labelKey)} variant="neutral" />
           {infoDate && (
             <View style={styles.dateInfo}>
               <Ionicons name={infoDate.icon as any} size={14} color={confStatut.color} />
@@ -180,7 +183,7 @@ export const PublicationDetailScreen: React.FC = () => {
           />
         ) : (
           <View style={styles.card}>
-            <Text style={styles.texte}>Aucun texte</Text>
+            <Text style={styles.texte}>{t('marketing.calendrier.empty')}</Text>
           </View>
         )}
 
@@ -193,14 +196,14 @@ export const PublicationDetailScreen: React.FC = () => {
 
         <View style={styles.actions}>
           {publiable && (
-            <Button label={enEchec ? 'Réessayer la publication' : 'Publier maintenant'}
+            <Button label={enEchec ? t('marketing.detail.retry') : t('marketing.detail.publish')}
               onPress={publier} loading={action} fullWidth />
           )}
           {publiable && (
-            <Button label="Annuler la publication" onPress={annuler}
+            <Button label={t('marketing.detail.cancel')} onPress={annuler}
               variant="outline" disabled={action} fullWidth />
           )}
-          <Button label="Supprimer" onPress={supprimer}
+          <Button label={t('marketing.detail.delete')} onPress={supprimer}
             variant="danger" disabled={action} fullWidth />
         </View>
 

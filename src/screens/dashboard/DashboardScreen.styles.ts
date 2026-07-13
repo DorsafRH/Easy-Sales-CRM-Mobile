@@ -41,6 +41,13 @@ export const makeStyles = (theme: AppTheme) =>
       color:      theme.colors.white,
     },
 
+    // Ligne bouton langue + avatar (coin supérieur droit du hero)
+    heroActionsRow: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      columnGap:     theme.spacing[2],
+    },
+
     heroAvatarBtn: {
       width:           40,
       height:          40,

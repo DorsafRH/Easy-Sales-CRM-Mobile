@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './ReseauxScreen.styles';
+import { useTranslation } from 'react-i18next';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 
@@ -30,6 +31,7 @@ const RESEAUX_DISPONIBLES: TypeReseau[] = ['FACEBOOK', 'INSTAGRAM', 'TIKTOK'];
 export const ReseauxScreen: React.FC = () => {
   const styles = useStyles(makeStyles);
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const [comptes, setComptes] = useState<CompteSocialConnecte[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export const ReseauxScreen: React.FC = () => {
       const res = await MarketingApi.listerReseaux();
       if (res.success) setComptes(res.data);
     } catch {
-      setMessage('Impossible de charger les comptes connectés.');
+      setMessage(t('marketing.reseaux.loadError'));
     }
   }, []);
 
@@ -47,14 +49,14 @@ export const ReseauxScreen: React.FC = () => {
 
   const connecter = async (reseau: TypeReseau) => {
     if (reseau !== 'FACEBOOK' && reseau !== 'INSTAGRAM') {
-      setMessage('Connexion ' + TYPE_RESEAU_CONFIG[reseau].label + ' bientôt disponible.');
+      setMessage(t('marketing.reseaux.comingSoon', { name: TYPE_RESEAU_CONFIG[reseau].label }));
       return;
     }
     try {
       const res = await MarketingApi.getOAuthFacebookUrl();
       if (res.success) await Linking.openURL(res.data);
     } catch {
-      setMessage('Impossible de démarrer la connexion OAuth.');
+      setMessage(t('marketing.reseaux.oauthError'));
     }
   };
 
@@ -63,7 +65,7 @@ export const ReseauxScreen: React.FC = () => {
       await MarketingApi.deconnecterReseau(id);
       setComptes(prev => prev.filter(c => c.id !== id));
     } catch {
-      setMessage('Échec de la déconnexion du compte.');
+      setMessage(t('marketing.reseaux.disconnectError'));
     }
   };
 
@@ -79,7 +81,7 @@ export const ReseauxScreen: React.FC = () => {
         <View style={[styles.connectIcon, { backgroundColor: conf.bg }]}>
           <Ionicons name={conf.icon as any} size={22} color={conf.color} />
         </View>
-        <Text style={styles.connectLabel}>Connecter {conf.label}</Text>
+        <Text style={styles.connectLabel}>{t('marketing.reseaux.connectBtn', { name: conf.label })}</Text>
         <Ionicons name="add-circle-outline" size={22} color={theme.colors.primary} />
       </TouchableOpacity>
     );
@@ -114,15 +116,15 @@ export const ReseauxScreen: React.FC = () => {
         </View>
       )}
 
-      <Text style={styles.sectionTitre}>Connecter un réseau</Text>
+      <Text style={styles.sectionTitre}>{t('marketing.reseaux.connectSection')}</Text>
       {RESEAUX_DISPONIBLES.map(renderBoutonConnexion)}
 
-      <Text style={styles.sectionTitre}>Comptes connectés</Text>
+      <Text style={styles.sectionTitre}>{t('marketing.reseaux.connectedSection')}</Text>
       {comptes.length === 0 ? (
         <EmptyState
           icon="link-outline"
-          titre="Aucun compte connecté"
-          soustitre="Connectez Facebook ou Instagram pour publier"
+          titre={t('marketing.reseaux.noAccount')}
+          soustitre={t('marketing.reseaux.noAccountSub')}
         />
       ) : (
         comptes.map(renderCompte)

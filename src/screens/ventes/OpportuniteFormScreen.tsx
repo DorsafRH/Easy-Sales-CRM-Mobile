@@ -15,6 +15,7 @@ import { useNavigation, useRoute,
          RouteProp, useFocusEffect }         from '@react-navigation/native';
 import { NativeStackNavigationProp }         from '@react-navigation/native-stack';
 import { Ionicons }                          from '@expo/vector-icons';
+import { useTranslation }                    from 'react-i18next';
 
 import { useStyles, useTheme }   from '../../theme';
 import { makeStyles }            from './OpportuniteFormScreen.styles';
@@ -49,6 +50,7 @@ type Route = RouteProp<VentesStackParamList, 'OpportuniteForm'>;
 export const OpportuniteFormScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { opportuniteId, leadId, clientId: clientIdParam } = route.params ?? {};
@@ -95,7 +97,7 @@ export const OpportuniteFormScreen: React.FC = () => {
         }
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger les données.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.opportForm.loadError'));
       navigation.goBack();
     } finally {
       setIsLoading(false);
@@ -109,13 +111,13 @@ export const OpportuniteFormScreen: React.FC = () => {
   const valider = (): boolean => {
     let valide = true;
     if (!clientSelectionne) {
-      setClientError('Veuillez selectionner un client');
+      setClientError(t('ventes.opportForm.errClient'));
       valide = false;
     } else {
       setClientError('');
     }
     if (!titre.trim()) {
-      setTitreError('Le titre est obligatoire');
+      setTitreError(t('ventes.opportForm.errTitle'));
       valide = false;
     } else {
       setTitreError('');
@@ -151,7 +153,7 @@ export const OpportuniteFormScreen: React.FC = () => {
         }
       }
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de sauvegarder.');
+      Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.opportForm.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -183,13 +185,13 @@ export const OpportuniteFormScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {estEdition ? 'Modifier l opportunite' : 'Nouvelle opportunite'}
+            {estEdition ? t('ventes.opportForm.titleEdit') : t('ventes.opportForm.titleNew')}
           </Text>
         </View>
 
         {/* ── Sélection client obligatoire ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Client associe *</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.opportForm.clientSection')}</Text>
           <TouchableOpacity
             style={[
               styles.clientSelectBtn,
@@ -215,13 +217,13 @@ export const OpportuniteFormScreen: React.FC = () => {
                 >
                   {clientSelectionne
                     ? clientSelectionne.nomAffichage
-                    : 'Selectionner un client'}
+                    : t('ventes.opportForm.selectClient')}
                 </Text>
                 {clientSelectionne && (
                   <Text style={styles.clientSelectMeta} numberOfLines={1}>
                     {clientSelectionne.typeClient === 'ENTREPRISE'
-                      ? 'Entreprise'
-                      : 'Individuel'}
+                      ? t('clients.badgeCompany')
+                      : t('clients.badgeIndividual')}
                     {clientSelectionne.email
                       ? '  •  ' + clientSelectionne.email
                       : ''}
@@ -242,20 +244,20 @@ export const OpportuniteFormScreen: React.FC = () => {
 
         {/* ── Informations ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informations</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.opportForm.infoSection')}</Text>
           <View style={styles.fieldGroup}>
             <Input
-              label="Titre *"
+              label={t('ventes.opportForm.titleLabel')}
               value={titre}
               onChangeText={v => { setTitre(v); if (v.trim()) setTitreError(''); }}
-              placeholder="Ex: Refonte site web Societe ABC"
+              placeholder={t('ventes.opportForm.titlePlaceholder')}
               error={titreError}
             />
             <Input
-              label="Description"
+              label={t('ventes.opportForm.descLabel')}
               value={description}
               onChangeText={setDescription}
-              placeholder="Contexte et details de l opportunite..."
+              placeholder={t('ventes.opportForm.descPlaceholder')}
               multiline
               numberOfLines={3}
             />
@@ -264,24 +266,24 @@ export const OpportuniteFormScreen: React.FC = () => {
 
         {/* ── Données commerciales ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Donnees commerciales</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.opportForm.commercialSection')}</Text>
           <View style={styles.fieldGroup}>
             <Input
-              label="Montant estime (TND)"
+              label={t('ventes.opportForm.amountLabel')}
               value={montant}
               onChangeText={setMontant}
               placeholder="Ex: 15000"
               keyboardType="numeric"
             />
             <Input
-              label="Probabilite de gain (%)"
+              label={t('ventes.opportForm.probabilityLabel')}
               value={probabilite}
               onChangeText={setProbabilite}
               placeholder="Ex: 70"
               keyboardType="numeric"
             />
             <Input
-              label="Date de cloture prevue (YYYY-MM-DD)"
+              label={t('ventes.opportForm.closureDateLabel')}
               value={dateCloture}
               onChangeText={setDateCloture}
               placeholder="Ex: 2026-06-30"
@@ -291,7 +293,7 @@ export const OpportuniteFormScreen: React.FC = () => {
 
         {/* ── Statut pipeline ── */}
         <View style={styles.section}>
-          <Text style={styles.selectLabel}>Statut dans le pipeline</Text>
+          <Text style={styles.selectLabel}>{t('ventes.opportForm.pipelineLabel')}</Text>
           <View style={styles.statutGrid}>
             {KANBAN_COLONNES.map(col => (
               <TouchableOpacity
@@ -309,7 +311,7 @@ export const OpportuniteFormScreen: React.FC = () => {
                   styles.statutChipText,
                   statut === col.statut && { color: col.color, fontWeight: '700' },
                 ]}>
-                  {col.label}
+                  {t(col.labelKey)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -327,14 +329,12 @@ export const OpportuniteFormScreen: React.FC = () => {
               <ActivityIndicator size="small" color={theme.colors.white} />
             ) : (
               <Text style={styles.submitBtnText}>
-                {estEdition
-                  ? 'Enregistrer les modifications'
-                  : 'Creer l opportunite'}
+                {estEdition ? t('ventes.opportForm.save') : t('ventes.opportForm.create')}
               </Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.cancelBtnText}>Annuler</Text>
+            <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
 

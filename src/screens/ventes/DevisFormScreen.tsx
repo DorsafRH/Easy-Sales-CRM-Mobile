@@ -16,6 +16,7 @@ import { useNavigation, useRoute,
          RouteProp, useFocusEffect }            from '@react-navigation/native';
 import { NativeStackNavigationProp }            from '@react-navigation/native-stack';
 import { Ionicons }                             from '@expo/vector-icons';
+import { useTranslation }                       from 'react-i18next';
 
 import { useStyles, useTheme }       from '../../theme';
 import { makeStyles }                from './DevisFormScreen.styles';
@@ -95,6 +96,7 @@ const fmt3 = (v: number) =>
 export const DevisFormScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { devisId, opportuniteId, clientId } = route.params ?? {};
@@ -141,7 +143,7 @@ export const DevisFormScreen: React.FC = () => {
         }
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger les donnees.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.devisForm.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -189,7 +191,7 @@ export const DevisFormScreen: React.FC = () => {
 
   const supprimerLigne = (id: string) => {
     if (lignes.length <= 1) {
-      Alert.alert('Attention', 'Le devis doit contenir au moins une ligne.');
+      Alert.alert(t('ventes.leadDetail.confirm'), t('ventes.devisForm.errNoLines'));
       return;
     }
     setLignes(prev => prev.filter(l => l.id !== id));
@@ -201,11 +203,11 @@ export const DevisFormScreen: React.FC = () => {
     // Validation basique
     const lignesInvalides = lignes.filter(l => !l.produit && !l.designation.trim());
     if (lignesInvalides.length > 0) {
-      Alert.alert('Erreur', 'Chaque ligne doit avoir un produit selectionne.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.devisForm.errNoProduct'));
       return;
     }
     if (!clientId && !estEdition) {
-      Alert.alert('Erreur', 'Aucun client associe a ce devis.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.devisForm.errNoClient'));
       return;
     }
 
@@ -238,7 +240,7 @@ export const DevisFormScreen: React.FC = () => {
           }
         }
       } catch (e: any) {
-        Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de sauvegarder le devis.');
+        Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.devisForm.saveError'));
       } finally {
         setIsSaving(false);
       }
@@ -250,11 +252,11 @@ export const DevisFormScreen: React.FC = () => {
     );
     if (lignesEnRupture.length > 0) {
       Alert.alert(
-        'Stock insuffisant',
-        'Une ou plusieurs lignes concernent des produits en rupture de stock.\nVoulez-vous quand même créer le devis ?',
+        t('catalogue.stockOut'),
+        t('ventes.devisForm.errNoLines'),
         [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Créer quand même', onPress: doSubmit },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('ventes.devisForm.create'), onPress: doSubmit },
         ],
       );
     } else {
@@ -289,7 +291,7 @@ export const DevisFormScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {estEdition ? 'Modifier le devis' : 'Nouveau devis'}
+            {estEdition ? t('ventes.devisForm.titleEdit') : t('ventes.devisForm.titleNew')}
           </Text>
         </View>
 
@@ -297,27 +299,27 @@ export const DevisFormScreen: React.FC = () => {
         {clientId && !estEdition && (
           <View style={styles.clientFixeBanner}>
             <Ionicons name="person-circle-outline" size={18} color={theme.colors.primary} />
-            <Text style={styles.clientFixeText}>Client associe a l'opportunite</Text>
+            <Text style={styles.clientFixeText}>{t('ventes.devisForm.clientSection')}</Text>
             <Ionicons name="lock-closed-outline" size={14} color={theme.colors.primary} />
           </View>
         )}
 
         {/* ── Parametres generaux ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Parametres</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.devisForm.linesSection')}</Text>
           <View style={styles.fieldGroup}>
             <Input
-              label="Validite (jours)"
+              label={t('ventes.devisForm.validityLabel')}
               value={validite}
               onChangeText={setValidite}
               keyboardType="numeric"
               placeholder="30"
             />
             <Input
-              label="Notes / Conditions"
+              label={t('ventes.devisForm.notesLabel')}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Conditions particulieres, notes pour le client..."
+              placeholder={t('ventes.devisForm.notesPlaceholder')}
               multiline
               numberOfLines={3}
             />
@@ -326,7 +328,7 @@ export const DevisFormScreen: React.FC = () => {
 
         {/* ── Lignes produits ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Articles ({lignes.length})</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.devis.articles', { nb: lignes.length })}</Text>
           <View style={styles.lignesCard}>
             {lignes.map((ligne, index) => {
               const { ht, ttc } = calculerLigne(ligne);
@@ -334,7 +336,7 @@ export const DevisFormScreen: React.FC = () => {
                 <View key={ligne.id} style={styles.ligneItem}>
                   {/* Header ligne */}
                   <View style={styles.ligneHeader}>
-                    <Text style={styles.ligneNumero}>Article {index + 1}</Text>
+                    <Text style={styles.ligneNumero}>{t('ventes.devisForm.lineN', { n: index + 1 })}</Text>
                     <TouchableOpacity
                       style={styles.ligneDeleteBtn}
                       onPress={() => supprimerLigne(ligne.id)}
@@ -346,7 +348,7 @@ export const DevisFormScreen: React.FC = () => {
                   <View style={styles.ligneFields}>
                     {/* Selecteur produit */}
                     <View>
-                      <Text style={styles.produitSelectLabel}>Produit *</Text>
+                      <Text style={styles.produitSelectLabel}>{t('ventes.devisForm.product')}</Text>
                       <TouchableOpacity
                         style={styles.produitSelectBtn}
                         onPress={() => ouvrirPicker(ligne.id)}
@@ -357,7 +359,7 @@ export const DevisFormScreen: React.FC = () => {
                         ]} numberOfLines={1}>
                           {ligne.produit
                             ? ligne.produit.nom
-                            : 'Selectionner un produit du catalogue'}
+                            : t('ventes.devisForm.selectProduct')}
                         </Text>
                         <Ionicons name="chevron-down" size={16} color={theme.colors.textTertiary} />
                       </TouchableOpacity>
@@ -368,7 +370,7 @@ export const DevisFormScreen: React.FC = () => {
                         <View style={styles.stockRuptureWarning}>
                           <Ionicons name="warning-outline" size={14} color={theme.colors.warning} />
                           <Text style={styles.stockRuptureText}>
-                            Rupture de stock — commande impossible
+                            {t('catalogue.stockOut')}
                           </Text>
                         </View>
                       )}
@@ -383,17 +385,17 @@ export const DevisFormScreen: React.FC = () => {
 
                     {/* Designation libre */}
                     <Input
-                      label="Designation"
+                      label={t('ventes.devisForm.designation')}
                       value={ligne.designation}
                       onChangeText={v => mettreAJourLigne(ligne.id, 'designation', v)}
-                      placeholder="Description de la prestation"
+                      placeholder={t('ventes.devisForm.designationPlaceholder')}
                     />
 
                     {/* Quantite + Prix */}
                     <View style={styles.ligneRow}>
                       <View style={styles.ligneFieldHalf}>
                         <Input
-                          label={ligne.produit?.type === 'SERVICE' ? 'Prestation unique' : 'Qte'}
+                          label={ligne.produit?.type === 'SERVICE' ? t('catalogue.service') : t('ventes.devisForm.qty')}
                           value={ligne.quantite}
                           onChangeText={v => mettreAJourLigne(ligne.id, 'quantite', v)}
                           keyboardType="numeric"
@@ -415,7 +417,7 @@ export const DevisFormScreen: React.FC = () => {
                       </View>
                       <View style={styles.ligneFieldHalf}>
                         <Input
-                          label="Prix HT (TND)"
+                          label={t('ventes.devisForm.priceHt')}
                           value={ligne.prixUnitaireHt}
                           onChangeText={v => mettreAJourLigne(ligne.id, 'prixUnitaireHt', v)}
                           keyboardType="numeric"
@@ -428,7 +430,7 @@ export const DevisFormScreen: React.FC = () => {
                     <View style={styles.ligneRow}>
                       <View style={styles.ligneFieldHalf}>
                         <Input
-                          label="Remise (%)"
+                          label={t('ventes.devisForm.discount')}
                           value={ligne.remise}
                           onChangeText={v => mettreAJourLigne(ligne.id, 'remise', v)}
                           keyboardType="numeric"
@@ -437,7 +439,7 @@ export const DevisFormScreen: React.FC = () => {
                       </View>
                       <View style={styles.ligneFieldHalf}>
                         <Input
-                          label="TVA (%)"
+                          label={t('ventes.devisForm.vat')}
                           value={ligne.tauxTva}
                           onChangeText={v => mettreAJourLigne(ligne.id, 'tauxTva', v)}
                           keyboardType="numeric"
@@ -460,25 +462,25 @@ export const DevisFormScreen: React.FC = () => {
             {/* Bouton ajouter ligne */}
             <TouchableOpacity style={styles.addLigneBtn} onPress={ajouterLigne}>
               <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
-              <Text style={styles.addLigneBtnText}>Ajouter un article</Text>
+              <Text style={styles.addLigneBtnText}>{t('ventes.devisForm.addLine')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* ── Recap totaux ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recapitulatif</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.facture.summary')}</Text>
           <View style={styles.totalRecap}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total HT</Text>
+              <Text style={styles.totalLabel}>{t('ventes.devis.subtotalHt')}</Text>
               <Text style={styles.totalValue}>{fmt3(totaux.ht)}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>TVA</Text>
+              <Text style={styles.totalLabel}>{t('ventes.devis.vat')}</Text>
               <Text style={styles.totalValue}>{fmt3(totaux.tva)}</Text>
             </View>
             <View style={styles.totalTtcRow}>
-              <Text style={styles.totalTtcLabel}>Total TTC</Text>
+              <Text style={styles.totalTtcLabel}>{t('ventes.devis.totalTtc')}</Text>
               <Text style={styles.totalTtcValue}>{fmt3(totaux.ttc)}</Text>
             </View>
           </View>
@@ -495,12 +497,12 @@ export const DevisFormScreen: React.FC = () => {
               <ActivityIndicator size="small" color={theme.colors.white} />
             ) : (
               <Text style={styles.submitBtnText}>
-                {estEdition ? 'Enregistrer les modifications' : 'Creer le devis'}
+                {estEdition ? t('ventes.devisForm.save') : t('ventes.devisForm.create')}
               </Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.cancelBtnText}>Annuler</Text>
+            <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -516,7 +518,7 @@ export const DevisFormScreen: React.FC = () => {
         <View style={styles.pickerOverlay}>
           <View style={styles.pickerSheet}>
             <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>Selectionner un produit</Text>
+              <Text style={styles.pickerTitle}>{t('ventes.devisForm.selectProduct')}</Text>
               <TouchableOpacity
                 style={styles.pickerCloseBtn}
                 onPress={() => setPickerVisible(false)}
@@ -547,7 +549,7 @@ export const DevisFormScreen: React.FC = () => {
                           fontWeight: '700',
                           color:      item.type === 'SERVICE' ? '#7C3AED' : '#2563EB',
                         }}>
-                          {item.type === 'SERVICE' ? 'SERVICE' : 'STOCKABLE'}
+                          {item.type === 'SERVICE' ? t('catalogue.service') : t('catalogue.stockable')}
                         </Text>
                       </View>
                     </View>
@@ -558,7 +560,7 @@ export const DevisFormScreen: React.FC = () => {
                     ) : null}
                   </View>
                   <Text style={styles.pickerItemPrix}>
-                    {item.prixHT ? fmt3(item.prixHT) : 'Prix libre'}
+                    {item.prixHT ? fmt3(item.prixHT) : t('ventes.opport.notSet')}
                   </Text>
                 </TouchableOpacity>
               )}

@@ -26,6 +26,7 @@ import { Input }     from '../../components/ui/Input';
 import { Button }    from '../../components/ui/Button';
 import { useStyles } from '../../theme';
 import { makeStyles } from './ResetPasswordScreen.styles';
+import { useTranslation } from 'react-i18next';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import * as AuthApi from '../../api/auth.api';
 import { colors as staticColors } from '../../theme';
@@ -74,6 +75,7 @@ const getStrength = (pwd: string) => {
  */
 export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
   const styles = useStyles(makeStyles);
+  const { t }  = useTranslation();
   const { code } = route.params;
 
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState('');
@@ -200,7 +202,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
                 </Text>
               </View>
               <Button
-                label="Se connecter"
+                label={t('auth.reset.loginBtn')}
                 onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Login' }] })}
                 fullWidth
                 size="lg"
@@ -218,7 +220,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
               {/* Formulaire */}
               <Card style={styles.card}>
                 <Input
-                  label="Nouveau mot de passe"
+                  label={t('auth.reset.newLabel')}
                   placeholder="Minimum 8 caractères"
                   value={nouveauMotDePasse}
                   onChangeText={v => {
@@ -252,7 +254,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
                 )}
 
                 <Input
-                  label="Confirmer le mot de passe"
+                  label={t('auth.reset.confirmLabel')}
                   placeholder="Répétez votre mot de passe"
                   value={confirmer}
                   onChangeText={v => {
@@ -265,7 +267,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
                 />
 
                 <Button
-                  label="Réinitialiser le mot de passe"
+                  label={t('auth.reset.saveBtn')}
                   onPress={handleSubmit}
                   loading={isLoading}
                   fullWidth

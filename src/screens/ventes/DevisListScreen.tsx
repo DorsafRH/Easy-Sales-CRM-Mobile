@@ -13,6 +13,7 @@ import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
 import { Ionicons }                      from '@expo/vector-icons';
+import { useTranslation }                from 'react-i18next';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles }          from './DevisListScreen.styles';
@@ -36,13 +37,7 @@ import {
 
 type Nav = NativeStackNavigationProp<VentesStackParamList, 'DevisList'>;
 
-const FILTRE_CHIPS = [
-  { value: 'TOUS',      label: 'Tous'       },
-  { value: 'BROUILLON', label: 'Brouillon'  },
-  { value: 'ENVOYE',    label: 'Envoyes'    },
-  { value: 'ACCEPTE',   label: 'Acceptes'   },
-  { value: 'REFUSE',    label: 'Refuses'    },
-];
+// Chips construits dans le composant (labels traduits via t())
 
 // ─────────────────────────────────────────────────────────────
 // COMPOSANT
@@ -55,7 +50,17 @@ const FILTRE_CHIPS = [
 export const DevisListScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale      = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const navigation = useNavigation<Nav>();
+
+  const FILTRE_CHIPS = [
+    { value: 'TOUS',      label: t('ventes.leadsList.filterAll')           },
+    { value: 'BROUILLON', label: t('ventes.statutDevis.BROUILLON')         },
+    { value: 'ENVOYE',    label: t('ventes.statutDevis.ENVOYE')            },
+    { value: 'ACCEPTE',   label: t('ventes.statutDevis.ACCEPTE')           },
+    { value: 'REFUSE',    label: t('ventes.statutDevis.REFUSE')            },
+  ];
 
   const [devis,        setDevis]        = useState<DevisResponse[]>([]);
   const [filtre,       setFiltre]       = useState('TOUS');
@@ -110,9 +115,9 @@ export const DevisListScreen: React.FC = () => {
         </View>
         <View style={styles.devisRight}>
           <Text style={styles.devisMontant}>
-            {item.montantTtc.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} TND
+            {item.montantTtc.toLocaleString(locale, { maximumFractionDigits: 0 })} TND
           </Text>
-          <Badge label={conf.label} variant="neutral" />
+          <Badge label={t(conf.labelKey)} variant="neutral" />
         </View>
       </TouchableOpacity>
     );
@@ -126,7 +131,7 @@ export const DevisListScreen: React.FC = () => {
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Devis</Text>
+          <Text style={styles.headerTitle}>{t('ventes.devisList.title')}</Text>
         </View>
         <FilterChips chips={FILTRE_CHIPS} selected={filtre} onSelect={setFiltre} />
       </View>
@@ -135,15 +140,15 @@ export const DevisListScreen: React.FC = () => {
       <View style={styles.statsBanner}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{totalEnCours}</Text>
-          <Text style={styles.statLabel}>En cours</Text>
+          <Text style={styles.statLabel}>{t('ventes.devisList.statInProgress')}</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{totalAcceptes}</Text>
-          <Text style={styles.statLabel}>Acceptes</Text>
+          <Text style={styles.statLabel}>{t('ventes.devisList.statAccepted')}</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>
-            {caTotal.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}
+            {caTotal.toLocaleString(locale, { maximumFractionDigits: 0 })}
           </Text>
           <Text style={styles.statLabel}>CA TND</Text>
         </View>
@@ -173,8 +178,8 @@ export const DevisListScreen: React.FC = () => {
           ListEmptyComponent={
             <EmptyState
               icon="document-text-outline"
-              titre="Aucun devis"
-              soustitre="Creez votre premier devis depuis une opportunite"
+              titre={t('ventes.devisList.emptyTitle')}
+              soustitre={t('ventes.devisList.emptySub')}
             />
           }
         />
@@ -182,7 +187,7 @@ export const DevisListScreen: React.FC = () => {
 
       <FAB
         onPress={() => navigation.navigate('DevisForm', {})}
-        accessibilityLabel="Creer un devis"
+        accessibilityLabel={t('ventes.devisList.fabLabel')}
       />
     </SafeAreaView>
   );

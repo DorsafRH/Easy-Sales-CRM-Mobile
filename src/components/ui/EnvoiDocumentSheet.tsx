@@ -13,6 +13,7 @@ import { useSafeAreaInsets }     from 'react-native-safe-area-context';
 import { Ionicons }              from '@expo/vector-icons';
 import { useStyles, useTheme }   from '../../theme';
 import { makeStyles }            from './EnvoiDocumentSheet.styles';
+import { useTranslation }        from 'react-i18next';
 
 interface EnvoiDocumentSheetProps {
   visible:     boolean;
@@ -34,6 +35,7 @@ export const EnvoiDocumentSheet: React.FC<EnvoiDocumentSheetProps> = ({
 }) => {
   const styles = useStyles(makeStyles);
   const theme  = useTheme();
+  const { t }  = useTranslation();
   const insets = useSafeAreaInsets();
 
   // Ferme la feuille puis declenche l'action choisie.
@@ -58,8 +60,8 @@ export const EnvoiDocumentSheet: React.FC<EnvoiDocumentSheetProps> = ({
                 <Ionicons name="mail" size={22} color={theme.colors.primary} />
               </View>
               <View style={styles.rowTextWrap}>
-                <Text style={styles.rowLabel}>Envoyer par mail</Text>
-                <Text style={styles.rowSub}>PDF joint, depuis votre messagerie</Text>
+                <Text style={styles.rowLabel}>{t('components.envoiSheet.sendMail')}</Text>
+                <Text style={styles.rowSub}>{t('components.envoiSheet.sendMailSub')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
             </TouchableOpacity>
@@ -71,8 +73,8 @@ export const EnvoiDocumentSheet: React.FC<EnvoiDocumentSheetProps> = ({
                 <Ionicons name="logo-whatsapp" size={22} color={theme.colors.success} />
               </View>
               <View style={styles.rowTextWrap}>
-                <Text style={styles.rowLabel}>Envoyer par WhatsApp</Text>
-                <Text style={styles.rowSub}>Partager le PDF dans une conversation</Text>
+                <Text style={styles.rowLabel}>{t('components.envoiSheet.sendWhatsapp')}</Text>
+                <Text style={styles.rowSub}>{t('components.envoiSheet.sendWhatsappSub')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
             </TouchableOpacity>
@@ -83,14 +85,14 @@ export const EnvoiDocumentSheet: React.FC<EnvoiDocumentSheetProps> = ({
               <Ionicons name="share-outline" size={22} color={theme.colors.textSecondary} />
             </View>
             <View style={styles.rowTextWrap}>
-              <Text style={styles.rowLabel}>Exporter / Partager</Text>
-              <Text style={styles.rowSub}>Autres apps, enregistrer le PDF…</Text>
+              <Text style={styles.rowLabel}>{t('components.envoiSheet.export')}</Text>
+              <Text style={styles.rowSub}>{t('components.envoiSheet.exportSub')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-            <Text style={styles.cancelText}>Annuler</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </TouchableOpacity>
       </TouchableOpacity>

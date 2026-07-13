@@ -16,6 +16,7 @@ import { useStyles } from '../../theme';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { useInscriptionContext } from '../../context/InscriptionContext';
 import { makeStyles } from './RecapitulationScreen.styles';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Recapitulation'>;
@@ -98,6 +99,7 @@ const Row: React.FC<{ label: string; value: string; mono?: boolean }> = ({ label
 export const RecapitulationScreen: React.FC<Props> = ({ navigation }) => {
   const { form, isSubmitting, submitError, submit, reset } = useInscriptionContext();
   const styles = useStyles(makeStyles);
+  const { t }  = useTranslation();
   const [submitted, setSubmitted] = useState(false);
 
   /**
@@ -136,14 +138,14 @@ export const RecapitulationScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </Card>
           <Button
-            label="Retour à l'accueil"
+            label={t('signup.recap.backHome')}
             onPress={() => { reset(); navigation.navigate('Onboarding'); }}
             fullWidth
             size="lg"
             style={styles.successBtn}
           />
           <Button
-            label="Se connecter"
+            label={t('signup.recap.login')}
             onPress={() => { reset(); navigation.navigate('Login'); }}
             variant="outline"
             fullWidth
@@ -157,8 +159,8 @@ export const RecapitulationScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <Screen>
       <StepIndicator current={3} total={3} />
-      <Text style={styles.title}>Récapitulatif</Text>
-      <Text style={styles.subtitle}>Vérifiez vos informations avant de soumettre</Text>
+      <Text style={styles.title}>{t('signup.recap.title')}</Text>
+      <Text style={styles.subtitle}>{t('signup.recap.subtitle')}</Text>
 
       {submitError && (
         <View style={styles.alertError}>
@@ -206,14 +208,14 @@ export const RecapitulationScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.btnRow}>
         <Button
-          label="Retour"
+          label={t('signup.recap.back')}
           onPress={() => navigation.goBack()}
           variant="secondary"
           size="lg"
           style={styles.btnBack}
         />
         <Button
-          label="Envoyer ma demande"
+          label={t('signup.recap.submit')}
           onPress={handleSubmit}
           loading={isSubmitting}
           size="lg"

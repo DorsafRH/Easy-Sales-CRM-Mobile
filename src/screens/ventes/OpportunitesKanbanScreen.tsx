@@ -16,6 +16,7 @@ import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
 import { Ionicons }                      from '@expo/vector-icons';
+import { useTranslation }                from 'react-i18next';
 
 import { useStyles, useTheme }       from '../../theme';
 import { makeStyles }                from './OpportunitesKanbanScreen.styles';
@@ -75,6 +76,8 @@ const trouverFactureLiee = (
 export const OpportunitesKanbanScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale      = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const navigation = useNavigation<Nav>();
 
   // ── États principaux ──────────────────────────────────────
@@ -160,11 +163,11 @@ export const OpportunitesKanbanScreen: React.FC = () => {
 
   const demanderConfirmationPerte = (titre: string, onConfirm: () => void) => {
     Alert.alert(
-      'Marquer comme perdue',
-      `Confirmer la perte de "${titre}" ?`,
+      t('ventes.opport.loseTitle'),
+      t('ventes.opport.loseConfirm', { titre }),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Confirmer', style: 'destructive', onPress: onConfirm },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('ventes.leadDetail.confirm'), style: 'destructive', onPress: onConfirm },
       ],
     );
   };
@@ -185,18 +188,18 @@ export const OpportunitesKanbanScreen: React.FC = () => {
         // affichée ci-dessous (cohérent avec la fiche détail).
         charger(true);
       } catch (e: any) {
-        Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de déplacer.');
+        Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.kanban.moveError'));
       }
     };
 
     // GAGNEE → PERDUE : message spécifique
     if (opportunite.statut === 'GAGNEE' && nouveauStatut === 'PERDUE') {
       Alert.alert(
-        'Annuler la victoire ?',
-        'Cette opportunité était marquée GAGNÉE. Confirmer ?',
+        t('ventes.kanban.cancelWinTitle'),
+        t('ventes.kanban.cancelWinMsg'),
         [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Confirmer', style: 'destructive', onPress: doMove },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('ventes.leadDetail.confirm'), style: 'destructive', onPress: doMove },
         ],
       );
       return;
@@ -211,11 +214,11 @@ export const OpportunitesKanbanScreen: React.FC = () => {
     // PERDUE → GAGNEE
     if (opportunite.statut === 'PERDUE' && nouveauStatut === 'GAGNEE') {
       Alert.alert(
-        'Changer résultat ?',
-        'Êtes-vous sûr de vouloir passer de PERDUE à GAGNÉE ?',
+        t('ventes.kanban.changeResultTitle'),
+        t('ventes.kanban.changeResultMsg'),
         [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Confirmer', onPress: doMove },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('ventes.leadDetail.confirm'), onPress: doMove },
         ],
       );
       return;
@@ -225,16 +228,16 @@ export const OpportunitesKanbanScreen: React.FC = () => {
     const ORDRE      = KANBAN_COLONNES.map(c => c.statut);
     const idxActuel  = ORDRE.indexOf(opportunite.statut);
     const idxCible   = ORDRE.indexOf(nouveauStatut);
-    const labelActuel = KANBAN_COLONNES.find(c => c.statut === opportunite.statut)?.label ?? opportunite.statut;
-    const labelCible  = KANBAN_COLONNES.find(c => c.statut === nouveauStatut)?.label ?? nouveauStatut;
+    const labelActuel = t(KANBAN_COLONNES.find(c => c.statut === opportunite.statut)?.labelKey ?? opportunite.statut);
+    const labelCible  = t(KANBAN_COLONNES.find(c => c.statut === nouveauStatut)?.labelKey ?? nouveauStatut);
 
     if (idxCible < idxActuel) {
       Alert.alert(
-        'Rétrograder ?',
-        `Faire reculer "${opportunite.titre}" de "${labelActuel}" vers "${labelCible}" ?`,
+        t('ventes.kanban.demoteTitle'),
+        t('ventes.kanban.demoteMsg', { titre: opportunite.titre, from: labelActuel, to: labelCible }),
         [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Confirmer', onPress: doMove },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('ventes.leadDetail.confirm'), onPress: doMove },
         ],
       );
       return;
@@ -303,7 +306,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
   };
 
   const formatMontant = (v: number | null) =>
-    v ? v.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TND' : '';
+    v ? v.toLocaleString(locale, { maximumFractionDigits: 0 }) + ' TND' : '';
 
   // ── Bouton devis/facture selon statut ────────────────────
 
@@ -321,7 +324,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
         return (
           <TouchableOpacity style={styles.btnVoirDevis}
             onPress={() => navigation.navigate('DevisDetail', { devisId: devisActif.id })}>
-            <Text style={styles.btnVoirDevisText}>Voir Devis</Text>
+            <Text style={styles.btnVoirDevisText}>{t('ventes.opport.viewQuote')}</Text>
           </TouchableOpacity>
         );
       }
@@ -331,7 +334,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
             clientId:      o.clientId,
             opportuniteId: o.id,
           })}>
-          <Text style={styles.btnVoirDevisText}>Creer Devis</Text>
+          <Text style={styles.btnVoirDevisText}>{t('ventes.opport.createQuote')}</Text>
         </TouchableOpacity>
       );
     }
@@ -340,7 +343,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
         return (
           <TouchableOpacity style={styles.btnVoirFacture}
             onPress={() => navigation.navigate('FactureDetail', { factureId: facture.id })}>
-            <Text style={styles.btnVoirFactureText}>Voir Facture</Text>
+            <Text style={styles.btnVoirFactureText}>{t('ventes.opport.viewInvoice')}</Text>
           </TouchableOpacity>
         );
       }
@@ -348,7 +351,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
         return (
           <TouchableOpacity style={styles.btnVoirDevis}
             onPress={() => navigation.navigate('DevisDetail', { devisId: devisActif.id })}>
-            <Text style={styles.btnVoirDevisText}>Voir Devis</Text>
+            <Text style={styles.btnVoirDevisText}>{t('ventes.opport.viewQuote')}</Text>
           </TouchableOpacity>
         );
       }
@@ -437,8 +440,8 @@ export const OpportunitesKanbanScreen: React.FC = () => {
     if (!kanban) return null;
 
     const chips = [
-      { value: 'TOUS', label: 'Tous' },
-      ...KANBAN_COLONNES.map(c => ({ value: c.statut, label: c.label })),
+      { value: 'TOUS', label: t('ventes.leadsList.filterAll') },
+      ...KANBAN_COLONNES.map(c => ({ value: c.statut, label: t(c.labelKey) })),
     ];
 
     return (
@@ -447,7 +450,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
           <SearchBar
             value={listSearch}
             onChangeText={setListSearch}
-            placeholder="Rechercher..."
+            placeholder={t('ventes.kanban.searchPlaceholder')}
           />
         </View>
         <View style={styles.filtresWrapper}>
@@ -480,7 +483,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
               if (items.length === 0) return null;
               return (
                 <View key={col.statut}>
-                  <Text style={styles.groupTitle}>{col.label} ({items.length})</Text>
+                  <Text style={styles.groupTitle}>{t(col.labelKey)} ({items.length})</Text>
                   {items.map(o => (
                     <TouchableOpacity
                       key={o.id}
@@ -538,7 +541,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pipeline ({totalOpportunites})</Text>
+        <Text style={styles.headerTitle}>{t('ventes.kanban.title', { nb: totalOpportunites })}</Text>
         <TouchableOpacity
           style={styles.toggleBtn}
           onPress={() => setViewMode(v => v === 'kanban' ? 'liste' : 'kanban')}
@@ -549,7 +552,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
             color={theme.colors.textSecondary}
           />
           <Text style={styles.toggleBtnText}>
-            {viewMode === 'kanban' ? 'Liste' : 'Kanban'}
+            {viewMode === 'kanban' ? t('ventes.kanban.viewList') : t('ventes.kanban.viewKanban')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -593,7 +596,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
                   >
                     <Ionicons name={col.iconName as any} size={16} color="#FFFFFF" />
                     <Text style={[styles.colonneTitle, { color: '#FFFFFF' }]}>
-                      {isDropTarget ? `→ ${col.label}` : col.label}
+                      {isDropTarget ? `→ ${t(col.labelKey)}` : t(col.labelKey)}
                     </Text>
                     <View style={styles.colonneBadge}>
                       <Text style={[styles.colonneBadgeText, { color: '#FFFFFF' }]}>
@@ -616,7 +619,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
                   >
                     {items.length === 0 && (
                       <Text style={styles.emptyColonne}>
-                        {isDragging && isDropTarget ? 'Déposer ici' : 'Vide'}
+                        {isDragging && isDropTarget ? t('ventes.kanban.dropHere') : t('ventes.kanban.empty')}
                       </Text>
                     )}
                     {items.map(o => renderKanbanCard(o, col.statut))}
@@ -627,7 +630,7 @@ export const OpportunitesKanbanScreen: React.FC = () => {
                         onPress={() => navigation.navigate('OpportuniteForm', {})}
                       >
                         <Ionicons name="add" size={14} color={theme.colors.textTertiary} />
-                        <Text style={styles.addCardBtnText}>Ajouter</Text>
+                        <Text style={styles.addCardBtnText}>{t('clients.detail.add')}</Text>
                       </TouchableOpacity>
                     )}
                   </ScrollView>

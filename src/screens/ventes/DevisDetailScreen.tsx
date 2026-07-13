@@ -16,6 +16,7 @@ import { useNavigation, useRoute,
          RouteProp, useFocusEffect }            from '@react-navigation/native';
 import { NativeStackNavigationProp }            from '@react-navigation/native-stack';
 import { Ionicons }                             from '@expo/vector-icons';
+import { useTranslation }                       from 'react-i18next';
 
 import { useStyles, useTheme }          from '../../theme';
 import { makeStyles }                   from './DevisDetailScreen.styles';
@@ -73,6 +74,7 @@ const genererHtmlDevis = (d: DevisResponse): string =>
 export const DevisDetailScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { devisId } = route.params;
@@ -112,7 +114,7 @@ export const DevisDetailScreen: React.FC = () => {
         chargerContactClient(res.data.clientId);
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger le devis.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.devis.loadError'));
       navigation.goBack();
     } finally {
       setIsLoading(false);
@@ -148,7 +150,7 @@ export const DevisDetailScreen: React.FC = () => {
     });
     if (res !== 'cancelled') {
       await marquerEnvoye();
-      Alert.alert('Devis envoyé');
+      Alert.alert(t('ventes.devis.sentAlert'));
     }
   };
 
@@ -168,7 +170,7 @@ export const DevisDetailScreen: React.FC = () => {
       setPdfUri(uri);
       setEnvoiVisible(true);
     } catch {
-      Alert.alert('Erreur', 'Impossible de générer le PDF du devis.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.devis.pdfError'));
     } finally {
       setIsEnvoi(false);
     }
@@ -183,10 +185,10 @@ export const DevisDetailScreen: React.FC = () => {
       const uri = await genererPdfUri(genererHtmlDevis(devis));
       const res = await telechargerPdf(uri, `Devis ${devis.numero}`);
       if (res === 'enregistre') {
-        Alert.alert('PDF enregistré', 'Le devis a été enregistré dans vos Téléchargements.');
+        Alert.alert(t('ventes.devis.pdfSavedTitle'), t('ventes.devis.pdfSavedMsg'));
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible de générer le PDF du devis.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.devis.pdfError'));
     } finally {
       setIsEnvoi(false);
     }
@@ -201,22 +203,22 @@ export const DevisDetailScreen: React.FC = () => {
         setSmartVisible(true);
       }
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Erreur lors de l acceptation.');
+      Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.devis.acceptError'));
     }
   };
 
   const handleRefuser = () => {
-    Alert.alert('Refuser le devis', 'Confirmer le refus ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('ventes.devis.refuseTitle'), t('ventes.devis.refuseConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Refuser',
+        text: t('ventes.devis.refuse'),
         style: 'destructive',
         onPress: async () => {
           try {
             const res = await VenteApi.changerStatutDevis(devisId, 'REFUSE');
             if (res.success) setDevis(res.data);
           } catch (e: any) {
-            Alert.alert('Erreur', e?.response?.data?.message ?? 'Impossible de refuser.');
+            Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.devis.refuseError'));
           }
         },
       },
@@ -231,7 +233,7 @@ export const DevisDetailScreen: React.FC = () => {
         navigation.replace('FactureDetail', { factureId: res.data.id });
       }
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Erreur lors de la conversion.');
+      Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.leadDetail.convertError'));
     }
   };
 
@@ -274,29 +276,29 @@ export const DevisDetailScreen: React.FC = () => {
             <Text style={styles.headerNumero}>{devis.numero}</Text>
             <Text style={styles.headerDate}>{devis.clientNom} — {devis.dateRelative}</Text>
           </View>
-          <Badge label={conf.label} variant="neutral" />
+          <Badge label={t(conf.labelKey)} variant="neutral" />
         </View>
 
         {/* ── Infos generales ── */}
         <View style={styles.section}>
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Informations</Text>
+            <Text style={styles.cardTitle}>{t('ventes.opport.infoTitle')}</Text>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Client</Text>
+              <Text style={styles.infoLabel}>{t('ventes.opport.client')}</Text>
               <Text style={styles.infoValue}>{devis.clientNom}</Text>
             </View>
             {devis.opportuniteTitre ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Opportunite</Text>
+                <Text style={styles.infoLabel}>{t('ventes.devis.opportunity')}</Text>
                 <Text style={styles.infoValue}>{devis.opportuniteTitre}</Text>
               </View>
             ) : null}
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Validite</Text>
-              <Text style={styles.infoValue}>{devis.validiteJours} jours</Text>
+              <Text style={styles.infoLabel}>{t('ventes.devis.validity')}</Text>
+              <Text style={styles.infoValue}>{devis.validiteJours} {t('ventes.devis.days')}</Text>
             </View>
             <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-              <Text style={styles.infoLabel}>Cree le</Text>
+              <Text style={styles.infoLabel}>{t('ventes.opport.createdAt')}</Text>
               <Text style={styles.infoValue}>{devis.dateRelative}</Text>
             </View>
           </View>
@@ -305,7 +307,7 @@ export const DevisDetailScreen: React.FC = () => {
         {/* ── Lignes articles ── */}
         <View style={styles.section}>
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Articles ({devis.lignes.length})</Text>
+            <Text style={styles.cardTitle}>{t('ventes.devis.articles', { nb: devis.lignes.length })}</Text>
             {devis.lignes.map(ligne => (
               <View key={ligne.id} style={styles.ligneItem}>
                 <View style={styles.ligneTopRow}>
@@ -314,8 +316,8 @@ export const DevisDetailScreen: React.FC = () => {
                 </View>
                 <Text style={styles.ligneSub}>
                   {ligne.quantite} x {fmt(ligne.prixUnitaireHt)}
-                  {ligne.remise > 0 ? `  —  Remise ${ligne.remise}%` : ''}
-                  {ligne.tauxTva > 0 ? `  —  TVA ${ligne.tauxTva}%` : ''}
+                  {ligne.remise > 0 ? `  —  ${t('ventes.devis.discount')} ${ligne.remise}%` : ''}
+                  {ligne.tauxTva > 0 ? `  —  ${t('ventes.devis.vat')} ${ligne.tauxTva}%` : ''}
                 </Text>
               </View>
             ))}
@@ -326,15 +328,15 @@ export const DevisDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.totauxCard}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Sous-total HT</Text>
+              <Text style={styles.totalLabel}>{t('ventes.devis.subtotalHt')}</Text>
               <Text style={styles.totalValue}>{fmt(devis.montantHt)}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>TVA</Text>
+              <Text style={styles.totalLabel}>{t('ventes.devis.vat')}</Text>
               <Text style={styles.totalValue}>{fmt(devis.montantTva)}</Text>
             </View>
             <View style={styles.totalTtcRow}>
-              <Text style={styles.totalTtcLabel}>Total TTC</Text>
+              <Text style={styles.totalTtcLabel}>{t('ventes.devis.totalTtc')}</Text>
               <Text style={styles.totalTtcValue}>{fmt(devis.montantTtc)}</Text>
             </View>
           </View>
@@ -344,7 +346,7 @@ export const DevisDetailScreen: React.FC = () => {
         {devis.notes ? (
           <View style={styles.section}>
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Notes</Text>
+              <Text style={styles.cardTitle}>{t('ventes.devis.notes')}</Text>
               <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
                 <Text style={[styles.infoValue, { textAlign: 'left', marginLeft: 0 }]}>
                   {devis.notes}
@@ -365,7 +367,7 @@ export const DevisDetailScreen: React.FC = () => {
               <>
                 <Ionicons name="send-outline" size={18} color={theme.colors.white} />
                 <Text style={styles.btnPrimaryText}>
-                  {estEnvoye ? 'Renvoyer le devis' : 'Envoyer le devis'}
+                  {estEnvoye ? t('ventes.devis.resend') : t('ventes.devis.send')}
                 </Text>
               </>
             )}
@@ -374,7 +376,7 @@ export const DevisDetailScreen: React.FC = () => {
           {/* Telecharger le PDF sur le telephone */}
           <TouchableOpacity style={styles.btnSecondary} onPress={handleTelechargerPdf} disabled={isEnvoi}>
             <Ionicons name="download-outline" size={18} color={theme.colors.textSecondary} />
-            <Text style={styles.btnSecondaryText}>Télécharger le PDF</Text>
+            <Text style={styles.btnSecondaryText}>{t('ventes.devis.downloadPdf')}</Text>
           </TouchableOpacity>
 
           {/* Devis lié à une opportunité : on facture depuis la fiche opportunité */}
@@ -382,7 +384,7 @@ export const DevisDetailScreen: React.FC = () => {
             <View style={styles.infoOppRow}>
               <Ionicons name="information-circle-outline" size={16} color={theme.colors.textTertiary} />
               <Text style={styles.infoOppText}>
-                Pour facturer, marquez l'opportunité comme gagnée depuis sa fiche.
+                {t('ventes.devis.invoiceFromOpp')}
               </Text>
             </View>
           )}
@@ -398,14 +400,14 @@ export const DevisDetailScreen: React.FC = () => {
                 onPress={handleAccepter}
               >
                 <Ionicons name="checkmark-outline" size={16} color="#16A34A" />
-                <Text style={[styles.actionBtnText, { color: '#16A34A' }]}>Accepte</Text>
+                <Text style={[styles.actionBtnText, { color: '#16A34A' }]}>{t('ventes.devis.accept')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, { borderColor: theme.colors.danger }]}
                 onPress={handleRefuser}
               >
                 <Ionicons name="close-outline" size={16} color={theme.colors.danger} />
-                <Text style={[styles.actionBtnText, { color: theme.colors.danger }]}>Refuse</Text>
+                <Text style={[styles.actionBtnText, { color: theme.colors.danger }]}>{t('ventes.devis.refuse')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -414,7 +416,7 @@ export const DevisDetailScreen: React.FC = () => {
           {estAccepte && !estLieOpp && !devis.dejaConverti && (
             <TouchableOpacity style={styles.btnPrimary} onPress={() => setSmartVisible(true)}>
               <Ionicons name="receipt-outline" size={18} color={theme.colors.white} />
-              <Text style={styles.btnPrimaryText}>Convertir en facture</Text>
+              <Text style={styles.btnPrimaryText}>{t('ventes.devis.convertToInvoice')}</Text>
             </TouchableOpacity>
           )}
 
@@ -424,7 +426,7 @@ export const DevisDetailScreen: React.FC = () => {
               style={styles.btnDanger}
               onPress={() => navigation.navigate('DevisForm', { devisId })}
             >
-              <Text style={styles.btnDangerText}>Modifier le devis</Text>
+              <Text style={styles.btnDangerText}>{t('ventes.devis.editDevis')}</Text>
             </TouchableOpacity>
           )}
 
@@ -437,10 +439,10 @@ export const DevisDetailScreen: React.FC = () => {
         iconName="receipt-outline"
         iconColor="#2563EB"
         iconBg="#EFF6FF"
-        title="Devis accepte !"
-        subtitle="Voulez-vous generer la facture maintenant ?"
-        confirmLabel="Creer la facture"
-        dismissLabel="Plus tard"
+        title={t('ventes.devis.smartTitle')}
+        subtitle={t('ventes.devis.smartSubtitle')}
+        confirmLabel={t('ventes.devis.smartConfirm')}
+        dismissLabel={t('ventes.devis.smartDismiss')}
         onConfirm={handleConvertirEnFacture}
         onDismiss={() => setSmartVisible(false)}
       />
@@ -449,12 +451,12 @@ export const DevisDetailScreen: React.FC = () => {
       <EnvoiDocumentSheet
         visible={envoiVisible}
         onClose={() => setEnvoiVisible(false)}
-        titre={`Envoyer le devis ${devis.numero}`}
+        titre={t('ventes.devis.sendTitle', { numero: devis.numero })}
         hasEmail={!!clientEmail?.trim()}
         hasPhone={!!clientTelephone?.trim()}
         onMail={() => pdfUri && envoyerMail(pdfUri)}
         onWhatsapp={() => pdfUri && envoyerWhatsapp(pdfUri)}
-        onExport={() => pdfUri && partagerPdf(pdfUri, `Devis ${devis.numero}`)}
+        onExport={() => pdfUri && partagerPdf(pdfUri, `${t('ventes.devis.devisLabel')} ${devis.numero}`)}
       />
     </SafeAreaView>
   );

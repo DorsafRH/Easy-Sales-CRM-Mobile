@@ -15,6 +15,7 @@ import { Ionicons }          from '@expo/vector-icons';
 import { useFocusEffect }    from '@react-navigation/native';
 
 import { useStyles, useTheme } from '../../theme';
+import { useTranslation }      from 'react-i18next';
 import { SearchBar }           from './SearchBar';
 import { Avatar }              from './Avatar';
 import { useDebounce }         from '../../hooks/useDebounce';
@@ -149,10 +150,11 @@ export const ClientPickerModal: React.FC<ClientPickerModalProps> = ({
   visible,
   onSelect,
   onClose,
-  titre = 'Sélectionner un client',
+  titre,
 }) => {
   const styles  = useStyles(makeStyles);
   const theme   = useTheme();
+  const { t }   = useTranslation();
 
   const [clients,   setClients]   = useState<ClientResponse[]>([]);
   const [search,    setSearch]    = useState('');
@@ -206,7 +208,7 @@ export const ClientPickerModal: React.FC<ClientPickerModalProps> = ({
             {item.nomAffichage}
           </Text>
           <Text style={styles.itemMeta} numberOfLines={1}>
-            {item.email ?? item.telephone ?? 'Aucune info de contact'}
+            {item.email ?? item.telephone ?? t('components.clientPicker.noContactInfo')}
           </Text>
         </View>
         <View style={[
@@ -217,7 +219,7 @@ export const ClientPickerModal: React.FC<ClientPickerModalProps> = ({
             styles.typeBadgeText,
             { color: estEntreprise ? '#2563EB' : '#16A34A' },
           ]}>
-            {estEntreprise ? 'Entreprise' : 'Individuel'}
+            {estEntreprise ? t('clients.badgeCompany') : t('clients.badgeIndividual')}
           </Text>
         </View>
       </TouchableOpacity>
@@ -242,7 +244,7 @@ export const ClientPickerModal: React.FC<ClientPickerModalProps> = ({
 
             {/* ── Header ── */}
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>{titre}</Text>
+              <Text style={styles.headerTitle}>{titre ?? t('components.clientPicker.defaultTitle')}</Text>
               <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
                 <Ionicons name="close" size={18} color={theme.colors.textPrimary} />
               </TouchableOpacity>
@@ -253,7 +255,7 @@ export const ClientPickerModal: React.FC<ClientPickerModalProps> = ({
               <SearchBar
                 value={search}
                 onChangeText={setSearch}
-                placeholder="Rechercher un client..."
+                placeholder={t('components.clientPicker.searchPlaceholder')}
               />
             </View>
 
@@ -277,7 +279,7 @@ export const ClientPickerModal: React.FC<ClientPickerModalProps> = ({
                       color={theme.colors.textTertiary}
                     />
                     <Text style={styles.emptyText}>
-                      {search ? 'Aucun client trouvé' : 'Aucun client enregistré'}
+                      {search ? t('components.clientPicker.noClientFound') : t('components.clientPicker.noClientRegistered')}
                     </Text>
                   </View>
                 }

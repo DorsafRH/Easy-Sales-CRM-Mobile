@@ -16,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './MarketingDashboard.styles';
+import { useTranslation } from 'react-i18next';
 import { EmptyState } from '../../components/ui/EmptyState';
 import * as StatsApi from '../../api/marketing-stats.api';
 import { MarketingOverview, TopPostReactions } from '../../types/marketing.types';
@@ -40,6 +41,7 @@ const KPI_CONVERSION = '#0891B2';
 export const MarketingDashboard: React.FC = () => {
   const styles = useStyles(makeStyles);
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const [overview, setOverview] = useState<MarketingOverview | null>(null);
   const [topPosts, setTopPosts] = useState<TopPostReactions[]>([]);
@@ -71,8 +73,8 @@ export const MarketingDashboard: React.FC = () => {
 
   if (!overview) {
     return (
-      <EmptyState icon="stats-chart-outline" titre="Aucune statistique"
-        soustitre="Les données apparaîtront ici" />
+      <EmptyState icon="stats-chart-outline" titre={t('marketing.dashboard.noStats')}
+        soustitre={t('marketing.dashboard.noStatsSub')} />
     );
   }
 
@@ -102,19 +104,19 @@ export const MarketingDashboard: React.FC = () => {
       }
     >
       {/* ── KPIs leads ─────────────────────────────────────────────── */}
-      <Text style={styles.sectionTitle}>Performance des leads</Text>
+      <Text style={styles.sectionTitle}>{t('marketing.dashboard.leadsTitle')}</Text>
       <View style={styles.kpiGrid}>
-        {kpi('people-outline',       overview.leadsMarketing,           'Leads réseaux',   KPI_LEADS)}
-        {kpi('ribbon-outline',       overview.leadsQualifies,           'Qualifiés',       KPI_QUALIFIES)}
-        {kpi('speedometer-outline',  `${overview.scoreMoyen}`,          'Score moyen',     KPI_SCORE)}
-        {kpi('trending-up-outline',  `${overview.tauxConversion}%`,     'Conversion',      KPI_CONVERSION)}
+        {kpi('people-outline',       overview.leadsMarketing,       t('marketing.dashboard.kpiLeads'),       KPI_LEADS)}
+        {kpi('ribbon-outline',       overview.leadsQualifies,       t('marketing.dashboard.kpiQualified'),   KPI_QUALIFIES)}
+        {kpi('speedometer-outline',  `${overview.scoreMoyen}`,      t('marketing.dashboard.kpiScore'),       KPI_SCORE)}
+        {kpi('trending-up-outline',  `${overview.tauxConversion}%`, t('marketing.dashboard.kpiConversion'),  KPI_CONVERSION)}
       </View>
 
       {/* ── Réactions par publication ──────────────────────────────── */}
-      <Text style={styles.sectionTitle}>Réactions par publication</Text>
+      <Text style={styles.sectionTitle}>{t('marketing.dashboard.reactionsTitle')}</Text>
       {topPosts.length === 0 ? (
         <View style={styles.card}>
-          <Text style={styles.vide}>Aucune réaction pour le moment</Text>
+          <Text style={styles.vide}>{t('marketing.dashboard.noReactions')}</Text>
         </View>
       ) : (
         <>
@@ -126,11 +128,11 @@ export const MarketingDashboard: React.FC = () => {
                   {/* Titre (2 lignes) à gauche + total détaché à droite */}
                   <View style={styles.engHead}>
                     <Text style={styles.engLabel} numberOfLines={2} ellipsizeMode="tail">
-                      {p.titre?.trim() || 'Publication sans titre'}
+                      {p.titre?.trim() || t('marketing.dashboard.noTitle')}
                     </Text>
                     <View style={styles.engTotalBox}>
                       <Text style={styles.engTotalValue}>{total}</Text>
-                      <Text style={styles.engTotalLabel}>réactions</Text>
+                      <Text style={styles.engTotalLabel}>{t('marketing.dashboard.reactions')}</Text>
                     </View>
                   </View>
 
@@ -171,7 +173,7 @@ export const MarketingDashboard: React.FC = () => {
         <>
           <View style={styles.sectionRow}>
             <Ionicons name="sparkles-outline" size={16} color={theme.colors.primary} />
-            <Text style={styles.sectionTitleInline}>Besoins identifiés par l'IA</Text>
+            <Text style={styles.sectionTitleInline}>{t('marketing.dashboard.needsTitle')}</Text>
           </View>
           <View style={styles.card}>
             {overview.derniersBesoins.slice(0, 3).map((b, i) => (

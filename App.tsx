@@ -25,6 +25,9 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+// Import side-effect : initialise i18next AVANT tout rendu
+import './src/i18n';
+import { useLanguageStore } from './src/i18n/languageStore';
 import { AuthProvider }   from './src/context/AuthContext';
 import { AppNavigator }   from './src/navigation/AppNavigator';
 import { useThemeStore }  from './src/theme/themeStore';
@@ -43,6 +46,10 @@ export default function App() {
   const hydrate    = useThemeStore(state => state.hydrate);
   const isHydrated = useThemeStore(state => state.isHydrated);
 
+  // Hydratation de la langue (AsyncStorage ou langue du téléphone)
+  const hydrateLanguage    = useLanguageStore(state => state.hydrate);
+  const isLanguageHydrated = useLanguageStore(state => state.isHydrated);
+
   // Récupère le thème courant pour styliser l'écran de chargement
   const theme = useTheme();
 
@@ -60,12 +67,14 @@ export default function App() {
   useEffect(() => {
     configureNotifications();
     hydrate();
+    hydrateLanguage();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Écran de chargement — affiché pendant la lecture AsyncStorage.
    */
-  if (!isHydrated) {
+  // On attend le thème ET la langue (évite un flash FR→EN)
+  if (!isHydrated || !isLanguageHydrated) {
     return (
       <View style={styles.splash}>
         <ActivityIndicator size="large" color="#2563EB" />

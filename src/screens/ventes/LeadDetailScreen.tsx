@@ -16,6 +16,7 @@ import { useNavigation, useRoute,
          RouteProp, useFocusEffect }         from '@react-navigation/native';
 import { NativeStackNavigationProp }         from '@react-navigation/native-stack';
 import { Ionicons }                          from '@expo/vector-icons';
+import { useTranslation }                    from 'react-i18next';
 
 import { useStyles, useTheme }   from '../../theme';
 import { makeStyles }            from './LeadDetailScreen.styles';
@@ -30,7 +31,7 @@ import * as VenteApi from '../../api/vente.api';
 import {
   LeadResponse,
   STATUT_LEAD_CONFIG,
-  SOURCE_LEAD_LABELS,
+  SOURCE_LEAD_LABEL_KEYS,
 } from '../../types/vente.types';
 import { ClientResponse } from '../../types/client.types';
 
@@ -149,6 +150,7 @@ export const LeadDetailScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const convStyles = useStyles(makeConvStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { leadId } = route.params;
@@ -170,7 +172,7 @@ export const LeadDetailScreen: React.FC = () => {
       const res = await VenteApi.obtenirLead(leadId);
       if (res.success) setLead(res.data);
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger le lead.');
+      Alert.alert(t('ventes.leadDetail.error'), t('ventes.leadDetail.loadError'));
       navigation.goBack();
     } finally {
       setIsLoading(false);
@@ -183,16 +185,16 @@ export const LeadDetailScreen: React.FC = () => {
 
   const handleQualifier = () => {
     if (!lead) return;
-    Alert.alert('Qualifier ce lead', 'Confirmer la qualification ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('ventes.leadDetail.qualifyTitle'), t('ventes.leadDetail.qualifyConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Qualifier',
+        text: t('ventes.leadDetail.qualify'),
         onPress: async () => {
           try {
             const res = await VenteApi.changerStatutLead(lead.id, 'QUALIFIE');
             if (res.success) setLead(res.data);
           } catch {
-            Alert.alert('Erreur', 'Impossible de qualifier.');
+            Alert.alert(t('ventes.leadDetail.error'), t('ventes.leadDetail.qualifyError'));
           }
         },
       },
@@ -201,17 +203,17 @@ export const LeadDetailScreen: React.FC = () => {
 
   const handlePerdre = () => {
     if (!lead) return;
-    Alert.alert('Marquer comme perdu', 'Confirmer ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('ventes.leadDetail.loseTitle'), t('ventes.leadDetail.loseConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Confirmer',
+        text: t('ventes.leadDetail.confirm'),
         style: 'destructive',
         onPress: async () => {
           try {
             const res = await VenteApi.changerStatutLead(lead.id, 'PERDU');
             if (res.success) setLead(res.data);
           } catch {
-            Alert.alert('Erreur', 'Impossible de changer le statut.');
+            Alert.alert(t('ventes.leadDetail.error'), t('ventes.leadDetail.loseError'));
           }
         },
       },
@@ -230,7 +232,7 @@ export const LeadDetailScreen: React.FC = () => {
         navigation.replace('OpportuniteDetail', { opportuniteId: res.data.id });
       }
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Erreur lors de la conversion.');
+      Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.leadDetail.convertError'));
     } finally {
       setIsConverting(false);
     }
@@ -248,7 +250,7 @@ export const LeadDetailScreen: React.FC = () => {
         navigation.replace('OpportuniteDetail', { opportuniteId: res.data.id });
       }
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message ?? 'Erreur lors de la conversion.');
+      Alert.alert(t('ventes.leadDetail.error'), e?.response?.data?.message ?? t('ventes.leadDetail.convertError'));
     } finally {
       setIsConverting(false);
     }
@@ -282,7 +284,7 @@ export const LeadDetailScreen: React.FC = () => {
           <View style={styles.headerInfo}>
             <Text style={styles.headerNom} numberOfLines={1}>{lead.nom}</Text>
             <Text style={styles.headerSub}>
-              {SOURCE_LEAD_LABELS[lead.source]} — {lead.dateRelative}
+              {t(SOURCE_LEAD_LABEL_KEYS[lead.source])} — {lead.dateRelative}
             </Text>
           </View>
           <TouchableOpacity
@@ -296,37 +298,37 @@ export const LeadDetailScreen: React.FC = () => {
         {/* ── Statut + Score ── */}
         <View style={styles.scoreSection}>
           <View style={[styles.statutBadge, { backgroundColor: conf.bg, marginBottom: theme.spacing[3] }]}>
-            <Text style={[styles.statutBadgeText, { color: conf.color }]}>{conf.label}</Text>
+            <Text style={[styles.statutBadgeText, { color: conf.color }]}>{t(conf.labelKey)}</Text>
           </View>
-          <Text style={styles.scoreLabel}>Score de qualification</Text>
+          <Text style={styles.scoreLabel}>{t('ventes.leadDetail.scoreLabel')}</Text>
           <ScoreBar score={lead.score} />
         </View>
 
         {/* ── Informations contact ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.leadDetail.contact')}</Text>
           <View style={styles.card}>
             {lead.email ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoLabel}>{t('ventes.leadDetail.email')}</Text>
                 <Text style={styles.infoValue} numberOfLines={1}>{lead.email}</Text>
               </View>
             ) : null}
             {lead.telephone ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Telephone</Text>
+                <Text style={styles.infoLabel}>{t('ventes.leadDetail.phone')}</Text>
                 <Text style={styles.infoValue}>{lead.telephone}</Text>
               </View>
             ) : null}
             {lead.entreprise ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Entreprise</Text>
+                <Text style={styles.infoLabel}>{t('ventes.leadDetail.company')}</Text>
                 <Text style={styles.infoValue}>{lead.entreprise}</Text>
               </View>
             ) : null}
             <View style={[styles.infoRow, styles.infoRowLast]}>
-              <Text style={styles.infoLabel}>Source</Text>
-              <Text style={styles.infoValue}>{SOURCE_LEAD_LABELS[lead.source]}</Text>
+              <Text style={styles.infoLabel}>{t('ventes.leadDetail.source')}</Text>
+              <Text style={styles.infoValue}>{t(SOURCE_LEAD_LABEL_KEYS[lead.source])}</Text>
             </View>
           </View>
         </View>
@@ -334,7 +336,7 @@ export const LeadDetailScreen: React.FC = () => {
         {/* ── Besoin ── */}
         {lead.descriptionBesoin ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Besoin identifie</Text>
+            <Text style={styles.sectionTitle}>{t('ventes.leadDetail.needTitle')}</Text>
             <View style={styles.card}>
               <View style={[styles.infoRow, styles.infoRowLast]}>
                 <Text style={[styles.infoValue, { textAlign: 'left', marginLeft: 0 }]}>
@@ -347,11 +349,11 @@ export const LeadDetailScreen: React.FC = () => {
 
         {/* ── Activités ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activites ({activites.length})</Text>
+          <Text style={styles.sectionTitle}>{t('ventes.leadDetail.activitiesTitle', { nb: activites.length })}</Text>
           <View style={styles.timelineCard}>
             {activites.length === 0 ? (
               <View style={styles.emptyTimeline}>
-                <Text style={styles.emptyTimelineText}>Aucune activite enregistree</Text>
+                <Text style={styles.emptyTimelineText}>{t('ventes.leadDetail.noActivities')}</Text>
               </View>
             ) : (
               activites.map((a, i) => (
@@ -360,7 +362,7 @@ export const LeadDetailScreen: React.FC = () => {
             )}
             <TouchableOpacity style={styles.addActiviteBtn}>
               <Ionicons name="add" size={16} color={theme.colors.textTertiary} />
-              <Text style={styles.addActiviteBtnText}>Ajouter une activite</Text>
+              <Text style={styles.addActiviteBtnText}>{t('ventes.leadDetail.addActivity')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -374,14 +376,14 @@ export const LeadDetailScreen: React.FC = () => {
                 onPress={handleQualifier}
               >
                 <Ionicons name="checkmark-circle-outline" size={16} color="#7C3AED" />
-                <Text style={[styles.actionBtnText, { color: '#7C3AED' }]}>Qualifier</Text>
+                <Text style={[styles.actionBtnText, { color: '#7C3AED' }]}>{t('ventes.leadDetail.qualify')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, { borderColor: theme.colors.danger }]}
                 onPress={handlePerdre}
               >
                 <Ionicons name="close-circle-outline" size={16} color={theme.colors.danger} />
-                <Text style={[styles.actionBtnText, { color: theme.colors.danger }]}>Perdre</Text>
+                <Text style={[styles.actionBtnText, { color: theme.colors.danger }]}>{t('ventes.leadDetail.lose')}</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity
@@ -394,7 +396,7 @@ export const LeadDetailScreen: React.FC = () => {
               ) : (
                 <>
                   <Ionicons name="trending-up-outline" size={20} color={theme.colors.white} />
-                  <Text style={styles.convertBtnText}>Convertir en opportunite</Text>
+                  <Text style={styles.convertBtnText}>{t('ventes.leadDetail.convertBtn')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -408,7 +410,7 @@ export const LeadDetailScreen: React.FC = () => {
               <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: theme.spacing[2] }}>
                 <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
                 <Text style={{ fontSize: theme.typography.size.sm, fontWeight: '600', color: '#16A34A' }}>
-                  Lead converti en opportunite
+                  {t('ventes.leadDetail.convertedInfo')}
                 </Text>
               </View>
             </View>
@@ -435,9 +437,9 @@ export const LeadDetailScreen: React.FC = () => {
               <View style={convStyles.iconWrapper}>
                 <Ionicons name="trending-up-outline" size={28} color="#16A34A" />
               </View>
-              <Text style={convStyles.title}>Convertir ce lead</Text>
+              <Text style={convStyles.title}>{t('ventes.leadDetail.convertSheetTitle')}</Text>
               <Text style={convStyles.subtitle}>
-                Choisissez comment associer ce lead a un client CRM pour creer l opportunite
+                {t('ventes.leadDetail.convertSheetSub')}
               </Text>
 
               {/* Choix 1 — Nouveau client automatique */}
@@ -451,10 +453,10 @@ export const LeadDetailScreen: React.FC = () => {
                 </View>
                 <View style={convStyles.choiceContent}>
                   <Text style={[convStyles.choiceTitle, convStyles.choiceTitlePrimary]}>
-                    Creer un nouveau client
+                    {t('ventes.leadDetail.newClient')}
                   </Text>
                   <Text style={convStyles.choiceSub}>
-                    Cree automatiquement depuis les infos du lead
+                    {t('ventes.leadDetail.newClientSub')}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
@@ -473,9 +475,9 @@ export const LeadDetailScreen: React.FC = () => {
                   <Ionicons name="people-outline" size={20} color="#2563EB" />
                 </View>
                 <View style={convStyles.choiceContent}>
-                  <Text style={convStyles.choiceTitle}>Lier a un client existant</Text>
+                  <Text style={convStyles.choiceTitle}>{t('ventes.leadDetail.existingClient')}</Text>
                   <Text style={convStyles.choiceSub}>
-                    Choisir parmi les clients deja enregistres
+                    {t('ventes.leadDetail.existingClientSub')}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
@@ -485,7 +487,7 @@ export const LeadDetailScreen: React.FC = () => {
                 style={convStyles.cancelBtn}
                 onPress={() => setConvSheetVisible(false)}
               >
-                <Text style={convStyles.cancelBtnText}>Annuler</Text>
+                <Text style={convStyles.cancelBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -495,7 +497,7 @@ export const LeadDetailScreen: React.FC = () => {
       {/* ── Picker client existant ── */}
       <ClientPickerModal
         visible={clientPickerVisible}
-        titre="Lier a un client existant"
+        titre={t('ventes.leadDetail.existingClient')}
         onSelect={handleConvertirClientExistant}
         onClose={() => setClientPickerVisible(false)}
       />

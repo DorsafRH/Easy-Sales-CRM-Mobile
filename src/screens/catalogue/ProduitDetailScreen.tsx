@@ -27,6 +27,7 @@ import { useNavigation, useRoute,
          RouteProp }                 from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, Feather }         from '@expo/vector-icons';
+import { useTranslation }            from 'react-i18next';
 
 import { useStyles, useTheme }     from '../../theme';
 import { makeStyles }              from './ProduitDetailScreen.styles';
@@ -61,9 +62,9 @@ const iconeCategorie = (nom?: string | null): string => {
   return CATEGORIE_ICONE_DEFAULT;
 };
 
-const formatPrix = (value?: number | null): string => {
+const makeFormatPrix = (locale: string) => (value?: number | null): string => {
   if (value == null) return '—';
-  return `${value.toLocaleString('fr-FR', { maximumFractionDigits: 3 })} TND`;
+  return `${value.toLocaleString(locale, { maximumFractionDigits: 3 })} TND`;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -77,6 +78,9 @@ const formatPrix = (value?: number | null): string => {
 export const ProduitDetailScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale      = i18n.language === 'en' ? 'en-US' : 'fr-FR';
+  const formatPrix  = makeFormatPrix(locale);
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { produitId } = route.params;
@@ -120,8 +124,8 @@ export const ProduitDetailScreen: React.FC = () => {
       }
     } catch (err: any) {
       Alert.alert(
-        'Erreur',
-        err?.response?.data?.message ?? 'Impossible de modifier le statut.',
+        t('ventes.leadDetail.error'),
+        err?.response?.data?.message ?? t('ventes.leadDetail.loseError'),
       );
       // Rechargement pour resynchroniser avec le backend
       await charger();
@@ -133,19 +137,19 @@ export const ProduitDetailScreen: React.FC = () => {
   // ── Archiver ─────────────────────────────────────────────
   const handleArchiver = () => {
     Alert.alert(
-      'Archiver le produit',
-      `"${produit?.nom}" n'apparaîtra plus dans les listes actives.\nVous pourrez le désarchiver depuis l'onglet "Archivés".`,
+      t('catalogue.detail.archiveTitle'),
+      t('catalogue.detail.archiveMsg', { nom: produit?.nom }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text:  'Archiver',
+          text:  t('catalogue.detail.archive'),
           style: 'destructive',
           onPress: async () => {
             try {
               await CatalogueApi.archiverProduit(produitId);
               navigation.goBack();
             } catch {
-              Alert.alert('Erreur', "Impossible d'archiver ce produit.");
+              Alert.alert(t('ventes.leadDetail.error'), t('catalogue.detail.cannotArchive'));
             }
           },
         },
@@ -156,18 +160,18 @@ export const ProduitDetailScreen: React.FC = () => {
   // ── Désarchiver ───────────────────────────────────────────
   const handleDesarchiver = () => {
     Alert.alert(
-      'Désarchiver le produit',
-      `"${produit?.nom}" sera remis au statut Inactif.\nVous pourrez ensuite l'activer depuis la liste Inactifs.`,
+      t('catalogue.detail.unarchiveTitle'),
+      t('catalogue.detail.unarchiveMsg', { nom: produit?.nom }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text:    'Désarchiver',
+          text: t('catalogue.detail.unarchive'),
           onPress: async () => {
             try {
               await CatalogueApi.desarchiverProduit(produitId);
               navigation.goBack();
             } catch {
-              Alert.alert('Erreur', 'Impossible de désarchiver ce produit.');
+              Alert.alert(t('ventes.leadDetail.error'), t('catalogue.detail.cannotUnarchive'));
             }
           },
         },
@@ -228,7 +232,7 @@ export const ProduitDetailScreen: React.FC = () => {
           <Text style={styles.heroCode}>{produit.codeProduit}</Text>
           <View style={styles.badgesRow}>
             <Badge
-              label={produit.type === 'SERVICE' ? 'Service' : 'Stockable'}
+              label={produit.type === 'SERVICE' ? t('catalogue.service') : t('catalogue.stockable')}
               variant="primary"
             />
             <Badge
@@ -237,7 +241,7 @@ export const ProduitDetailScreen: React.FC = () => {
               withDot
             />
             {produit.enAlerte && (
-              <Badge label="Stock critique" variant="warning" withDot />
+              <Badge label={t('catalogue.stockLow')} variant="warning" withDot />
             )}
           </View>
         </View>
@@ -246,49 +250,49 @@ export const ProduitDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.card}>
             <View style={styles.row}>
-              <Text style={styles.rowLabel}>Prix HT</Text>
+              <Text style={styles.rowLabel}>{t('catalogue.detail.price')}</Text>
               <Text style={styles.rowValueCA}>{formatPrix(produit.prixHT)}</Text>
             </View>
             {produit.tauxTVA != null && (
               <View style={styles.row}>
-                <Text style={styles.rowLabel}>TVA</Text>
+                <Text style={styles.rowLabel}>{t('ventes.devis.vat')}</Text>
                 <Text style={styles.rowValue}>{produit.tauxTVA}%</Text>
               </View>
             )}
             {produit.prixTTC != null && (
               <View style={styles.row}>
-                <Text style={styles.rowLabel}>Prix TTC</Text>
+                <Text style={styles.rowLabel}>{t('ventes.devis.totalTtc')}</Text>
                 <Text style={styles.rowValue}>{formatPrix(produit.prixTTC)}</Text>
               </View>
             )}
             {produit.unite && (
               <View style={styles.row}>
-                <Text style={styles.rowLabel}>Unité</Text>
+                <Text style={styles.rowLabel}>{t('catalogue.form.unitLabel')}</Text>
                 <Text style={styles.rowValue}>{produit.unite}</Text>
               </View>
             )}
             {produit.type === 'STOCKABLE' && (
               <View style={styles.row}>
-                <Text style={styles.rowLabel}>Stock</Text>
+                <Text style={styles.rowLabel}>{t('catalogue.detail.stock')}</Text>
                 <Text style={styles.rowValue}>
-                  {produit.stockDisponible ?? 0} unité(s)
+                  {produit.stockDisponible ?? 0}
                 </Text>
               </View>
             )}
             {produit.type === 'STOCKABLE' && (
               <View style={styles.row}>
-                <Text style={styles.rowLabel}>Seuil alerte</Text>
+                <Text style={styles.rowLabel}>{t('catalogue.detail.minStock')}</Text>
                 <Text style={[
                   styles.rowValue,
                   produit.enAlerte && { color: theme.colors.warning },
                 ]}>
-                  {produit.stockMinimum ?? '—'} unité(s)
+                  {produit.stockMinimum ?? '—'}
                 </Text>
               </View>
             )}
             {produit.categorieNom && (
               <View style={styles.row}>
-                <Text style={styles.rowLabel}>Catégorie</Text>
+                <Text style={styles.rowLabel}>{t('catalogue.detail.category')}</Text>
                 <Text style={styles.rowValue}>{produit.categorieNom}</Text>
               </View>
             )}
@@ -312,12 +316,12 @@ export const ProduitDetailScreen: React.FC = () => {
             <View style={styles.toggleCard}>
               <View style={styles.toggleLeft}>
                 <Text style={styles.toggleLabel}>
-                  {estActif ? 'Produit actif' : 'Produit inactif'}
+                  {estActif ? t('catalogue.tabActive').slice(0,-1) : t('catalogue.tabInactive').slice(0,-1)}
                 </Text>
                 <Text style={styles.toggleSub}>
                   {estActif
-                    ? 'Visible dans le catalogue actif'
-                    : 'Masqué du catalogue actif'}
+                    ? t('catalogue.emptyActiveSub').split(' avec')[0]
+                    : t('catalogue.emptyOther')}
                 </Text>
               </View>
               <Switch
@@ -336,7 +340,7 @@ export const ProduitDetailScreen: React.FC = () => {
           {/* Bouton Ajouter au devis — masqué si archivé */}
           {!estArchive && (
             <Button
-              label="Ajouter au devis"
+              label={t('ventes.opport.createQuote')}
               onPress={() => {
                 Alert.alert('Sprint 3', 'Cette fonctionnalité sera disponible en Sprint 3.');
               }}
@@ -349,7 +353,7 @@ export const ProduitDetailScreen: React.FC = () => {
           {/* Bouton Archiver — visible si non archivé */}
           {!estArchive && (
             <TouchableOpacity style={styles.archiveBtn} onPress={handleArchiver}>
-              <Text style={styles.archiveBtnText}>Archiver ce produit</Text>
+              <Text style={styles.archiveBtnText}>{t('catalogue.detail.archive')}</Text>
             </TouchableOpacity>
           )}
 
@@ -357,7 +361,7 @@ export const ProduitDetailScreen: React.FC = () => {
           {estArchive && (
             <TouchableOpacity style={styles.desarchiveBtn} onPress={handleDesarchiver}>
               <Ionicons name="archive-outline" size={18} color={theme.colors.success} />
-              <Text style={styles.desarchiveBtnText}>Désarchiver ce produit</Text>
+              <Text style={styles.desarchiveBtnText}>{t('catalogue.detail.unarchive')}</Text>
             </TouchableOpacity>
           )}
         </View>

@@ -18,6 +18,7 @@ import { SafeAreaView }              from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
 import { Ionicons }                      from '@expo/vector-icons';
+import { useTranslation }                from 'react-i18next';
 
 import { useStyles, useTheme }  from '../../theme';
 import { makeStyles }           from './AgendaScreen.styles';
@@ -38,9 +39,10 @@ const parseIsoDate = (iso: string): Date => {
   return new Date(year, month - 1, day);
 };
 
-const fmtHeure = (iso: string): string => {
+// fmtHeure utilise la locale dynamique — définie dans le composant
+const makeFmtHeure = (locale: string) => (iso: string): string => {
   const date = parseLocalDateTime(iso);
-  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 };
 
 const fmtDuree = (m: number): string => {
@@ -49,11 +51,28 @@ const fmtDuree = (m: number): string => {
   return r > 0 ? `${h}h${String(r).padStart(2, '0')}` : `${h}h`;
 };
 
-// ─── CONSTANTES ───────────────────────────────────────────────
-const MOIS_NOMS    = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const MOIS_ABREV   = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
-const JOURS_COURTS = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
-const JOURS_LONGS  = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+// ─── CONSTANTES i18n — on les dérive de l'API Intl selon la locale active ──────
+const getMonthNames = (locale: string) =>
+  Array.from({ length: 12 }, (_, i) =>
+    new Date(2000, i, 1).toLocaleDateString(locale, { month: 'long' })
+      .replace(/^\w/, c => c.toUpperCase()),
+  );
+
+const getMonthAbrev = (locale: string) =>
+  Array.from({ length: 12 }, (_, i) =>
+    new Date(2000, i, 1).toLocaleDateString(locale, { month: 'short' }).replace('.', ''),
+  );
+
+const getDayShort = (locale: string) =>
+  Array.from({ length: 7 }, (_, i) =>
+    new Date(2000, 0, 3 + i).toLocaleDateString(locale, { weekday: 'short' })
+      .replace('.', '').slice(0, 2).toUpperCase(),
+  );
+
+const getDayLong = (locale: string) =>
+  Array.from({ length: 7 }, (_, i) =>
+    new Date(2000, 0, 2 + i).toLocaleDateString(locale, { weekday: 'long' }),
+  );
 
 // ─── PALETTE COULEURS ─────────────────────────────────────────
 const EVENT_PALETTE = [
@@ -91,7 +110,15 @@ type NavProp = NativeStackNavigationProp<PlusStackParamList, 'AgendaHome'>;
 export const AgendaScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale      = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const navigation = useNavigation<NavProp>();
+
+  const MOIS_NOMS    = getMonthNames(locale);
+  const MOIS_ABREV   = getMonthAbrev(locale);
+  const JOURS_COURTS = getDayShort(locale);
+  const JOURS_LONGS  = getDayLong(locale);
+  const fmtHeure     = makeFmtHeure(locale);
 
   const today    = new Date();
   const todayISO = toLocalISO(today);
@@ -141,13 +168,13 @@ export const AgendaScreen: React.FC = () => {
 
   const selDate  = parseIsoDate(selectedISO);
   const dayLabel = selectedISO === todayISO
-    ? "AUJOURD'HUI"
+    ? t('agenda.today')
     : `${JOURS_LONGS[selDate.getDay()].toUpperCase()} ${selDate.getDate()} ${MOIS_ABREV[selDate.getMonth()].toUpperCase()}`;
 
   // ── Actions rapides ───────────────────────────────────────────
   const envoyerWhatsApp = useCallback((r: ReunionResponse) => {
     const p = r.participants?.find(x => x.telephone);
-    if (!p?.telephone) { Alert.alert('Aucun numéro', 'Aucun participant avec numéro.'); return; }
+    if (!p?.telephone) { Alert.alert(t('agenda.noPhone'), t('agenda.noPhoneMsg')); return; }
     const phone = p.telephone.replace(/\D/g, '');
     const msg   = `Bonjour ${p.prenom ?? p.nom},\n\nRappel : réunion "${r.titre}" — ${fmtHeure(r.dateHeure)}.${r.lienReunion ? `\n🔗 ${r.lienReunion}` : ''}\n\nCordialement.`;
     Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`);
@@ -155,26 +182,26 @@ export const AgendaScreen: React.FC = () => {
 
   const envoyerEmail = useCallback((r: ReunionResponse) => {
     const mails = r.participants?.filter(p => p.email).map(p => p.email).join(',');
-    if (!mails) { Alert.alert('Aucun email', 'Aucun participant avec email.'); return; }
+    if (!mails) { Alert.alert(t('agenda.noEmail'), t('agenda.noEmailMsg')); return; }
     Linking.openURL(`mailto:${mails}?subject=${encodeURIComponent(`Rappel : ${r.titre}`)}&body=${encodeURIComponent(`Bonjour,\n\nRappel : "${r.titre}" — ${fmtHeure(r.dateHeure)}.\n\nCordialement.`)}`);
   }, []);
 
   const confirmerTerminer = useCallback((r: ReunionResponse) => {
-    Alert.alert('Terminer', `Marquer "${r.titre}" comme terminée ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Confirmer', onPress: async () => {
+    Alert.alert(t('agenda.confirmDone'), t('agenda.confirmDoneMsg', { titre: r.titre }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('agenda.detail.confirm'), onPress: async () => {
         try { await ReunionApi.terminer(r.id); charger(true); }
-        catch { Alert.alert('Erreur', 'Impossible de terminer cette réunion.'); }
+        catch { Alert.alert(t('agenda.error'), t('agenda.cannotFinish')); }
       }},
     ]);
   }, [charger]);
 
   const confirmerAnnuler = useCallback((r: ReunionResponse) => {
-    Alert.alert('Annuler', `Annuler "${r.titre}" ?`, [
-      { text: 'Retour', style: 'cancel' },
-      { text: 'Annuler la réunion', style: 'destructive', onPress: async () => {
+    Alert.alert(t('agenda.confirmCancel'), t('agenda.confirmCancelMsg', { titre: r.titre }), [
+      { text: t('agenda.detail.back'), style: 'cancel' },
+      { text: t('agenda.cancelMeeting'), style: 'destructive', onPress: async () => {
         try { await ReunionApi.annuler(r.id); charger(true); }
-        catch { Alert.alert('Erreur', 'Impossible d\'annuler cette réunion.'); }
+        catch { Alert.alert(t('agenda.error'), t('agenda.cannotCancel')); }
       }},
     ]);
   }, [charger]);
@@ -198,7 +225,7 @@ export const AgendaScreen: React.FC = () => {
                 {fmtHeure(r.dateHeure)}
               </Text>
               <View style={[styles.eventPill, { backgroundColor: colors.pill }]}>
-                <Text style={[styles.eventPillTxt, { color: colors.text }]}>{cfg.label}</Text>
+                <Text style={[styles.eventPillTxt, { color: colors.text }]}>{t(cfg.labelKey)}</Text>
               </View>
             </View>
             <Text style={styles.eventDuree}>{fmtDuree(r.dureeMinutes)}</Text>
@@ -221,7 +248,7 @@ export const AgendaScreen: React.FC = () => {
             {r.lienReunion ? (
               <View style={styles.metaRow}>
                 <Ionicons name="link-outline" size={11} color={colors.border} />
-                <Text style={[styles.metaTxt, { color: colors.border }]}>Lien disponible</Text>
+                <Text style={[styles.metaTxt, { color: colors.border }]}>{t('agenda.linkAvailable')}</Text>
               </View>
             ) : null}
             {isPlanif && (
@@ -232,15 +259,15 @@ export const AgendaScreen: React.FC = () => {
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.chip} onPress={() => envoyerEmail(r)}>
                   <Ionicons name="mail-outline" size={12} color={colors.border} />
-                  <Text style={[styles.chipTxt, { color: colors.border }]}>Email</Text>
+                  <Text style={[styles.chipTxt, { color: colors.border }]}>{t('clients.detail.email')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.chip} onPress={() => confirmerTerminer(r)}>
                   <Ionicons name="checkmark-outline" size={12} color="#6B7280" />
-                  <Text style={styles.chipTxt}>Terminée</Text>
+                  <Text style={styles.chipTxt}>{t('agenda.markDone')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.chip} onPress={() => confirmerAnnuler(r)}>
                   <Ionicons name="close-outline" size={12} color="#EF4444" />
-                  <Text style={[styles.chipTxt, { color: '#EF4444' }]}>Annuler</Text>
+                  <Text style={[styles.chipTxt, { color: '#EF4444' }]}>{t('agenda.cancel')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -274,9 +301,9 @@ export const AgendaScreen: React.FC = () => {
 
           {/* Titre + sous-titre */}
           <View style={styles.calTitleBlock}>
-            <Text style={styles.calTitre}>Agenda</Text>
+            <Text style={styles.calTitre}>{t('agenda.title')}</Text>
             <Text style={styles.calSub}>
-              {reunions.length} réunion{reunions.length !== 1 ? 's' : ''} ce mois
+              {t(reunions.length !== 1 ? 'agenda.monthCountPlural' : 'agenda.monthCount', { nb: reunions.length })}
             </Text>
           </View>
 
@@ -356,7 +383,7 @@ export const AgendaScreen: React.FC = () => {
           {dayLabel}
         </Text>
         <Text style={styles.dayCount}>
-          {eventsOfDay.length} réunion{eventsOfDay.length !== 1 ? 's' : ''}
+          {t(eventsOfDay.length !== 1 ? 'agenda.dayCountPlural' : 'agenda.dayCount', { nb: eventsOfDay.length })}
         </Text>
       </View>
 
@@ -382,8 +409,8 @@ export const AgendaScreen: React.FC = () => {
           ListEmptyComponent={
             <EmptyState
               icon="calendar-outline"
-              titre="Aucune réunion"
-              soustitre="Pas de réunion prévue ce jour"
+              titre={t('agenda.noMeeting')}
+              soustitre={t('agenda.noMeetingToday')}
             />
           }
         />

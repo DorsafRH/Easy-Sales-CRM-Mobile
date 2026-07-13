@@ -23,6 +23,7 @@ import {
 import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation }                 from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
+import { useTranslation }                from 'react-i18next';
 
 import { useStyles, useTheme }   from '../../theme';
 import { makeStyles }            from './ClientsListScreen.styles';
@@ -43,11 +44,7 @@ import { ClientResponse, TypeClient } from '../../types/client.types';
 // CONSTANTES
 // ─────────────────────────────────────────────────────────────
 
-const FILTER_CHIPS: FilterChip[] = [
-  { value: 'TOUS',       label: 'Tous'       },
-  { value: 'ENTREPRISE', label: 'Entreprises' },
-  { value: 'INDIVIDUEL', label: 'Individuels' },
-];
+// Chips de filtre construits dans le composant (labels traduits via t())
 
 /**
  * Formate le CA en TND avec séparateur de milliers.
@@ -68,7 +65,14 @@ const formatCA = (value: number): string => {
 export const ClientsListScreen: React.FC = () => {
   const styles    = useStyles(makeStyles);
   const theme     = useTheme();
+  const { t }     = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<ClientsStackParamList>>();
+
+  const FILTER_CHIPS: FilterChip[] = [
+    { value: 'TOUS',       label: t('screens.clientsList.filterAll')         },
+    { value: 'ENTREPRISE', label: t('screens.clientsList.filterCompanies')   },
+    { value: 'INDIVIDUEL', label: t('screens.clientsList.filterIndividuals') },
+  ];
 
   const [clients,      setClients]      = useState<ClientResponse[]>([]);
   const [total,        setTotal]        = useState(0);
@@ -120,14 +124,14 @@ export const ClientsListScreen: React.FC = () => {
         </Text>
         <Text style={styles.clientMeta}>
           {item.ville ? `${item.ville} · ` : ''}
-          {item.nbContacts} contact{item.nbContacts !== 1 ? 's' : ''}
+          {item.nbContacts} {item.nbContacts !== 1 ? t('clients.contactPlural') : t('clients.contactSingular')}
         </Text>
       </View>
 
       <View style={styles.clientRight}>
         <Text style={styles.clientCA}>{formatCA(item.chiffreAffaires)}</Text>
         <Badge
-          label={item.typeClient === 'ENTREPRISE' ? 'Entreprise' : 'Individuel'}
+          label={item.typeClient === 'ENTREPRISE' ? t('clients.badgeCompany') : t('clients.badgeIndividual')}
           variant={variantFromValue(item.typeClient)}
         />
       </View>
@@ -139,9 +143,11 @@ export const ClientsListScreen: React.FC = () => {
       {/* ── Header ── */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <Text style={styles.headerTitle}>Clients</Text>
+          <Text style={styles.headerTitle}>{t('screens.clientsList.title')}</Text>
           <Text style={styles.headerCount}>
-            {isLoading ? '…' : `${total} client${total !== 1 ? 's' : ''}`}
+            {isLoading
+              ? '…'
+              : t(total !== 1 ? 'screens.clientsList.countPlural' : 'screens.clientsList.count', { nb: total })}
           </Text>
         </View>
 
@@ -149,7 +155,7 @@ export const ClientsListScreen: React.FC = () => {
           <SearchBar
             value={searchText}
             onChangeText={setSearchText}
-            placeholder="Rechercher un client…"
+            placeholder={t('screens.clientsList.searchPlaceholder')}
           />
         </View>
 
@@ -187,11 +193,11 @@ export const ClientsListScreen: React.FC = () => {
           ListEmptyComponent={
             <EmptyState
               icon="people-outline"
-              titre="Aucun client"
+              titre={t('screens.clientsList.emptyTitle')}
               soustitre={
                 debouncedSearch
-                  ? 'Aucun résultat pour votre recherche'
-                  : 'Ajoutez votre premier client avec le bouton +'
+                  ? t('screens.clientsList.emptySearch')
+                  : t('screens.clientsList.emptyAdd')
               }
             />
           }
@@ -201,7 +207,7 @@ export const ClientsListScreen: React.FC = () => {
       {/* ── FAB ── */}
       <FAB
         onPress={() => navigation.navigate('ClientForm', {})}
-        accessibilityLabel="Ajouter un client"
+        accessibilityLabel={t('screens.clientsList.fabLabel')}
       />
     </SafeAreaView>
   );

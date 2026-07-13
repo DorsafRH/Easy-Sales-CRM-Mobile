@@ -10,6 +10,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { CommonActions, StackActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme';
 
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
@@ -58,6 +59,9 @@ const resetTab = (rootScreen: string) =>
 
 export const MainTabNavigator: React.FC = () => {
   const theme = useTheme();
+  // Traduction des labels de tabs (les names de routes restent en FR —
+  // ce sont des identifiants techniques, pas des textes affichés)
+  const { t } = useTranslation();
   // Inset bas (barre gestuelle Android / home indicator iOS) — indispensable
   // en edge-to-edge (SDK 54) sinon la tabBar déborde sous la barre système.
   const insets = useSafeAreaInsets();
@@ -92,16 +96,16 @@ export const MainTabNavigator: React.FC = () => {
         },
       })}
     >
-      <Tab.Screen name="Accueil"   component={DashboardScreen} options={{ tabBarLabel: 'Accueil'   }} />
+      <Tab.Screen name="Accueil"   component={DashboardScreen} options={{ tabBarLabel: t('tabs.home') }} />
       {/*
        * popToTopOnBlur — vide la pile de l'onglet dès qu'on le quitte.
        * Sans ça, un formulaire ouvert via une action rapide
        * (navigate vers ClientForm / LeadForm / PublicationForm) resterait
        * dans l'historique et réapparaîtrait au retour matériel / au re-clic.
        */}
-      <Tab.Screen name="Clients"   component={ClientsStack}    options={{ tabBarLabel: 'Clients',   popToTopOnBlur: true }} listeners={resetTab('ClientsList')} />
-      <Tab.Screen name="Ventes"    component={VentesStack}     options={{ tabBarLabel: 'Ventes',    popToTopOnBlur: true }} listeners={resetTab('VentesHome')} />
-      <Tab.Screen name="Marketing" component={MarketingStack}  options={{ tabBarLabel: 'Marketing', popToTopOnBlur: true }} listeners={resetTab('MarketingHome')} />
+      <Tab.Screen name="Clients"   component={ClientsStack}    options={{ tabBarLabel: t('tabs.clients'),   popToTopOnBlur: true }} listeners={resetTab('ClientsList')} />
+      <Tab.Screen name="Ventes"    component={VentesStack}     options={{ tabBarLabel: t('tabs.sales'),     popToTopOnBlur: true }} listeners={resetTab('VentesHome')} />
+      <Tab.Screen name="Marketing" component={MarketingStack}  options={{ tabBarLabel: t('tabs.marketing'), popToTopOnBlur: true }} listeners={resetTab('MarketingHome')} />
 
       {/*
        * FIX : unmountOnBlur: true — le PlusStack est détruit à chaque sortie.
@@ -111,7 +115,7 @@ export const MainTabNavigator: React.FC = () => {
       <Tab.Screen
         name="Plus"
         component={PlusStack}
-        options={{ tabBarLabel: 'Plus', unmountOnBlur: true } as any}
+        options={{ tabBarLabel: t('tabs.more'), unmountOnBlur: true } as any}
         listeners={({ navigation }: { navigation: any }) => ({
           tabPress: (e: any) => {
             e.preventDefault();

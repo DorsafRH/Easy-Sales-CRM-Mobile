@@ -17,6 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useStyles } from '../../theme';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { makeStyles } from './LoginScreen.styles';
+import { useTranslation } from 'react-i18next';
 
 type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'> };
 
@@ -31,6 +32,7 @@ type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { login, isLoading, loginError, clearLoginError } = useAuth();
   const styles = useStyles(makeStyles);
+  const { t }  = useTranslation();
   const [email,      setEmail]      = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [errors,     setErrors]     = useState({ email: '', motDePasse: '' });
@@ -76,8 +78,8 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.logo}>
             <Text style={styles.logoText}>C</Text>
           </View>
-          <Text style={styles.welcomeTitle}>Bon retour 👋</Text>
-          <Text style={styles.welcomeSubtitle}>Connectez-vous à votre espace CRM</Text>
+          <Text style={styles.welcomeTitle}>{t('auth.login.welcome')}</Text>
+          <Text style={styles.welcomeSubtitle}>{t('auth.login.subtitle')}</Text>
         </View>
 
         <Card style={styles.card}>
@@ -87,7 +89,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           )}
           <Input
-            label="Adresse email"
+            label={t('auth.login.emailLabel')}
             placeholder="votre@email.com"
             value={email}
             onChangeText={v => { setEmail(v); setErrors(e => ({ ...e, email: '' })); }}
@@ -96,7 +98,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             required
           />
           <Input
-            label="Mot de passe"
+            label={t('auth.login.passwordLabel')}
             placeholder="••••••••"
             value={motDePasse}
             onChangeText={v => { setMotDePasse(v); setErrors(e => ({ ...e, motDePasse: '' })); }}
@@ -105,7 +107,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             required
           />
           <Button
-            label="Se connecter"
+            label={t('auth.login.loginBtn')}
             onPress={handleLogin}
             loading={isLoading}
             fullWidth
@@ -115,15 +117,15 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         </Card>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Pas encore de compte ?</Text>
+        <Text style={styles.footerText}>{t('auth.login.noAccount')}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('InformationsEntreprise')}>
-          <Text style={styles.footerLink}> Créer un compte</Text>
+          <Text style={styles.footerLink}>{t('auth.login.createAccount')}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.footer}>
         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-          <Text style={styles.footerLink}>Mot de passe oublié ?</Text>
+          <Text style={styles.footerLink}>{t('auth.login.forgotPassword')}</Text>
         </TouchableOpacity>
       </View>
       </KeyboardAvoidingView>

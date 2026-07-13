@@ -24,6 +24,7 @@ import { useNavigation, useRoute,
          RouteProp }                 from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, Feather }         from '@expo/vector-icons';
+import { useTranslation }            from 'react-i18next';
 
 import { useStyles, useTheme }   from '../../theme';
 import { makeStyles }            from './ContactDetailScreen.styles';
@@ -52,6 +53,7 @@ type Route = RouteProp<ClientsStackParamList, 'ContactDetail'>;
 export const ContactDetailScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { contactId, clientId } = route.params;
@@ -94,25 +96,25 @@ export const ContactDetailScreen: React.FC = () => {
   const handleSupprimer = () => {
     if (contact?.isPrincipal) {
       Alert.alert(
-        'Action impossible',
-        'Impossible de supprimer le contact principal. Définissez un autre contact comme principal d\'abord.',
+        t('clients.contact.principalBlockedTitle'),
+        t('clients.contact.principalBlockedMsg'),
       );
       return;
     }
     Alert.alert(
-      'Supprimer le contact',
-      `Voulez-vous supprimer "${contact?.nomComplet}" ?`,
+      t('clients.contact.deleteTitle'),
+      t('clients.contact.deleteConfirm', { name: contact?.nomComplet }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('clients.detail.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await ContactApi.supprimerContact(clientId, contactId);
               navigation.goBack();
             } catch {
-              Alert.alert('Erreur', 'Impossible de supprimer ce contact.');
+              Alert.alert(t('clients.detail.errorTitle'), t('clients.contact.deleteError'));
             }
           },
         },
@@ -159,7 +161,7 @@ export const ContactDetailScreen: React.FC = () => {
           <Text style={styles.headerEntreprise}>{contact.clientNomAffichage}</Text>
 
           {contact.isPrincipal && (
-            <Badge label="Principal" variant="primary" withDot />
+            <Badge label={t('clients.contact.principal')} variant="primary" withDot />
           )}
         </View>
 
@@ -174,7 +176,7 @@ export const ContactDetailScreen: React.FC = () => {
           >
             <Ionicons name="call-outline" size={18} color={theme.colors.primary} />
             <Text style={[styles.actionBtnText, { color: theme.colors.primary }]}>
-              Appeler
+              {t('clients.detail.call')}
             </Text>
           </TouchableOpacity>
 
@@ -211,21 +213,21 @@ export const ContactDetailScreen: React.FC = () => {
             {contact.telephone && (
               <View style={styles.infoRow}>
                 <Ionicons name="call-outline" size={18} color={theme.colors.textSecondary} />
-                <Text style={styles.infoLabel}>Téléphone</Text>
+                <Text style={styles.infoLabel}>{t('clients.detail.phone')}</Text>
                 <Text style={styles.infoValue}>{contact.telephone}</Text>
               </View>
             )}
             {contact.email && (
               <View style={styles.infoRow}>
                 <Ionicons name="mail-outline" size={18} color={theme.colors.textSecondary} />
-                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoLabel}>{t('clients.detail.emailLabel')}</Text>
                 <Text style={styles.infoValue}>{contact.email}</Text>
               </View>
             )}
             {contact.poste && (
               <View style={styles.infoRow}>
                 <Ionicons name="briefcase-outline" size={18} color={theme.colors.textSecondary} />
-                <Text style={styles.infoLabel}>Poste</Text>
+                <Text style={styles.infoLabel}>{t('clients.contact.position')}</Text>
                 <Text style={styles.infoValue}>{contact.poste}</Text>
               </View>
             )}
@@ -235,7 +237,7 @@ export const ContactDetailScreen: React.FC = () => {
         {/* ── Supprimer ── */}
         {!contact.isPrincipal && (
           <TouchableOpacity style={styles.deleteBtn} onPress={handleSupprimer}>
-            <Text style={styles.deleteBtnText}>Supprimer le contact</Text>
+            <Text style={styles.deleteBtnText}>{t('clients.contact.deleteBtn')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>

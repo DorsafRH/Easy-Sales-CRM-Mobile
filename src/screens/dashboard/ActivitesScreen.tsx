@@ -21,6 +21,7 @@ import {
 import { SafeAreaView }  from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons }      from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles }          from './ActivitesScreen.styles';
@@ -41,6 +42,7 @@ import {
 export const ActivitesScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<any>();
 
   const [activites,     setActivites]     = useState<ActiviteResponse[]>([]);
@@ -172,7 +174,7 @@ export const ActivitesScreen: React.FC = () => {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Toutes les activités</Text>
+        <Text style={styles.headerTitle}>{t('dashboard.activity.title')}</Text>
       </View>
 
       {isLoading ? (
@@ -198,8 +200,8 @@ export const ActivitesScreen: React.FC = () => {
           ListEmptyComponent={
             <EmptyState
               icon="time-outline"
-              titre="Aucune activité"
-              soustitre="Vos actions apparaîtront ici"
+              titre={t('dashboard.activity.empty')}
+              soustitre={t('dashboard.activity.empty')}
             />
           }
           ListFooterComponent={

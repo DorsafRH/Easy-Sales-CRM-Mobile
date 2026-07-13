@@ -286,53 +286,57 @@ export interface PipelineKpiResponse {
 // pour eviter l'erreur Babel "Missing initializer in const"
 // ─────────────────────────────────────────────────────────────
 
-/** Configuration visuelle des badges de statut Lead */
-export const STATUT_LEAD_CONFIG: Record<StatutLead, { label: string; color: string; bg: string }> = {
-  NOUVEAU:     { label: 'Nouveau',     color: '#2563EB', bg: '#EFF6FF' },
-  CONTACTE:    { label: 'Contacte',    color: '#0891B2', bg: '#ECFEFF' },
-  QUALIFIE:    { label: 'Qualifie',    color: '#7C3AED', bg: '#F5F3FF' },
-  PROPOSITION: { label: 'Proposition', color: '#D97706', bg: '#FFFBEB' },
-  NEGOCIATION: { label: 'Negociation', color: '#EA580C', bg: '#FFF7ED' },
-  CONVERTI:    { label: 'Converti',    color: '#16A34A', bg: '#F0FDF4' },
-  PERDU:       { label: 'Perdu',       color: '#DC2626', bg: '#FEF2F2' },
+/**
+ * Configuration visuelle des badges de statut Lead.
+ * labelKey = clé i18n (t(conf.labelKey)) — label conservé pour compat
+ * avec les écrans pas encore migrés vers i18n.
+ */
+export const STATUT_LEAD_CONFIG: Record<StatutLead, { label: string; labelKey: string; color: string; bg: string }> = {
+  NOUVEAU:     { label: 'Nouveau',     labelKey: 'ventes.statutLead.NOUVEAU',     color: '#2563EB', bg: '#EFF6FF' },
+  CONTACTE:    { label: 'Contacte',    labelKey: 'ventes.statutLead.CONTACTE',    color: '#0891B2', bg: '#ECFEFF' },
+  QUALIFIE:    { label: 'Qualifie',    labelKey: 'ventes.statutLead.QUALIFIE',    color: '#7C3AED', bg: '#F5F3FF' },
+  PROPOSITION: { label: 'Proposition', labelKey: 'ventes.statutLead.PROPOSITION', color: '#D97706', bg: '#FFFBEB' },
+  NEGOCIATION: { label: 'Negociation', labelKey: 'ventes.statutLead.NEGOCIATION', color: '#EA580C', bg: '#FFF7ED' },
+  CONVERTI:    { label: 'Converti',    labelKey: 'ventes.statutLead.CONVERTI',    color: '#16A34A', bg: '#F0FDF4' },
+  PERDU:       { label: 'Perdu',       labelKey: 'ventes.statutLead.PERDU',       color: '#DC2626', bg: '#FEF2F2' },
 };
 
 /** Ordre et configuration visuelle des colonnes du Kanban */
-export const KANBAN_COLONNES: Array<{ statut: StatutOpportunite; label: string; color: string; bg: string; iconName: string }> = [
-  { statut: 'PROSPECTION',   label: 'Prospection',  color: '#2563EB', bg: '#EFF6FF', iconName: 'search-outline'          },
-  { statut: 'QUALIFICATION', label: 'Qualification', color: '#7C3AED', bg: '#F5F3FF', iconName: 'checkmark-circle-outline' },
-  { statut: 'PROPOSITION',   label: 'Proposition',  color: '#D97706', bg: '#FFFBEB', iconName: 'document-text-outline'   },
-  { statut: 'NEGOCIATION',   label: 'Negociation',  color: '#EA580C', bg: '#FFF7ED', iconName: 'git-branch-outline'      },
-  { statut: 'GAGNEE',        label: 'Gagnee',       color: '#16A34A', bg: '#F0FDF4', iconName: 'trophy-outline'          },
-  { statut: 'PERDUE',        label: 'Perdue',       color: '#DC2626', bg: '#FEF2F2', iconName: 'close-circle-outline'    },
+export const KANBAN_COLONNES: Array<{ statut: StatutOpportunite; label: string; labelKey: string; color: string; bg: string; iconName: string }> = [
+  { statut: 'PROSPECTION',   label: 'Prospection',  labelKey: 'ventes.statutOpportunite.PROSPECTION',   color: '#2563EB', bg: '#EFF6FF', iconName: 'search-outline'          },
+  { statut: 'QUALIFICATION', label: 'Qualification', labelKey: 'ventes.statutOpportunite.QUALIFICATION', color: '#7C3AED', bg: '#F5F3FF', iconName: 'checkmark-circle-outline' },
+  { statut: 'PROPOSITION',   label: 'Proposition',  labelKey: 'ventes.statutOpportunite.PROPOSITION',   color: '#D97706', bg: '#FFFBEB', iconName: 'document-text-outline'   },
+  { statut: 'NEGOCIATION',   label: 'Negociation',  labelKey: 'ventes.statutOpportunite.NEGOCIATION',   color: '#EA580C', bg: '#FFF7ED', iconName: 'git-branch-outline'      },
+  { statut: 'GAGNEE',        label: 'Gagnee',       labelKey: 'ventes.statutOpportunite.GAGNEE',        color: '#16A34A', bg: '#F0FDF4', iconName: 'trophy-outline'          },
+  { statut: 'PERDUE',        label: 'Perdue',       labelKey: 'ventes.statutOpportunite.PERDUE',        color: '#DC2626', bg: '#FEF2F2', iconName: 'close-circle-outline'    },
 ];
 
 /** Configuration visuelle des badges de statut Devis */
-export const STATUT_DEVIS_CONFIG: Record<StatutDevis, { label: string; color: string; bg: string }> = {
-  BROUILLON: { label: 'Brouillon', color: '#6B7280', bg: '#F3F4F6' },
-  ENVOYE:    { label: 'Envoye',    color: '#2563EB', bg: '#EFF6FF' },
-  ACCEPTE:   { label: 'Accepte',   color: '#16A34A', bg: '#F0FDF4' },
-  REFUSE:    { label: 'Refuse',    color: '#DC2626', bg: '#FEF2F2' },
-  EXPIRE:    { label: 'Expire',    color: '#D97706', bg: '#FFFBEB' },
+export const STATUT_DEVIS_CONFIG: Record<StatutDevis, { label: string; labelKey: string; color: string; bg: string }> = {
+  BROUILLON: { label: 'Brouillon', labelKey: 'ventes.statutDevis.BROUILLON', color: '#6B7280', bg: '#F3F4F6' },
+  ENVOYE:    { label: 'Envoye',    labelKey: 'ventes.statutDevis.ENVOYE',    color: '#2563EB', bg: '#EFF6FF' },
+  ACCEPTE:   { label: 'Accepte',   labelKey: 'ventes.statutDevis.ACCEPTE',   color: '#16A34A', bg: '#F0FDF4' },
+  REFUSE:    { label: 'Refuse',    labelKey: 'ventes.statutDevis.REFUSE',    color: '#DC2626', bg: '#FEF2F2' },
+  EXPIRE:    { label: 'Expire',    labelKey: 'ventes.statutDevis.EXPIRE',    color: '#D97706', bg: '#FFFBEB' },
 };
 
 /** Configuration visuelle des badges de statut Facture */
-export const STATUT_FACTURE_CONFIG: Record<StatutFacture, { label: string; color: string; bg: string }> = {
-  BROUILLON: { label: 'Brouillon', color: '#6B7280', bg: '#F3F4F6' },
-  EMISE:     { label: 'Emise',     color: '#2563EB', bg: '#EFF6FF' },
-  LIVREE:    { label: 'Livre',     color: '#16A34A', bg: '#F0FDF4' },
-  PAYEE:     { label: 'Payee',     color: '#16A34A', bg: '#F0FDF4' },
-  ANNULEE:   { label: 'Annulee',   color: '#DC2626', bg: '#FEF2F2' },
-  EN_RETARD: { label: 'En retard', color: '#D97706', bg: '#FFFBEB' },
+export const STATUT_FACTURE_CONFIG: Record<StatutFacture, { label: string; labelKey: string; color: string; bg: string }> = {
+  BROUILLON: { label: 'Brouillon', labelKey: 'ventes.statutFacture.BROUILLON', color: '#6B7280', bg: '#F3F4F6' },
+  EMISE:     { label: 'Emise',     labelKey: 'ventes.statutFacture.EMISE',     color: '#2563EB', bg: '#EFF6FF' },
+  LIVREE:    { label: 'Livre',     labelKey: 'ventes.statutFacture.LIVREE',    color: '#16A34A', bg: '#F0FDF4' },
+  PAYEE:     { label: 'Payee',     labelKey: 'ventes.statutFacture.PAYEE',     color: '#16A34A', bg: '#F0FDF4' },
+  ANNULEE:   { label: 'Annulee',   labelKey: 'ventes.statutFacture.ANNULEE',   color: '#DC2626', bg: '#FEF2F2' },
+  EN_RETARD: { label: 'En retard', labelKey: 'ventes.statutFacture.EN_RETARD', color: '#D97706', bg: '#FFFBEB' },
 };
 
 /** Configuration visuelle et icone des types d'activite commerciale */
-export const TYPE_ACTIVITE_COMMERCIALE_CONFIG: Record<TypeActiviteCommerciale, { label: string; iconName: string; color: string; bg: string }> = {
-  APPEL:   { label: 'Appel',   iconName: 'call-outline',     color: '#2563EB', bg: '#EFF6FF' },
-  EMAIL:   { label: 'Email',   iconName: 'mail-outline',     color: '#7C3AED', bg: '#F5F3FF' },
-  REUNION: { label: 'Reunion', iconName: 'calendar-outline', color: '#16A34A', bg: '#F0FDF4' },
-  VISITE:  { label: 'Visite',  iconName: 'car-outline',      color: '#D97706', bg: '#FFFBEB' },
-  TACHE:   { label: 'Tache',   iconName: 'checkbox-outline', color: '#0891B2', bg: '#ECFEFF' },
+export const TYPE_ACTIVITE_COMMERCIALE_CONFIG: Record<TypeActiviteCommerciale, { label: string; labelKey: string; iconName: string; color: string; bg: string }> = {
+  APPEL:   { label: 'Appel',   labelKey: 'ventes.typeActivite.APPEL',   iconName: 'call-outline',     color: '#2563EB', bg: '#EFF6FF' },
+  EMAIL:   { label: 'Email',   labelKey: 'ventes.typeActivite.EMAIL',   iconName: 'mail-outline',     color: '#7C3AED', bg: '#F5F3FF' },
+  REUNION: { label: 'Reunion', labelKey: 'ventes.typeActivite.REUNION', iconName: 'calendar-outline', color: '#16A34A', bg: '#F0FDF4' },
+  VISITE:  { label: 'Visite',  labelKey: 'ventes.typeActivite.VISITE',  iconName: 'car-outline',      color: '#D97706', bg: '#FFFBEB' },
+  TACHE:   { label: 'Tache',   labelKey: 'ventes.typeActivite.TACHE',   iconName: 'checkbox-outline', color: '#0891B2', bg: '#ECFEFF' },
 };
 
 /** Labels lisibles des sources de lead */
@@ -347,6 +351,20 @@ export const SOURCE_LEAD_LABELS: Record<SourceLead, string> = {
   MESSENGER:    'Facebook',
   COMMENTAIRE:  'Facebook',
   AUTRE:        'Autre',
+};
+
+/** Clés i18n des sources de lead (t(SOURCE_LEAD_LABEL_KEYS[source])) */
+export const SOURCE_LEAD_LABEL_KEYS: Record<SourceLead, string> = {
+  SITE_WEB:     'ventes.sourceLead.SITE_WEB',
+  LINKEDIN:     'ventes.sourceLead.LINKEDIN',
+  REFERENCE:    'ventes.sourceLead.REFERENCE',
+  EMAIL:        'ventes.sourceLead.EMAIL',
+  SALON:        'ventes.sourceLead.SALON',
+  APPEL_ENTRANT: 'ventes.sourceLead.APPEL_ENTRANT',
+  FACEBOOK:     'ventes.sourceLead.FACEBOOK',
+  MESSENGER:    'ventes.sourceLead.FACEBOOK',
+  COMMENTAIRE:  'ventes.sourceLead.FACEBOOK',
+  AUTRE:        'ventes.sourceLead.AUTRE',
 };
 
 export { PageResponse };

@@ -20,42 +20,44 @@ import { useStyles, useTheme, AppTheme } from '../../theme';
 import * as EntrepriseApi from '../../api/entreprise.api';
 import { EntrepriseCompteResponse } from '../../types/entreprise.types';
 import { makeStyles } from './StatutCompteScreen.styles';
+import { useTranslation } from 'react-i18next';
 import { AppStackParamList } from '../../navigation/AppStack';
 
 type StatutKey = 'EN_ATTENTE' | 'ACTIVE' | 'REFUSE' | 'SUSPENDU';
 
-const getStatutContent = (theme: AppTheme): Record<StatutKey, {
+type TFn = (key: string) => string;
+const getStatutContent = (theme: AppTheme, t: TFn): Record<StatutKey, {
   emoji: string; title: string; subtitle: string; bg: string;
 }> => ({
   EN_ATTENTE: {
     emoji:    '⏳',
-    title:    "Votre demande est en cours d'examen",
-    subtitle: "Notre équipe examine votre dossier. Vous serez notifié par email.",
+    title:    t('account.statut.EN_ATTENTE.title'),
+    subtitle: t('account.statut.EN_ATTENTE.subtitle'),
     bg:       theme.colors.warningLight,
   },
   ACTIVE: {
     emoji:    '🎉',
-    title:    "Votre compte est actif !",
-    subtitle: "Bienvenue sur CRM Mobile. Vous avez accès à toutes les fonctionnalités.",
+    title:    t('account.statut.ACTIVE.title'),
+    subtitle: t('account.statut.ACTIVE.subtitle'),
     bg:       theme.colors.successLight,
   },
   REFUSE: {
     emoji:    '❌',
-    title:    "Votre demande a été refusée",
-    subtitle: "Consultez le motif de refus ci-dessous.",
+    title:    t('account.statut.REFUSE.title'),
+    subtitle: t('account.statut.REFUSE.subtitle'),
     bg:       theme.colors.dangerLight,
   },
   SUSPENDU: {
     emoji:    '⚠️',
-    title:    "Votre compte est suspendu",
-    subtitle: "Contactez le support pour plus d'informations.",
+    title:    t('account.statut.SUSPENDU.title'),
+    subtitle: t('account.statut.SUSPENDU.subtitle'),
     bg:       theme.colors.statutSuspenduLight,
   },
 });
 
-const formatDate = (iso: string) => {
+const formatDate = (iso: string, locale = 'fr-FR') => {
   try {
-    return new Date(iso).toLocaleDateString('fr-FR', {
+    return new Date(iso).toLocaleDateString(locale, {
       day: '2-digit', month: 'long', year: 'numeric',
     });
   } catch { return iso; }
@@ -77,6 +79,8 @@ export const StatutCompteScreen: React.FC = () => {
   const { currentUser, logout, marquerCompteActif } = useAuth();
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale      = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
   const [entreprise,   setEntreprise]   = useState<EntrepriseCompteResponse | null>(null);
@@ -124,7 +128,7 @@ export const StatutCompteScreen: React.FC = () => {
     'Voulez-vous vous déconnecter ?',
     [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Se déconnecter', style: 'destructive', onPress: logout },
+      { text: t('account.logout'), style: 'destructive', onPress: logout },
     ],
   );
 
@@ -133,7 +137,7 @@ export const StatutCompteScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.center}>
-          <Text style={styles.loading}>Chargement...</Text>
+          <Text style={styles.loading}>{t('account.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -144,15 +148,15 @@ export const StatutCompteScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.center}>
-          <Text style={styles.loading}>⚠️ Impossible de contacter le serveur.</Text>
+          <Text style={styles.loading}>{t('account.serverError')}</Text>
           <Button
-            label="Réessayer"
+            label={t('account.retry')}
             onPress={() => charger()}
             variant="primary"
             style={{ marginTop: 16 }}
           />
           <Button
-            label="Se déconnecter"
+            label={t('account.logout')}
             onPress={handleLogout}
             variant="ghost"
             style={{ marginTop: 8 }}
@@ -163,7 +167,7 @@ export const StatutCompteScreen: React.FC = () => {
   }
 
   const statut        = (entreprise?.statutCompte ?? 'EN_ATTENTE') as StatutKey;
-  const statutContent = getStatutContent(theme);
+  const statutContent = getStatutContent(theme, t);
   const content       = statutContent[statut];
 
   // Si ACTIVE, ne rien rendre (redirection déjà déclenchée)
@@ -186,7 +190,7 @@ export const StatutCompteScreen: React.FC = () => {
         {/* ── Top Bar ── */}
         <View style={styles.topBar}>
           <View>
-            <Text style={styles.greeting}>Bonjour, {currentUser?.prenom} 👋</Text>
+            <Text style={styles.greeting}>{t('dashboard.greeting', { name: currentUser?.prenom })}</Text>
             <Text style={styles.companyName}>
               {currentUser?.nomEntreprise ?? entreprise?.nomEntreprise}
             </Text>
@@ -204,21 +208,21 @@ export const StatutCompteScreen: React.FC = () => {
           <Text style={styles.statusSubtitle}>{content.subtitle}</Text>
           {statut === 'REFUSE' && entreprise?.motifRefus && (
             <View style={styles.motifBox}>
-              <Text style={styles.motifLabel}>Motif :</Text>
+              <Text style={styles.motifLabel}>{t('account.motif')}</Text>
               <Text style={styles.motifText}>{entreprise.motifRefus}</Text>
             </View>
           )}
-          <Text style={styles.refreshHint}>↓ Tirez vers le bas pour actualiser</Text>
+          <Text style={styles.refreshHint}>{t('account.refreshHint')}</Text>
         </View>
 
         {/* ── Infos compte ── */}
         {entreprise && (
           <Card style={styles.infoCard}>
-            <Text style={styles.cardTitle}>Informations du compte</Text>
-            <InfoRow label="Entreprise" value={entreprise.nomEntreprise} />
-            <InfoRow label="Matricule"  value={entreprise.matriculeFiscale} mono />
-            <InfoRow label="Secteur"    value={entreprise.secteurActivite} />
-            <InfoRow label="Demande le" value={formatDate(entreprise.dateCreation)} />
+            <Text style={styles.cardTitle}>{t('account.infoTitle')}</Text>
+            <InfoRow label={t('account.company')} value={entreprise.nomEntreprise} />
+            <InfoRow label={t('account.fiscal')}  value={entreprise.matriculeFiscale} mono />
+            <InfoRow label={t('account.sector')}  value={entreprise.secteurActivite} />
+            <InfoRow label={t('account.requestedOn')} value={formatDate(entreprise.dateCreation, locale)} />
             {entreprise.dateValidation && (
               <InfoRow label="Décision le" value={formatDate(entreprise.dateValidation)} />
             )}

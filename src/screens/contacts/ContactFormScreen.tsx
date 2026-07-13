@@ -20,6 +20,7 @@ import { useNavigation, useRoute,
          RouteProp }                 from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons }                  from '@expo/vector-icons';
+import { useTranslation }            from 'react-i18next';
 
 import { useStyles, useTheme }   from '../../theme';
 import { Input }                 from '../../components/ui/Input';
@@ -48,6 +49,7 @@ type Route = RouteProp<ClientsStackParamList, 'ContactForm'>;
 export const ContactFormScreen: React.FC = () => {
   const styles     = useStyles(makeStyles);
   const theme      = useTheme();
+  const { t }      = useTranslation();
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
   const { clientId, contact } = route.params;
@@ -81,7 +83,7 @@ export const ContactFormScreen: React.FC = () => {
 
   const validate = (): boolean => {
     const e: ContactFormErrors = {};
-    if (!form.nom.trim()) e.nom = 'Le nom est obligatoire.';
+    if (!form.nom.trim()) e.nom = t('clients.form.errLastName');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -108,7 +110,7 @@ export const ContactFormScreen: React.FC = () => {
       navigation.goBack();
     } catch (err: any) {
       setApiError(
-        err?.response?.data?.message ?? 'Une erreur est survenue.',
+        err?.response?.data?.message ?? t('clients.contact.errApi'),
       );
     } finally {
       setIsSaving(false);
@@ -122,7 +124,7 @@ export const ContactFormScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>
-          {isEditing ? 'Modifier le contact' : 'Nouveau contact'}
+          {isEditing ? t('clients.contact.formTitleEdit') : t('clients.contact.formTitleNew')}
         </Text>
       </View>
 
@@ -143,10 +145,10 @@ export const ContactFormScreen: React.FC = () => {
           )}
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Informations</Text>
+            <Text style={styles.cardTitle}>{t('clients.contact.info')}</Text>
 
             <Input
-              label="Nom"
+              label={t('clients.form.lastName')}
               placeholder="Ben Ali"
               value={form.nom}
               onChangeText={setField('nom')}
@@ -155,28 +157,28 @@ export const ContactFormScreen: React.FC = () => {
               autoCapitalize="words"
             />
             <Input
-              label="Prénom"
+              label={t('clients.form.firstName')}
               placeholder="Ahmed"
               value={form.prenom}
               onChangeText={setField('prenom')}
               autoCapitalize="words"
             />
             <Input
-              label="Poste / Fonction"
-              placeholder="Directeur commercial"
+              label={t('clients.contact.positionLabel')}
+              placeholder={t('clients.contact.positionPlaceholder')}
               value={form.poste}
               onChangeText={setField('poste')}
               autoCapitalize="words"
             />
             <Input
-              label="Téléphone"
+              label={t('clients.form.phone')}
               placeholder="+216 XX XXX XXX"
               value={form.telephone}
               onChangeText={setField('telephone')}
               keyboardType="phone-pad"
             />
             <Input
-              label="Email"
+              label={t('clients.form.email')}
               placeholder="contact@exemple.com"
               value={form.email}
               onChangeText={setField('email')}
@@ -186,9 +188,9 @@ export const ContactFormScreen: React.FC = () => {
             {/* Toggle principal */}
             <View style={styles.principalRow}>
               <View>
-                <Text style={styles.principalLabel}>Contact principal</Text>
+                <Text style={styles.principalLabel}>{t('clients.contact.principalToggle')}</Text>
                 <Text style={styles.principalHint}>
-                  Un seul contact principal par client
+                  {t('clients.contact.principalHint')}
                 </Text>
               </View>
               <Switch
@@ -201,7 +203,7 @@ export const ContactFormScreen: React.FC = () => {
           </View>
 
           <Button
-            label={isEditing ? 'Enregistrer' : 'Créer le contact'}
+            label={isEditing ? t('clients.contact.save') : t('clients.contact.create')}
             onPress={handleSubmit}
             loading={isSaving}
             fullWidth

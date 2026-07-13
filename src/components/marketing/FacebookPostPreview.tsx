@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useStyles, useTheme } from '../../theme';
 import { makeStyles } from './FacebookPostPreview.styles';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   /** Nom de la page affichée en en-tête. */
@@ -23,11 +24,7 @@ interface Props {
   showLabel?: boolean;
 }
 
-const ACTIONS = [
-  { icon: 'thumbs-up-outline', label: "J'aime" },
-  { icon: 'chatbubble-outline', label: 'Commenter' },
-  { icon: 'arrow-redo-outline', label: 'Partager' },
-];
+// ACTIONS construit dans le composant (labels traduits)
 
 /**
  * Carte imitant un post Facebook, alimentée par le texte (et l'image) de la publication.
@@ -38,6 +35,13 @@ export const FacebookPostPreview: React.FC<Props> = ({
 }) => {
   const styles = useStyles(makeStyles);
   const theme = useTheme();
+  const { t } = useTranslation();
+
+  const ACTIONS = [
+    { icon: 'thumbs-up-outline',  label: t('marketing.preview.actionLike')    },
+    { icon: 'chatbubble-outline', label: t('marketing.preview.actionComment') },
+    { icon: 'arrow-redo-outline', label: t('marketing.preview.actionShare')   },
+  ];
 
   const contenu = (texte ?? '').trim();
   if (!contenu) return null;
@@ -50,7 +54,7 @@ export const FacebookPostPreview: React.FC<Props> = ({
       {showLabel && (
         <View style={styles.apercuLabelRow}>
           <Ionicons name="eye-outline" size={15} color={theme.colors.textSecondary} />
-          <Text style={styles.apercuLabel}>Aperçu Facebook</Text>
+          <Text style={styles.apercuLabel}>{t('marketing.preview.label')}</Text>
         </View>
       )}
       <View style={styles.fbCard}>
@@ -61,7 +65,7 @@ export const FacebookPostPreview: React.FC<Props> = ({
           <View style={styles.fbHeadText}>
             <Text style={styles.fbPageName} numberOfLines={1}>{pageNom}</Text>
             <View style={styles.fbMetaRow}>
-              <Text style={styles.fbMeta}>À l'instant · </Text>
+              <Text style={styles.fbMeta}>{t('marketing.preview.moment')}</Text>
               <Ionicons name="earth" size={11} color={theme.colors.textTertiary} />
             </View>
           </View>
@@ -83,7 +87,7 @@ export const FacebookPostPreview: React.FC<Props> = ({
               <Ionicons name="heart" size={9} color="#fff" />
             </View>
           </View>
-          <Text style={styles.fbStatsText}>Vous et 128 autres personnes</Text>
+          <Text style={styles.fbStatsText}>{t('marketing.preview.likes')}</Text>
         </View>
 
         <View style={styles.fbDivider} />

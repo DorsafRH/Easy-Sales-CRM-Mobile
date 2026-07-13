@@ -24,6 +24,7 @@ import { Input }  from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useStyles } from '../../theme';
 import { makeStyles } from './ForgotPasswordScreen.styles';
+import { useTranslation } from 'react-i18next';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import * as AuthApi from '../../api/auth.api';
 
@@ -40,6 +41,7 @@ type Props = {
  */
 export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useStyles(makeStyles);
+  const { t }  = useTranslation();
 
   const [email,      setEmail]      = useState('');
   const [isLoading,  setIsLoading]  = useState(false);
@@ -125,18 +127,14 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           {/* Titre */}
-          <Text style={styles.title}>Mot de passe oublié ?</Text>
-          <Text style={styles.subtitle}>
-            Saisissez votre email et nous vous enverrons
-            un lien pour réinitialiser votre mot de passe.
-          </Text>
+          <Text style={styles.title}>{t('auth.forgot.title')}</Text>
+          <Text style={styles.subtitle}>{t('auth.forgot.subtitle')}</Text>
 
           {/* Message succès */}
           {isSuccess && (
             <View style={styles.alertSuccess}>
               <Text style={styles.alertSuccessText}>
-                ✅ Email envoyé ! Vérifiez votre boîte mail et
-                suivez les instructions pour réinitialiser votre mot de passe.
+                {t('auth.forgot.success')}
               </Text>
             </View>
           )}
@@ -152,7 +150,7 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           {!isSuccess && (
             <Card style={styles.card}>
               <Input
-                label="Adresse email"
+                label={t('auth.forgot.emailLabel')}
                 placeholder="votre@email.com"
                 value={email}
                 onChangeText={v => {
@@ -165,7 +163,7 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
                 required
               />
               <Button
-                label="Envoyer le lien"
+                label={t('auth.forgot.sendBtn')}
                 onPress={handleSubmit}
                 loading={isLoading}
                 fullWidth
@@ -177,9 +175,9 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Retour login */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Vous vous souvenez ?</Text>
+            <Text style={styles.footerText}>{t('auth.forgot.remember')}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.footerLink}> Se connecter</Text>
+              <Text style={styles.footerLink}>{t('auth.forgot.login')}</Text>
             </TouchableOpacity>
           </View>
 

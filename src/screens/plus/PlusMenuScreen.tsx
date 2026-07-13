@@ -11,6 +11,7 @@ import { SafeAreaView }              from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
 import { Ionicons }                      from '@expo/vector-icons';
+import { useTranslation }                from 'react-i18next';
 
 import { useStyles, useTheme, useThemeStore } from '../../theme';
 import { makeStyles }           from './PlusMenuScreen.styles';
@@ -81,6 +82,7 @@ const MenuItemRow: React.FC<{ item: MenuItem; isLast?: boolean }> = ({ item, isL
 export const PlusMenuScreen: React.FC = () => {
   const styles  = useStyles(makeStyles);
   const theme   = useTheme();
+  const { t }   = useTranslation();
   const { currentUser, logout, refreshUser } = useAuth();
 
   // Store Zustand pour le toggle dark mode
@@ -98,9 +100,9 @@ export const PlusMenuScreen: React.FC = () => {
   const nomEntreprise = currentUser?.nomEntreprise ?? '';
 
   const handleDeconnexion = () => {
-    Alert.alert('Deconnexion', 'Etes-vous sur de vouloir vous deconnecter ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Deconnecter', style: 'destructive', onPress: logout },
+    Alert.alert(t('screens.moreMenu.logoutTitle'), t('screens.moreMenu.logoutConfirm'), [
+      { text: t('screens.moreMenu.logoutCancel'), style: 'cancel' },
+      { text: t('screens.moreMenu.logoutAction'), style: 'destructive', onPress: logout },
     ]);
   };
 
@@ -108,24 +110,24 @@ export const PlusMenuScreen: React.FC = () => {
 
   const crmItems: MenuItem[] = [
     {
-      label:     'Clients',
-      sub:       'Gerer vos clients et contacts',
+      label:     t('screens.moreMenu.clients'),
+      sub:       t('screens.moreMenu.clientsSub'),
       icon:      'people-outline',
       iconBg:    theme.colors.primaryLight,
       iconColor: theme.colors.primary,
       onPress:   () => navigationPlus.getParent()?.navigate('Clients' as never),
     },
     {
-      label:     'Catalogue',
-      sub:       'Produits et categories',
+      label:     t('screens.moreMenu.catalogue'),
+      sub:       t('screens.moreMenu.catalogueSub'),
       icon:      'grid-outline',
       iconBg:    '#EFF6FF',
       iconColor: '#0369A1',
       onPress:   () => navigationPlus.navigate('CatalogueHome'),
     },
     {
-      label:     'Agenda',
-      sub:       'Reunions et rendez-vous clients',
+      label:     t('screens.moreMenu.agenda'),
+      sub:       t('screens.moreMenu.agendaSub'),
       icon:      'calendar-outline',
       iconBg:    '#F0FDF4',
       iconColor: '#16A34A',
@@ -135,16 +137,16 @@ export const PlusMenuScreen: React.FC = () => {
 
   const ventesItems: MenuItem[] = [
     {
-      label:    'Leads & Opportunites',
-      sub:      'Pipeline commercial',
+      label:    t('screens.moreMenu.leadsOpport'),
+      sub:      t('screens.moreMenu.leadsOpportSub'),
       icon:     'trending-up-outline',
       iconBg:   '#F0FDF4',
       iconColor:'#16A34A',
       onPress:  () => navigationPlus.getParent()?.navigate('Ventes' as never),
     },
     {
-      label:    'Devis',
-      sub:      'Devis et factures',
+      label:    t('screens.moreMenu.quotes'),
+      sub:      t('screens.moreMenu.quotesSub'),
       icon:     'document-text-outline',
       iconBg:   '#ECFDF5',
       iconColor:'#059669',
@@ -157,8 +159,8 @@ export const PlusMenuScreen: React.FC = () => {
 
   const marketingItems: MenuItem[] = [
     {
-      label:    'Publications',
-      sub:      'Gerer vos publications',
+      label:    t('screens.moreMenu.publications'),
+      sub:      t('screens.moreMenu.publicationsSub'),
       icon:     'megaphone-outline',
       iconBg:   '#FFF7ED',
       iconColor:'#EA580C',
@@ -168,8 +170,8 @@ export const PlusMenuScreen: React.FC = () => {
       ),
     },
     {
-      label:    'Reseaux sociaux',
-      sub:      'Comptes et diffusion',
+      label:    t('screens.moreMenu.socialNetworks'),
+      sub:      t('screens.moreMenu.socialNetworksSub'),
       icon:     'share-social-outline',
       iconBg:   '#F3E8FF',
       iconColor:'#7C3AED',
@@ -182,7 +184,7 @@ export const PlusMenuScreen: React.FC = () => {
 
   const compteItems: MenuItem[] = [
     {
-      label:     'Mon profil',
+      label:     t('screens.moreMenu.myProfile'),
       sub:       nomComplet,
       icon:      'person-outline',
       iconBg:    theme.colors.bgApp,
@@ -190,8 +192,8 @@ export const PlusMenuScreen: React.FC = () => {
       onPress:   () => navigationApp.navigate('EditProfile'),
     },
     {
-      label:     'Mon entreprise',
-      sub:       nomEntreprise || 'Informations entreprise',
+      label:     t('screens.moreMenu.myCompany'),
+      sub:       nomEntreprise || t('screens.moreMenu.myCompanySub'),
       icon:      'business-outline',
       iconBg:    theme.colors.bgApp,
       iconColor: theme.colors.textSecondary,
@@ -221,28 +223,28 @@ export const PlusMenuScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionLabel}>CRM</Text>
+        <Text style={styles.sectionLabel}>{t('screens.moreMenu.sectionCrm')}</Text>
         <View style={styles.menuGroup}>
           {crmItems.map((item, i) => (
             <MenuItemRow key={item.label} item={item} isLast={i === crmItems.length - 1} />
           ))}
         </View>
 
-        <Text style={styles.sectionLabel}>Ventes</Text>
+        <Text style={styles.sectionLabel}>{t('screens.moreMenu.sectionSales')}</Text>
         <View style={styles.menuGroup}>
           {ventesItems.map((item, i) => (
             <MenuItemRow key={item.label} item={item} isLast={i === ventesItems.length - 1} />
           ))}
         </View>
 
-        <Text style={styles.sectionLabel}>Marketing</Text>
+        <Text style={styles.sectionLabel}>{t('screens.moreMenu.sectionMarketing')}</Text>
         <View style={styles.menuGroup}>
           {marketingItems.map((item, i) => (
             <MenuItemRow key={item.label} item={item} isLast={i === marketingItems.length - 1} />
           ))}
         </View>
 
-        <Text style={styles.sectionLabel}>Mon compte</Text>
+        <Text style={styles.sectionLabel}>{t('screens.moreMenu.sectionAccount')}</Text>
         <View style={styles.menuGroup}>
           {compteItems.map((item, i) => (
             <MenuItemRow key={item.label} item={item} isLast={i === compteItems.length - 1} />
@@ -250,7 +252,7 @@ export const PlusMenuScreen: React.FC = () => {
         </View>
 
         {/* ── Apparence — Dark Mode ── */}
-        <Text style={styles.sectionLabel}>Apparence</Text>
+        <Text style={styles.sectionLabel}>{t('screens.moreMenu.sectionAppearance')}</Text>
         <View style={styles.menuGroup}>
           <View style={[styles.menuItem, styles.menuItemLast]}>
             <View style={[styles.menuIconWrapper, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}>
@@ -262,10 +264,10 @@ export const PlusMenuScreen: React.FC = () => {
             </View>
             <View style={styles.menuItemContent}>
               <Text style={styles.menuItemLabel}>
-                {isDark ? 'Mode sombre' : 'Mode clair'}
+                {isDark ? t('screens.moreMenu.darkMode') : t('screens.moreMenu.lightMode')}
               </Text>
               <Text style={styles.menuItemSub}>
-                {isDark ? 'Interface en mode nuit' : 'Interface en mode jour'}
+                {isDark ? t('screens.moreMenu.darkModeSub') : t('screens.moreMenu.lightModeSub')}
               </Text>
             </View>
             <Switch
@@ -287,7 +289,7 @@ export const PlusMenuScreen: React.FC = () => {
             <View style={styles.logoutIconWrapper}>
               <Ionicons name="log-out-outline" size={20} color={theme.colors.danger} />
             </View>
-            <Text style={styles.logoutLabel}>Se deconnecter</Text>
+            <Text style={styles.logoutLabel}>{t('screens.moreMenu.logout')}</Text>
           </TouchableOpacity>
         </View>
 
