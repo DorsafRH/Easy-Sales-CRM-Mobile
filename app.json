@@ -45,7 +45,16 @@
           "contactsPermission": "Autoriser $(PRODUCT_NAME) à accéder à vos contacts pour créer un client à partir de votre répertoire."
         }
       ],
-      "expo-localization"
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Autoriser $(PRODUCT_NAME) à accéder à votre galerie pour importer une photo de vos clients.",
+          "cameraPermission": "Autoriser $(PRODUCT_NAME) à utiliser la caméra pour photographier votre liste de clients."
+        }
+      ],
+      "expo-document-picker",
+      "expo-localization",
+      "expo-font"
     ],
     "extra": {
       "eas": {

@@ -19,7 +19,9 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  Pressable,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView }                  from 'react-native-safe-area-context';
 import { useNavigation }                 from '@react-navigation/native';
 import { NativeStackNavigationProp }     from '@react-navigation/native-stack';
@@ -144,11 +146,20 @@ export const ClientsListScreen: React.FC = () => {
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
           <Text style={styles.headerTitle}>{t('screens.clientsList.title')}</Text>
-          <Text style={styles.headerCount}>
-            {isLoading
-              ? '…'
-              : t(total !== 1 ? 'screens.clientsList.countPlural' : 'screens.clientsList.count', { nb: total })}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Pressable
+              onPress={() => navigation.navigate('ImportClients')}
+              hitSlop={8}
+              style={{ padding: 4 }}
+            >
+              <Ionicons name="cloud-upload-outline" size={22} color={theme.colors.primary} />
+            </Pressable>
+            <Text style={styles.headerCount}>
+              {isLoading
+                ? '…'
+                : t(total !== 1 ? 'screens.clientsList.countPlural' : 'screens.clientsList.count', { nb: total })}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.searchWrapper}>

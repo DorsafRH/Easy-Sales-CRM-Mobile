@@ -13,6 +13,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ClientsListScreen }    from '../screens/clients/ClientsListScreen';
 import { ClientDetailScreen }   from '../screens/clients/ClientDetailScreen';
 import { ClientFormScreen }     from '../screens/clients/ClientFormScreen';
+import { ImportClientsScreen }  from '../screens/clients/ImportClientsScreen';
 import { ContactDetailScreen }  from '../screens/contacts/ContactDetailScreen';
 import { ContactFormScreen }    from '../screens/contacts/ContactFormScreen';
 import { ClientResponse }       from '../types/client.types';
@@ -26,6 +27,7 @@ export type ClientsStackParamList = {
   ClientsList:    undefined;
   ClientDetail:   { clientId: number };
   ClientForm:     { client?: ClientResponse };
+  ImportClients:  undefined;
   ContactDetail:  { contactId: number; clientId: number };
   ContactForm:    { clientId: number; contact?: ContactResponse };
 };
@@ -54,6 +56,7 @@ export const ClientsStack: React.FC = () => (
     <Stack.Screen name="ClientsList"   component={ClientsListScreen}   />
     <Stack.Screen name="ClientDetail"  component={ClientDetailScreen}  />
     <Stack.Screen name="ClientForm"    component={ClientFormScreen}    />
+    <Stack.Screen name="ImportClients" component={ImportClientsScreen} />
     <Stack.Screen name="ContactDetail" component={ContactDetailScreen} />
     <Stack.Screen name="ContactForm"   component={ContactFormScreen}   />
   </Stack.Navigator>

@@ -110,6 +110,37 @@ export const modifierClient = async (
 };
 
 // ─────────────────────────────────────────────────────────────
+// IMPORT PHOTO (OCR)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Envoie une photo au backend pour détecter des clients via Groq Vision.
+ * Retourne la liste des clients détectés (non encore créés).
+ *
+ * @param imageUri  - URI locale de l'image
+ * @param mimeType  - Type MIME (image/jpeg, image/png…)
+ * @author Riahi Dorsaf
+ */
+export const importerDepuisPhoto = async (
+  imageUri: string,
+  mimeType: string = 'image/jpeg',
+): Promise<ApiResponse<ClientRequest[]>> => {
+  const formData = new FormData();
+  formData.append('image', {
+    uri: imageUri,
+    type: mimeType,
+    name: 'import.jpg',
+  } as unknown as Blob);
+
+  const response = await apiClient.post<ApiResponse<ClientRequest[]>>(
+    '/clients/import/photo',
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+  return response.data;
+};
+
+// ─────────────────────────────────────────────────────────────
 // SUPPRESSION (soft delete)
 // ─────────────────────────────────────────────────────────────
 
